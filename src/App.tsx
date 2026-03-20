@@ -1,4 +1,4 @@
-import { useReducer, useState, useEffect, useMemo, useCallback } from 'react';
+import { useReducer, useState, useMemo, useCallback } from 'react';
 import { fetchMilestones, fetchMilestoneItems } from './github';
 import type { Milestone, TimelineItem } from './types';
 import Timeline from './Timeline';
@@ -15,6 +15,14 @@ const LS_REPO  = 'gmt_repo';
 const LS_DARK  = 'gmt_dark';
 
 const MILESTONE_COLORS = ['#0969da', '#8250df', '#1a7f37', '#d97706', '#cf222e', '#0550ae'];
+
+// Runs once at module load — applies saved theme before first paint, no FOUC.
+function initDark(): boolean {
+  const isDark = localStorage.getItem(LS_DARK) !== 'false';
+  document.body.classList.toggle('dark', isDark);
+  return isDark;
+}
+const INITIAL_DARK = initDark();
 
 // ---------------------------------------------------------------------------
 // Reducer — all milestone-related state in one place
@@ -114,21 +122,19 @@ function milestoneReducer(state: MilestoneState, action: Action): MilestoneState
 // ---------------------------------------------------------------------------
 
 export default function App() {
-  const [dark, setDark]   = useState(() => localStorage.getItem(LS_DARK) !== 'false');
+  const [dark, setDark]   = useState(INITIAL_DARK);
   const [token, setToken] = useState(() => localStorage.getItem(LS_TOKEN) ?? '');
   const [owner, setOwner] = useState(() => localStorage.getItem(LS_OWNER) ?? '');
   const [repo, setRepo]   = useState(() => localStorage.getItem(LS_REPO)  ?? '');
 
   const [state, dispatch] = useReducer(milestoneReducer, initialState);
 
-  // Persist preferences — also applies dark class on first render via [dark] dep
-  useEffect(() => {
-    localStorage.setItem(LS_DARK, String(dark));
-    document.body.classList.toggle('dark', dark);
-  }, [dark]);
-  useEffect(() => { localStorage.setItem(LS_TOKEN, token); }, [token]);
-  useEffect(() => { localStorage.setItem(LS_OWNER, owner); }, [owner]);
-  useEffect(() => { localStorage.setItem(LS_REPO,  repo);  }, [repo]);
+  const toggleDark = () => {
+    const next = !dark;
+    setDark(next);
+    localStorage.setItem(LS_DARK, String(next));
+    document.body.classList.toggle('dark', next);
+  };
 
   const milestoneColorFor = useCallback((num: number) => {
     const idx = state.milestones.findIndex(m => m.number === num);
@@ -196,7 +202,7 @@ export default function App() {
     <div className="app">
       <header className="app-header">
         <h1>GitHub Milestone Dashboard</h1>
-        <button className="btn-theme" onClick={() => setDark(d => !d)} title={dark ? 'Switch to light mode' : 'Switch to dark mode'}>
+        <button className="btn-theme" onClick={toggleDark} title={dark ? 'Switch to light mode' : 'Switch to dark mode'}>
           {dark ? (
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="4" />
@@ -224,7 +230,7 @@ export default function App() {
             <input
               type="password"
               value={token}
-              onChange={e => setToken(e.target.value)}
+              onChange={e => { setToken(e.target.value); localStorage.setItem(LS_TOKEN, e.target.value); }}
               placeholder="ghp_... or fine-grained token"
               className="input-wide"
               onKeyDown={e => e.key === 'Enter' && loadMilestones()}
@@ -236,14 +242,14 @@ export default function App() {
             <div className="repo-group">
               <input
                 value={owner}
-                onChange={e => setOwner(e.target.value)}
+                onChange={e => { setOwner(e.target.value); localStorage.setItem(LS_OWNER, e.target.value); }}
                 placeholder="owner"
                 onKeyDown={e => e.key === 'Enter' && loadMilestones()}
               />
               <span className="repo-sep">/</span>
               <input
                 value={repo}
-                onChange={e => setRepo(e.target.value)}
+                onChange={e => { setRepo(e.target.value); localStorage.setItem(LS_REPO, e.target.value); }}
                 placeholder="repo"
                 onKeyDown={e => e.key === 'Enter' && loadMilestones()}
               />
