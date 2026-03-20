@@ -136,17 +136,18 @@ export function exportMarkdown(items: TimelineItem[], title: string): void {
 
 export async function exportPNG(
   wrapperEl: HTMLElement,
-  trackColEl: HTMLElement,
+  trackColEl: HTMLElement | null,
   title: string,
   mode: 'current' | 'full',
 ): Promise<void> {
   const { toPng } = await import('html-to-image');
 
-  // For the full export, temporarily expand the scrollable track column so all
-  // bars are visible. For current view, capture the DOM as-is.
+  // For the full Gantt export, temporarily expand the scrollable track column
+  // so all bars are visible. For other views (trackColEl is null) or current-
+  // view mode, capture the DOM as-is.
   let prevOverflowX = '';
   let prevWidth = '';
-  if (mode === 'full') {
+  if (mode === 'full' && trackColEl) {
     prevOverflowX = trackColEl.style.overflowX;
     prevWidth = trackColEl.style.width;
     trackColEl.style.overflowX = 'visible';
@@ -165,7 +166,7 @@ export async function exportPNG(
     a.download = `${safeFilename(title)}_${mode === 'full' ? 'full' : 'current'}.png`;
     a.click();
   } finally {
-    if (mode === 'full') {
+    if (mode === 'full' && trackColEl) {
       trackColEl.style.overflowX = prevOverflowX;
       trackColEl.style.width = prevWidth;
     }

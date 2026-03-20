@@ -2,6 +2,9 @@ import { useState, useRef, useEffect } from 'react';
 import type { TimelineItem } from './types';
 import { exportCSV, exportMarkdown, exportPNG, exportPDF, exportXLSX } from './export';
 import Burndown from './Burndown';
+import CycleTime from './CycleTime';
+import Velocity from './Velocity';
+import CumulativeFlow from './CumulativeFlow';
 
 interface Props {
   items: TimelineItem[];
@@ -23,8 +26,8 @@ const ROW_HEIGHT = 31;
 type ExportFormat = 'CSV' | 'XLSX' | 'Markdown' | 'PNG — Current view' | 'PNG — Full timeline' | 'PDF';
 const EXPORT_FORMATS: ExportFormat[] = ['CSV', 'XLSX', 'Markdown', 'PNG — Current view', 'PNG — Full timeline', 'PDF'];
 
-type View = 'Gantt' | 'Burndown';
-const VIEWS: View[] = ['Gantt', 'Burndown'];
+type View = 'Gantt' | 'Burndown' | 'Cycle Time' | 'Velocity' | 'Cumulative Flow';
+const VIEWS: View[] = ['Gantt', 'Burndown', 'Cycle Time', 'Velocity', 'Cumulative Flow'];
 
 export default function Timeline({ items, title }: Props) {
   const [labelWidth, setLabelWidth] = useState(320);
@@ -101,10 +104,12 @@ export default function Timeline({ items, title }: Props) {
     return () => document.removeEventListener('mousedown', handler);
   }, [viewOpen]);
 
-  // Formats that don't apply to the current view
+  // "PNG — Current view" only makes sense for the Gantt where you may be zoomed
+  // in to a particular scroll position. All other views are fully visible, so
+  // only "PNG — Full timeline" is offered there.
   const disabledExports: Partial<Record<ExportFormat, string>> =
-    view === 'Burndown'
-      ? { 'PNG — Full timeline': 'Only applies to the Gantt timeline view' }
+    view !== 'Gantt'
+      ? { 'PNG — Current view': 'No scroll position in this view — use PNG — Full timeline' }
       : {};
   const hasLimitedExports = Object.keys(disabledExports).length > 0;
 
@@ -116,9 +121,9 @@ export default function Timeline({ items, title }: Props) {
       if (fmt === 'CSV') exportCSV(completedItems, title);
       else if (fmt === 'Markdown') exportMarkdown(completedItems, title);
       else if (fmt === 'PNG — Current view')
-        await exportPNG(wrapperRef.current!, trackColRef.current!, title, 'current');
+        await exportPNG(wrapperRef.current!, trackColRef.current, title, 'current');
       else if (fmt === 'PNG — Full timeline')
-        await exportPNG(wrapperRef.current!, trackColRef.current!, title, 'full');
+        await exportPNG(wrapperRef.current!, trackColRef.current, title, 'full');
       else if (fmt === 'PDF') await exportPDF(completedItems, title);
       else if (fmt === 'XLSX') await exportXLSX(completedItems, title);
     } catch (e) {
@@ -336,8 +341,11 @@ export default function Timeline({ items, title }: Props) {
         )}
       </div>
 
-      {/* ── Burndown view ── */}
-      {view === 'Burndown' && <Burndown items={items} />}
+      {/* ── Non-Gantt views ── */}
+      {view === 'Burndown'        && <Burndown items={items} />}
+      {view === 'Cycle Time'      && <CycleTime items={items} />}
+      {view === 'Velocity'        && <Velocity items={items} />}
+      {view === 'Cumulative Flow' && <CumulativeFlow items={items} />}
 
       {/* ── Gantt view ── */}
       {view === 'Gantt' && (
