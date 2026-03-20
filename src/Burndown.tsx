@@ -1,3 +1,4 @@
+import { useState, useRef } from 'react';
 import type { TimelineItem } from './types';
 
 interface Props {
@@ -8,17 +9,42 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
-const L = 48;   // chart left padding (for y-axis labels)
-const R = 12;   // chart right padding
-const T = 20;   // chart top padding
-const B = 36;   // chart bottom padding (for x-axis labels)
-const W = 800;  // SVG viewBox width
-const H = 280;  // SVG viewBox height
-const CW = W - L - R; // chart area width
-const CH = H - T - B; // chart area height
+// SVG chart dimensions
+const L = 48;   // left padding (y-axis labels)
+const R = 16;   // right padding
+const T = 24;   // top padding
+const B = 36;   // bottom padding (x-axis labels)
+const W = 800;
+const H = 280;
+const CW = W - L - R;
+const CH = H - T - B;
+
+// Hardcoded fallback colours used as SVG presentation attributes so
+// html-to-image captures them correctly (CSS custom properties don't
+// resolve inside the cloned document it creates).
+const C = {
+  area:       'rgba(9,105,218,0.12)',
+  line:       '#0969da',
+  grid:       '#d0d7de',
+  axis:       '#57606a',
+  today:      'rgba(248,81,73,0.7)',
+  todayLabel: 'rgba(248,81,73,0.9)',
+  label:      '#57606a',
+  callout:    '#24292f',
+  dot:        '#0969da',
+};
+
+interface HoverInfo {
+  x: number;
+  y: number;
+  date: string;
+  count: number;
+}
 
 export default function Burndown({ items }: Props) {
   const issues = items.filter(i => i.type === 'issue');
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [hover, setHover] = useState<HoverInfo | null>(null);
 
   if (issues.length === 0) {
     return <p className="tl-empty">No issues to plot a burndown for.</p>;
@@ -26,15 +52,15 @@ export default function Burndown({ items }: Props) {
 
   const MS = 86_400_000;
   const todayMs = Date.now();
-
   const hasOpenIssues = issues.some(i => !i.closedAt);
 
-  // X-axis range: end at the last close date when all issues are resolved,
-  // or today when issues are still open. Avoids squashing closed-milestone data.
+  // X-axis range: end at the last close date for fully-closed milestones.
+  // Only extend to today when issues are still open, otherwise all closed
+  // data gets squashed to the left when today is months/years later.
   const createdTs = issues.map(i => new Date(i.createdAt).getTime());
-  const closedTs = issues.filter(i => i.closedAt).map(i => new Date(i.closedAt!).getTime());
-  const minTime = Math.min(...createdTs);
-  const maxTime = hasOpenIssues
+  const closedTs  = issues.filter(i => i.closedAt).map(i => new Date(i.closedAt!).getTime());
+  const minTime   = Math.min(...createdTs);
+  const maxTime   = hasOpenIssues
     ? Math.max(...[...createdTs, ...closedTs], todayMs)
     : Math.max(...[...createdTs, ...closedTs]);
   const totalDays = Math.max(Math.ceil((maxTime - minTime) / MS), 1);
@@ -44,7 +70,7 @@ export default function Burndown({ items }: Props) {
     const t = minTime + i * MS;
     const count = issues.filter(issue => {
       const created = new Date(issue.createdAt).getTime();
-      const closed = issue.closedAt ? new Date(issue.closedAt).getTime() : Infinity;
+      const closed  = issue.closedAt ? new Date(issue.closedAt).getTime() : Infinity;
       return created <= t && closed > t;
     }).length;
     return { t, count };
@@ -52,123 +78,150 @@ export default function Burndown({ items }: Props) {
 
   const maxCount = Math.max(...points.map(p => p.count), 1);
 
-  const px = (i: number) => L + (points.length > 1 ? (i / (points.length - 1)) * CW : CW / 2);
-  const py = (count: number) => T + (1 - count / maxCount) * CH;
+  const pxFn = (i: number) =>
+    L + (points.length > 1 ? (i / (points.length - 1)) * CW : CW / 2);
+  const pyFn = (count: number) => T + (1 - count / maxCount) * CH;
 
-  // Line + area paths
+  // Paths
   const linePath = points
-    .map(({ count }, i) => `${i === 0 ? 'M' : 'L'}${px(i).toFixed(1)},${py(count).toFixed(1)}`)
+    .map(({ count }, i) => `${i === 0 ? 'M' : 'L'}${pxFn(i).toFixed(1)},${pyFn(count).toFixed(1)}`)
     .join(' ');
-  const areaPath = `${linePath} L${(L + CW).toFixed(1)},${(T + CH).toFixed(1)} L${L.toFixed(1)},${(T + CH).toFixed(1)} Z`;
+  const areaPath =
+    `${linePath} L${(L + CW).toFixed(1)},${(T + CH).toFixed(1)} L${L.toFixed(1)},${(T + CH).toFixed(1)} Z`;
 
-  // X axis: up to 8 evenly-spaced labels
-  const numXLabels = Math.min(8, points.length);
+  // X axis: up to 8 evenly-spaced labels; first anchored start, last anchored end
+  const numXLabels   = Math.min(8, points.length);
   const xLabelIndices = Array.from({ length: numXLabels }, (_, i) =>
     Math.round((i / Math.max(numXLabels - 1, 1)) * (points.length - 1)),
   );
 
-  // Y axis: 5 labels from 0 to maxCount
-  const yLabels = Array.from({ length: 5 }, (_, i) => Math.round((maxCount * i) / 4));
+  // Y axis: every integer up to maxCount, with a step for large counts
+  const yStep  = maxCount <= 15 ? 1 : maxCount <= 40 ? 2 : Math.ceil(maxCount / 15);
+  const yLabels = Array.from({ length: Math.floor(maxCount / yStep) + 1 }, (_, i) => i * yStep);
 
-  // Today marker (only shown if today is within the chart range)
-  const showToday = todayMs >= minTime && todayMs <= maxTime;
-  const todayFrac = (todayMs - minTime) / (maxTime - minTime);
-  const todayXNum = L + todayFrac * CW;
-  const todayX = todayXNum.toFixed(1);
-  // Flip "Today" label to left of line when near the right edge
-  const todayLabelRight = todayFrac > 0.85;
+  // Today marker
+  const showToday      = todayMs >= minTime && todayMs <= maxTime;
+  const todayFrac      = (todayMs - minTime) / (maxTime - minTime);
+  const todayXNum      = L + todayFrac * CW;
+  const todayX         = todayXNum.toFixed(1);
+  const todayFlipLeft  = todayFrac > 0.85;
 
-  // Current open count annotation — anchor to left edge so it never clips
   const currentOpen = points[points.length - 1].count;
 
+  const handleDotEnter = (e: React.MouseEvent, t: number, count: number) => {
+    const rect = wrapRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setHover({ x: e.clientX - rect.left, y: e.clientY - rect.top, date: formatDate(new Date(t).toISOString()), count });
+  };
+
+  // Compute hover card position, keeping it inside the wrapper
+  const hoverCardStyle = (() => {
+    if (!hover) return {};
+    const wrapW = wrapRef.current?.offsetWidth ?? 800;
+    const nearRight = hover.x > wrapW - 180;
+    const nearTop   = hover.y < 60;
+    return {
+      top:  nearTop ? hover.y + 14 : hover.y - 52,
+      ...(nearRight
+        ? { right: wrapW - hover.x + 14 }
+        : { left: hover.x + 14 }),
+    };
+  })();
+
   return (
-    <div className="burndown-wrap">
+    <div className="burndown-wrap" ref={wrapRef} style={{ position: 'relative' }}>
+      {/* Hover card */}
+      {hover && (
+        <div className="bd-hovercard" style={hoverCardStyle}>
+          <span className="bd-hovercard-date">{hover.date}</span>
+          <span className="bd-hovercard-count">
+            <span className="bd-hovercard-dot" />
+            {hover.count} open issue{hover.count !== 1 ? 's' : ''}
+          </span>
+        </div>
+      )}
+
       <svg
         viewBox={`0 0 ${W} ${H}`}
         style={{ width: '100%', height: 'auto', display: 'block' }}
         aria-label="Burndown chart"
+        onMouseLeave={() => setHover(null)}
       >
-        {/* Horizontal grid lines */}
+        {/* Grid lines */}
         {yLabels.map(count => (
           <line
             key={count}
-            x1={L} y1={py(count).toFixed(1)}
-            x2={L + CW} y2={py(count).toFixed(1)}
-            className="bd-grid"
+            x1={L} y1={pyFn(count).toFixed(1)}
+            x2={L + CW} y2={pyFn(count).toFixed(1)}
+            stroke={C.grid} strokeWidth={1} strokeDasharray="4 3"
           />
         ))}
 
         {/* Area fill */}
-        <path d={areaPath} className="bd-area" />
+        <path d={areaPath} fill={C.area} />
 
         {/* Line */}
-        <path d={linePath} className="bd-line" />
+        <path d={linePath} fill="none" stroke={C.line} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
 
-        {/* Hover dots — one per day, invisible until hovered */}
+        {/* Hover dots — invisible until hovered */}
         {points.map(({ t, count }, i) => (
           <circle
             key={`dot-${i}`}
-            cx={px(i).toFixed(1)}
-            cy={py(count).toFixed(1)}
+            cx={pxFn(i).toFixed(1)}
+            cy={pyFn(count).toFixed(1)}
             r={6}
+            fill={C.dot}
             className="bd-dot"
-          >
-            <title>{formatDate(new Date(t).toISOString())}: {count} open issue{count !== 1 ? 's' : ''}</title>
-          </circle>
+            onMouseEnter={e => handleDotEnter(e, t, count)}
+          />
         ))}
 
         {/* Today marker */}
         {showToday && (
           <g>
             <line
-              x1={todayX} y1={T}
-              x2={todayX} y2={T + CH}
-              className="bd-today"
+              x1={todayX} y1={T} x2={todayX} y2={T + CH}
+              stroke={C.today} strokeWidth={2} strokeDasharray="5 3"
             />
             <text
-              x={todayLabelRight ? todayXNum - 4 : todayXNum + 4}
+              x={todayFlipLeft ? todayXNum - 4 : todayXNum + 4}
               y={T + 11}
-              textAnchor={todayLabelRight ? 'end' : 'start'}
-              className="bd-today-label"
+              textAnchor={todayFlipLeft ? 'end' : 'start'}
+              fill={C.todayLabel} fontSize={11} fontFamily="inherit"
             >
               Today
             </text>
           </g>
         )}
 
-        {/* X axis baseline */}
-        <line x1={L} y1={T + CH} x2={L + CW} y2={T + CH} className="bd-axis" />
+        {/* Axes */}
+        <line x1={L} y1={T + CH} x2={L + CW} y2={T + CH} stroke={C.axis} strokeWidth={1} />
+        <line x1={L} y1={T}      x2={L}       y2={T + CH} stroke={C.axis} strokeWidth={1} />
 
-        {/* Y axis baseline */}
-        <line x1={L} y1={T} x2={L} y2={T + CH} className="bd-axis" />
-
-        {/* Y axis labels */}
+        {/* Y axis labels — every step value */}
         {yLabels.map(count => (
-          <text key={count} x={L - 6} y={py(count) + 4} textAnchor="end" className="bd-label">
+          <text key={count} x={L - 6} y={pyFn(count) + 4}
+            textAnchor="end" fill={C.label} fontSize={11} fontFamily="inherit">
             {count}
           </text>
         ))}
 
-        {/* X axis labels */}
-        {xLabelIndices.map(i => (
+        {/* X axis labels — first left-anchored, last right-anchored to prevent clipping */}
+        {xLabelIndices.map((ptIdx, labelIdx) => (
           <text
-            key={i}
-            x={px(i)}
+            key={ptIdx}
+            x={pxFn(ptIdx)}
             y={T + CH + 22}
-            textAnchor="middle"
-            className="bd-label"
+            textAnchor={labelIdx === 0 ? 'start' : labelIdx === numXLabels - 1 ? 'end' : 'middle'}
+            fill={C.label} fontSize={11} fontFamily="inherit"
           >
-            {formatDate(new Date(points[i].t).toISOString())}
+            {formatDate(new Date(points[ptIdx].t).toISOString())}
           </text>
         ))}
 
-        {/* Current open count callout — anchored left of right edge so it never clips */}
-        <text
-          x={L + CW - 4}
-          y={T - 6}
-          textAnchor="end"
-          className="bd-label bd-label--callout"
-        >
+        {/* Current open count callout */}
+        <text x={L + CW - 4} y={T - 6} textAnchor="end"
+          fill={C.callout} fontSize={12} fontWeight="bold" fontFamily="inherit">
           {currentOpen} open
         </text>
       </svg>

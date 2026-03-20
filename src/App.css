@@ -317,8 +317,21 @@ select:focus {
   font-family: inherit;
 }
 
-.export-option:hover {
+.export-option:hover:not(:disabled) {
   background: var(--toggle-bg);
+}
+
+.export-option--disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.export-limited-icon {
+  font-size: 11px;
+  margin: 0 2px 0 4px;
+  opacity: 0.65;
+  cursor: help;
+  vertical-align: middle;
 }
 
 .tl-empty {
@@ -694,56 +707,9 @@ body.dark .stat-value--fast   { color: #3fb950; }
   padding: 8px 0;
 }
 
-.bd-area {
-  fill: rgba(9, 105, 218, 0.12);
-}
-
-.bd-line {
-  fill: none;
-  stroke: #0969da;
-  stroke-width: 2;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-}
-
-.bd-grid {
-  stroke: var(--border);
-  stroke-width: 1;
-  stroke-dasharray: 4 3;
-}
-
-.bd-axis {
-  stroke: var(--text-secondary);
-  stroke-width: 1;
-}
-
-.bd-today {
-  stroke: rgba(248, 81, 73, 0.7);
-  stroke-width: 2;
-  stroke-dasharray: 5 3;
-}
-
-.bd-today-label {
-  fill: rgba(248, 81, 73, 0.9);
-  font-size: 11px;
-  font-family: inherit;
-}
-
-.bd-label {
-  fill: var(--text-secondary);
-  font-size: 11px;
-  font-family: inherit;
-}
-
-.bd-label--callout {
-  fill: var(--text-primary);
-  font-weight: 700;
-  font-size: 12px;
-}
-
-/* Hover dots */
+/* Hover dots — SVG presentation attributes set colours for export;
+   CSS handles the visibility toggle for interactive use. */
 .bd-dot {
-  fill: #0969da;
   opacity: 0;
   cursor: crosshair;
   transition: opacity 0.1s;
@@ -751,4 +717,44 @@ body.dark .stat-value--fast   { color: #3fb950; }
 
 .bd-dot:hover {
   opacity: 1;
+}
+
+/* ── Burndown hover card ── */
+
+.bd-hovercard {
+  position: absolute;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  padding: 8px 12px;
+  pointer-events: none;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 148px;
+}
+
+.bd-hovercard-date {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.bd-hovercard-count {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.bd-hovercard-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #0969da;
+  flex-shrink: 0;
 }

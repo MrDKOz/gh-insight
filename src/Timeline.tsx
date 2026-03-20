@@ -101,7 +101,15 @@ export default function Timeline({ items, title }: Props) {
     return () => document.removeEventListener('mousedown', handler);
   }, [viewOpen]);
 
+  // Formats that don't apply to the current view
+  const disabledExports: Partial<Record<ExportFormat, string>> =
+    view === 'Burndown'
+      ? { 'PNG — Full timeline': 'Only applies to the Gantt timeline view' }
+      : {};
+  const hasLimitedExports = Object.keys(disabledExports).length > 0;
+
   const handleExport = async (fmt: ExportFormat) => {
+    if (disabledExports[fmt]) return;
     setExportOpen(false);
     setExporting(fmt);
     try {
@@ -256,15 +264,31 @@ export default function Timeline({ items, title }: Props) {
               disabled={exporting !== null}
             >
               {exporting ? `Exporting ${exporting}…` : 'Export'}
+              {hasLimitedExports && !exporting && (
+                <span
+                  className="export-limited-icon"
+                  title="Some export formats are not available in this view"
+                  aria-label="Some formats unavailable"
+                >ⓘ</span>
+              )}
               <span aria-hidden> ▾</span>
             </button>
             {exportOpen && (
               <div className="export-dropdown">
-                {EXPORT_FORMATS.map((fmt) => (
-                  <button key={fmt} className="export-option" onClick={() => handleExport(fmt)}>
-                    {fmt}
-                  </button>
-                ))}
+                {EXPORT_FORMATS.map((fmt) => {
+                  const reason = disabledExports[fmt];
+                  return (
+                    <button
+                      key={fmt}
+                      className={`export-option${reason ? ' export-option--disabled' : ''}`}
+                      onClick={() => handleExport(fmt)}
+                      disabled={!!reason}
+                      title={reason}
+                    >
+                      {fmt}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
