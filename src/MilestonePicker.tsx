@@ -5,7 +5,7 @@ import { useOutsideClick } from './hooks';
 interface Props {
   milestones:  Milestone[];
   selected:    Milestone[];
-  loadingNums: Set<number>;
+  loadingNums: number[];
   colorFor:    (num: number) => string;
   onAdd:       (ms: Milestone) => void;
   onRemove:    (num: number) => void;
@@ -32,7 +32,7 @@ export default function MilestonePicker({
             className="ms-chip"
             style={{ background: colorFor(ms.number) }}
           >
-            {loadingNums.has(ms.number) ? '…' : ms.title}
+            {loadingNums.includes(ms.number) ? '…' : ms.title}
             <button
               className="ms-chip__remove"
               onClick={() => onRemove(ms.number)}
@@ -48,7 +48,7 @@ export default function MilestonePicker({
             <button
               className="btn-secondary ms-add-btn"
               onClick={() => setOpen(o => !o)}
-              disabled={loadingNums.size > 0}
+              disabled={loadingNums.length > 0}
             >
               + {selected.length === 0 ? 'Select milestone' : 'Add'}
             </button>

@@ -1,9 +1,13 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useReducer, useState, useEffect, useMemo, useCallback } from 'react';
 import { fetchMilestones, fetchMilestoneItems } from './github';
 import type { Milestone, TimelineItem } from './types';
 import Timeline from './Timeline';
 import MilestonePicker from './MilestonePicker';
-import { DEMO_MILESTONE, DEMO_ITEMS, DEMO_MILESTONE_2, DEMO_ITEMS_2, DEMO_MILESTONE_3, DEMO_ITEMS_3 } from './demo';
+import {
+  DEMO_MILESTONE,   DEMO_ITEMS,
+  DEMO_MILESTONE_2, DEMO_ITEMS_2,
+  DEMO_MILESTONE_3, DEMO_ITEMS_3,
+} from './demo';
 
 const LS_TOKEN = 'gmt_token';
 const LS_OWNER = 'gmt_owner';
@@ -12,19 +16,112 @@ const LS_DARK  = 'gmt_dark';
 
 const MILESTONE_COLORS = ['#0969da', '#8250df', '#1a7f37', '#d97706', '#cf222e', '#0550ae'];
 
+// ---------------------------------------------------------------------------
+// Reducer — all milestone-related state in one place
+// ---------------------------------------------------------------------------
+
+interface MilestoneState {
+  milestones:  Milestone[];
+  selected:    Milestone[];
+  itemsCache:  Record<number, TimelineItem[]>;
+  loadingNums: number[];
+  loadingList: boolean;
+  error:       string | null;
+}
+
+type Action =
+  | { type: 'FETCH_LIST_START' }
+  | { type: 'FETCH_LIST_SUCCESS';  milestones: Milestone[] }
+  | { type: 'FETCH_LIST_EMPTY' }
+  | { type: 'FETCH_LIST_ERROR';    error: string }
+  | { type: 'SELECT_MILESTONE';    milestone: Milestone }
+  | { type: 'FETCH_ITEMS_START';   milestoneNumber: number }
+  | { type: 'FETCH_ITEMS_SUCCESS'; milestoneNumber: number; items: TimelineItem[] }
+  | { type: 'FETCH_ITEMS_ERROR';   milestoneNumber: number; error: string }
+  | { type: 'REMOVE_MILESTONE';    milestoneNumber: number }
+  | { type: 'LOAD_DEMO';           milestones: Milestone[]; itemsCache: Record<number, TimelineItem[]> };
+
+const initialState: MilestoneState = {
+  milestones:  [],
+  selected:    [],
+  itemsCache:  {},
+  loadingNums: [],
+  loadingList: false,
+  error:       null,
+};
+
+function milestoneReducer(state: MilestoneState, action: Action): MilestoneState {
+  switch (action.type) {
+    case 'FETCH_LIST_START':
+      return { ...initialState, loadingList: true };
+
+    case 'FETCH_LIST_SUCCESS':
+      return { ...state, milestones: action.milestones, loadingList: false };
+
+    case 'FETCH_LIST_EMPTY':
+      return { ...state, loadingList: false, error: 'No milestones found for this repository.' };
+
+    case 'FETCH_LIST_ERROR':
+      return { ...state, loadingList: false, error: action.error };
+
+    case 'SELECT_MILESTONE':
+      return { ...state, selected: [...state.selected, action.milestone], error: null };
+
+    case 'FETCH_ITEMS_START':
+      return { ...state, loadingNums: [...state.loadingNums, action.milestoneNumber] };
+
+    case 'FETCH_ITEMS_SUCCESS': {
+      const title = state.milestones.find(m => m.number === action.milestoneNumber)?.title
+        ?? String(action.milestoneNumber);
+      return {
+        ...state,
+        itemsCache:  { ...state.itemsCache, [action.milestoneNumber]: action.items },
+        loadingNums: state.loadingNums.filter(n => n !== action.milestoneNumber),
+        error: action.items.length === 0
+          ? `No items found in milestone "${title}".`
+          : state.error,
+      };
+    }
+
+    case 'FETCH_ITEMS_ERROR':
+      return {
+        ...state,
+        selected:    state.selected.filter(m => m.number !== action.milestoneNumber),
+        loadingNums: state.loadingNums.filter(n => n !== action.milestoneNumber),
+        error: action.error,
+      };
+
+    case 'REMOVE_MILESTONE':
+      return { ...state, selected: state.selected.filter(m => m.number !== action.milestoneNumber) };
+
+    case 'LOAD_DEMO':
+      return {
+        milestones:  action.milestones,
+        selected:    action.milestones,
+        itemsCache:  action.itemsCache,
+        loadingNums: [],
+        loadingList: false,
+        error:       null,
+      };
+
+    default:
+      return state;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
 export default function App() {
   const [dark, setDark]   = useState(() => localStorage.getItem(LS_DARK) !== 'false');
   const [token, setToken] = useState(() => localStorage.getItem(LS_TOKEN) ?? '');
   const [owner, setOwner] = useState(() => localStorage.getItem(LS_OWNER) ?? '');
   const [repo, setRepo]   = useState(() => localStorage.getItem(LS_REPO)  ?? '');
 
-  const [milestones, setMilestones]                 = useState<Milestone[]>([]);
-  const [selectedMilestones, setSelectedMilestones] = useState<Milestone[]>([]);
-  const [milestoneItemsMap, setMilestoneItemsMap]   = useState<Map<number, TimelineItem[]>>(new Map());
-  const [loadingNums, setLoadingNums]               = useState<Set<number>>(new Set());
-  const [loadingMilestones, setLoadingMilestones]   = useState(false);
-  const [error, setError]                           = useState<string | null>(null);
+  const [state, dispatch] = useReducer(milestoneReducer, initialState);
 
+  // Persist preferences — also applies dark class on first render via [dark] dep
   useEffect(() => {
     localStorage.setItem(LS_DARK, String(dark));
     document.body.classList.toggle('dark', dark);
@@ -33,94 +130,73 @@ export default function App() {
   useEffect(() => { localStorage.setItem(LS_OWNER, owner); }, [owner]);
   useEffect(() => { localStorage.setItem(LS_REPO,  repo);  }, [repo]);
 
-  // Apply saved theme on first render
-  useEffect(() => {
-    document.body.classList.toggle('dark', dark);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const milestoneColorFor = useCallback((num: number) => {
-    const idx = milestones.findIndex(m => m.number === num);
+    const idx = state.milestones.findIndex(m => m.number === num);
     return MILESTONE_COLORS[Math.max(0, idx) % MILESTONE_COLORS.length];
-  }, [milestones]);
+  }, [state.milestones]);
 
   const loadMilestones = async () => {
     if (!token || !owner || !repo) return;
-    setLoadingMilestones(true);
-    setError(null);
-    setMilestones([]);
-    setSelectedMilestones([]);
-    setMilestoneItemsMap(new Map());
-    setLoadingNums(new Set());
+    dispatch({ type: 'FETCH_LIST_START' });
     try {
-      const data = await fetchMilestones(owner, repo, token);
-      setMilestones(data);
-      if (data.length === 0) setError('No milestones found for this repository.');
+      const milestones = await fetchMilestones(owner, repo, token);
+      dispatch(milestones.length === 0
+        ? { type: 'FETCH_LIST_EMPTY' }
+        : { type: 'FETCH_LIST_SUCCESS', milestones });
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setLoadingMilestones(false);
+      dispatch({ type: 'FETCH_LIST_ERROR', error: e instanceof Error ? e.message : String(e) });
     }
   };
 
-  const addMilestone = async (ms: Milestone) => {
-    if (selectedMilestones.find(m => m.number === ms.number)) return;
-    setSelectedMilestones(prev => [...prev, ms]);
-    setError(null);
-
-    if (!milestoneItemsMap.has(ms.number)) {
-      setLoadingNums(prev => new Set([...prev, ms.number]));
+  const addMilestone = useCallback(async (ms: Milestone) => {
+    if (state.selected.some(m => m.number === ms.number)) return;
+    dispatch({ type: 'SELECT_MILESTONE', milestone: ms });
+    if (!(ms.number in state.itemsCache)) {
+      dispatch({ type: 'FETCH_ITEMS_START', milestoneNumber: ms.number });
       try {
-        const data = await fetchMilestoneItems(owner, repo, token, ms.number);
-        setMilestoneItemsMap(prev => new Map([...prev, [ms.number, data]]));
-        if (data.length === 0) setError(`No items found in milestone "${ms.title}".`);
+        const items = await fetchMilestoneItems(owner, repo, token, ms.number);
+        dispatch({ type: 'FETCH_ITEMS_SUCCESS', milestoneNumber: ms.number, items });
       } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
-        setSelectedMilestones(prev => prev.filter(m => m.number !== ms.number));
-      } finally {
-        setLoadingNums(prev => { const s = new Set(prev); s.delete(ms.number); return s; });
+        dispatch({ type: 'FETCH_ITEMS_ERROR', milestoneNumber: ms.number, error: e instanceof Error ? e.message : String(e) });
       }
     }
-  };
+  }, [state.selected, state.itemsCache, owner, repo, token]);
 
-  const removeMilestone = (num: number) => {
-    setSelectedMilestones(prev => prev.filter(m => m.number !== num));
-  };
+  const removeMilestone = useCallback((num: number) => {
+    dispatch({ type: 'REMOVE_MILESTONE', milestoneNumber: num });
+  }, []);
 
-  const loadDemo = () => {
-    setError(null);
-    setMilestones([DEMO_MILESTONE, DEMO_MILESTONE_2, DEMO_MILESTONE_3]);
-    setSelectedMilestones([DEMO_MILESTONE, DEMO_MILESTONE_2, DEMO_MILESTONE_3]);
-    setMilestoneItemsMap(new Map([
-      [DEMO_MILESTONE.number,   DEMO_ITEMS],
-      [DEMO_MILESTONE_2.number, DEMO_ITEMS_2],
-      [DEMO_MILESTONE_3.number, DEMO_ITEMS_3],
-    ]));
-    setLoadingNums(new Set());
-  };
+  const loadDemo = () => dispatch({
+    type:       'LOAD_DEMO',
+    milestones: [DEMO_MILESTONE, DEMO_MILESTONE_2, DEMO_MILESTONE_3],
+    itemsCache: {
+      [DEMO_MILESTONE.number]:   DEMO_ITEMS,
+      [DEMO_MILESTONE_2.number]: DEMO_ITEMS_2,
+      [DEMO_MILESTONE_3.number]: DEMO_ITEMS_3,
+    },
+  });
 
   const canLoad = !!token && !!owner && !!repo;
-  const isLoading = loadingNums.size > 0;
 
   const allItems = useMemo(
-    () => selectedMilestones.flatMap(ms => milestoneItemsMap.get(ms.number) ?? []),
-    [selectedMilestones, milestoneItemsMap],
+    () => state.selected.flatMap(ms => state.itemsCache[ms.number] ?? []),
+    [state.selected, state.itemsCache],
   );
 
   const milestonesMeta = useMemo(
-    () => selectedMilestones.map(ms => ({
+    () => state.selected.map(ms => ({
       number: ms.number,
       title:  ms.title,
       color:  milestoneColorFor(ms.number),
     })),
-    [selectedMilestones, milestoneColorFor],
+    [state.selected, milestoneColorFor],
   );
 
   return (
     <div className="app">
       <header className="app-header">
         <h1>GitHub Milestone Dashboard</h1>
-        <button className="btn-theme" onClick={() => setDark((d) => !d)} title={dark ? 'Switch to light mode' : 'Switch to dark mode'}>
+        <button className="btn-theme" onClick={() => setDark(d => !d)} title={dark ? 'Switch to light mode' : 'Switch to dark mode'}>
           {dark ? (
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="4" />
@@ -148,10 +224,10 @@ export default function App() {
             <input
               type="password"
               value={token}
-              onChange={(e) => setToken(e.target.value)}
+              onChange={e => setToken(e.target.value)}
               placeholder="ghp_... or fine-grained token"
               className="input-wide"
-              onKeyDown={(e) => e.key === 'Enter' && loadMilestones()}
+              onKeyDown={e => e.key === 'Enter' && loadMilestones()}
             />
           </label>
 
@@ -160,38 +236,38 @@ export default function App() {
             <div className="repo-group">
               <input
                 value={owner}
-                onChange={(e) => setOwner(e.target.value)}
+                onChange={e => setOwner(e.target.value)}
                 placeholder="owner"
-                onKeyDown={(e) => e.key === 'Enter' && loadMilestones()}
+                onKeyDown={e => e.key === 'Enter' && loadMilestones()}
               />
               <span className="repo-sep">/</span>
               <input
                 value={repo}
-                onChange={(e) => setRepo(e.target.value)}
+                onChange={e => setRepo(e.target.value)}
                 placeholder="repo"
-                onKeyDown={(e) => e.key === 'Enter' && loadMilestones()}
+                onKeyDown={e => e.key === 'Enter' && loadMilestones()}
               />
             </div>
           </label>
 
           <button
             onClick={loadMilestones}
-            disabled={!canLoad || loadingMilestones}
+            disabled={!canLoad || state.loadingList}
             className="btn-primary"
           >
-            {loadingMilestones ? 'Loading…' : 'Load Milestones'}
+            {state.loadingList ? 'Loading…' : 'Load Milestones'}
           </button>
           <button onClick={loadDemo} className="btn-secondary">
             Load demo
           </button>
         </div>
 
-        {milestones.length > 0 && (
+        {state.milestones.length > 0 && (
           <div className="settings-row">
             <MilestonePicker
-              milestones={milestones}
-              selected={selectedMilestones}
-              loadingNums={loadingNums}
+              milestones={state.milestones}
+              selected={state.selected}
+              loadingNums={state.loadingNums}
               colorFor={milestoneColorFor}
               onAdd={addMilestone}
               onRemove={removeMilestone}
@@ -200,8 +276,8 @@ export default function App() {
         )}
       </div>
 
-      {error && <div className="error-banner">{error}</div>}
-      {isLoading && <div className="status-msg">Loading milestone data…</div>}
+      {state.error && <div className="error-banner">{state.error}</div>}
+      {state.loadingNums.length > 0 && <div className="status-msg">Loading milestone data…</div>}
 
       {allItems.length > 0 && milestonesMeta.length > 0 && (
         <Timeline items={allItems} milestones={milestonesMeta} />
