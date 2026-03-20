@@ -63,12 +63,51 @@ interface Props {
   onChange: (f: Filters) => void;
 }
 
+const IconX = () => (
+  <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+    <line x1="1.5" y1="1.5" x2="6.5" y2="6.5" />
+    <line x1="6.5" y1="1.5" x2="1.5" y2="6.5" />
+  </svg>
+);
+
+const IconReset = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M11 6.5a4.5 4.5 0 1 1-1.5-3.3" />
+    <polyline points="9.5 1 9.5 3.5 12 3.5" />
+  </svg>
+);
+
+interface DateFieldProps {
+  value:    string;
+  min?:     string;
+  max?:     string;
+  onChange: (v: string) => void;
+  onClear:  () => void;
+}
+
+const DateField = ({ value, min, max, onChange, onClear }: DateFieldProps) => (
+  <div className="filter-date-wrap">
+    <input
+      type="date"
+      className="filter-date"
+      value={value}
+      min={min}
+      max={max}
+      onChange={e => onChange(e.target.value)}
+    />
+    {value && (
+      <button className="filter-date-clear" onClick={onClear} title="Clear date">
+        <IconX />
+      </button>
+    )}
+  </div>
+);
+
 export default function FilterBar({ filters, counts, onChange }: Props) {
   const set = (patch: Partial<Filters>) => onChange({ ...filters, ...patch });
 
-  const hasCreatedFilter = !!filters.createdStart || !!filters.createdEnd;
-  const hasClosedFilter  = !!filters.closedStart  || !!filters.closedEnd;
-  const isActive = hasCreatedFilter || hasClosedFilter
+  const isActive = !!filters.createdStart || !!filters.createdEnd
+    || !!filters.closedStart  || !!filters.closedEnd
     || !filters.showOpenIssues || !filters.showClosedIssues
     || !filters.showOpenPRs   || !filters.showMergedPRs || !filters.showClosedPRs;
 
@@ -86,50 +125,36 @@ export default function FilterBar({ filters, counts, onChange }: Props) {
     <div className={`filter-bar${isActive ? ' filter-bar--active' : ''}`}>
       <div className="filter-group">
         <span className="filter-label">Created</span>
-        <input
-          type="date"
-          className="filter-date"
+        <DateField
           value={filters.createdStart}
           max={filters.createdEnd || undefined}
-          onChange={e => set({ createdStart: e.target.value })}
+          onChange={v => set({ createdStart: v })}
+          onClear={() => set({ createdStart: '' })}
         />
         <span className="filter-sep">–</span>
-        <input
-          type="date"
-          className="filter-date"
+        <DateField
           value={filters.createdEnd}
           min={filters.createdStart || undefined}
-          onChange={e => set({ createdEnd: e.target.value })}
+          onChange={v => set({ createdEnd: v })}
+          onClear={() => set({ createdEnd: '' })}
         />
-        {hasCreatedFilter && (
-          <button className="filter-clear" onClick={() => set({ createdStart: '', createdEnd: '' })}>
-            ✕
-          </button>
-        )}
       </div>
 
       <div className="filter-group">
         <span className="filter-label">Closed</span>
-        <input
-          type="date"
-          className="filter-date"
+        <DateField
           value={filters.closedStart}
           max={filters.closedEnd || undefined}
-          onChange={e => set({ closedStart: e.target.value })}
+          onChange={v => set({ closedStart: v })}
+          onClear={() => set({ closedStart: '' })}
         />
         <span className="filter-sep">–</span>
-        <input
-          type="date"
-          className="filter-date"
+        <DateField
           value={filters.closedEnd}
           min={filters.closedStart || undefined}
-          onChange={e => set({ closedEnd: e.target.value })}
+          onChange={v => set({ closedEnd: v })}
+          onClear={() => set({ closedEnd: '' })}
         />
-        {hasClosedFilter && (
-          <button className="filter-clear" onClick={() => set({ closedStart: '', closedEnd: '' })}>
-            ✕
-          </button>
-        )}
       </div>
 
       <div className="filter-group">
@@ -148,8 +173,8 @@ export default function FilterBar({ filters, counts, onChange }: Props) {
       </div>
 
       {isActive && (
-        <button className="filter-reset" onClick={() => onChange(DEFAULT_FILTERS)}>
-          Reset
+        <button className="filter-reset" onClick={() => onChange(DEFAULT_FILTERS)} title="Reset all filters">
+          <IconReset />
         </button>
       )}
     </div>
