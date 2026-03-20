@@ -1,4 +1,4 @@
-import { useReducer, useState, useMemo, useCallback } from 'react';
+import { useReducer, useState, useMemo, useCallback, useEffect } from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import Box from '@mui/material/Box';
@@ -14,6 +14,7 @@ import type { Milestone, TimelineItem } from './types';
 import Timeline from './Timeline';
 import MilestonePicker from './MilestonePicker';
 import { muiLightTheme, muiDarkTheme } from './theme';
+import { encryptToken, decryptToken } from './tokenCrypto';
 import {
   DEMO_MILESTONE,   DEMO_ITEMS,
   DEMO_MILESTONE_2, DEMO_ITEMS_2,
@@ -52,7 +53,6 @@ interface MilestoneState {
 type Action =
   | { type: 'FETCH_LIST_START' }
   | { type: 'FETCH_LIST_SUCCESS';  milestones: Milestone[] }
-  | { type: 'FETCH_LIST_EMPTY' }
   | { type: 'FETCH_LIST_ERROR';    error: string }
   | { type: 'SELECT_MILESTONE';    milestone: Milestone }
   | { type: 'FETCH_ITEMS_START';   milestoneNumber: number }
@@ -78,10 +78,12 @@ function milestoneReducer(state: MilestoneState, action: Action): MilestoneState
       return { ...initialState, loadingList: true };
 
     case 'FETCH_LIST_SUCCESS':
-      return { ...state, milestones: action.milestones, loadingList: false };
-
-    case 'FETCH_LIST_EMPTY':
-      return { ...state, loadingList: false, error: 'No milestones found for this repository.' };
+      return {
+        ...state,
+        milestones: action.milestones,
+        loadingList: false,
+        error: action.milestones.length === 0 ? 'No milestones found for this repository.' : null,
+      };
 
     case 'FETCH_LIST_ERROR':
       return { ...state, loadingList: false, error: action.error };
@@ -146,11 +148,19 @@ function milestoneReducer(state: MilestoneState, action: Action): MilestoneState
 
 export default function App() {
   const [dark, setDark]   = useState(INITIAL_DARK);
-  const [token, setToken] = useState(() => localStorage.getItem(LS_TOKEN) ?? '');
+  const [token, setToken] = useState('');
   const [owner, setOwner] = useState(() => localStorage.getItem(LS_OWNER) ?? '');
   const [repo, setRepo]   = useState(() => localStorage.getItem(LS_REPO)  ?? '');
 
   const [state, dispatch] = useReducer(milestoneReducer, initialState);
+
+  // Decrypt stored token on mount; clears the entry if the IndexedDB key is gone
+  useEffect(() => {
+    const stored = localStorage.getItem(LS_TOKEN);
+    if (stored) {
+      decryptToken(stored).then(setToken).catch(() => localStorage.removeItem(LS_TOKEN));
+    }
+  }, []);
 
   const toggleDark = () => {
     const next = !dark;
@@ -169,9 +179,7 @@ export default function App() {
     dispatch({ type: 'FETCH_LIST_START' });
     try {
       const milestones = await fetchMilestones(owner, repo, token);
-      dispatch(milestones.length === 0
-        ? { type: 'FETCH_LIST_EMPTY' }
-        : { type: 'FETCH_LIST_SUCCESS', milestones });
+      dispatch({ type: 'FETCH_LIST_SUCCESS', milestones });
     } catch (e) {
       dispatch({ type: 'FETCH_LIST_ERROR', error: e instanceof Error ? e.message : String(e) });
     }
@@ -274,7 +282,12 @@ export default function App() {
               <TextField
                 type="password"
                 value={token}
-                onChange={e => { setToken(e.target.value); localStorage.setItem(LS_TOKEN, e.target.value); }}
+                onChange={e => {
+                  const val = e.target.value;
+                  setToken(val);
+                  if (val) encryptToken(val).then(ct => localStorage.setItem(LS_TOKEN, ct)).catch(console.error);
+                  else     localStorage.removeItem(LS_TOKEN);
+                }}
                 placeholder="ghp_... or fine-grained token"
                 size="small"
                 sx={{ width: 280 }}
