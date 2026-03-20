@@ -273,22 +273,22 @@ export default function Timeline({ items, title }: Props) {
 
       {/* ── Stats bar ── */}
       <div className="stats-bar">
-        <div className="stat">
+        <div className="stat" title="Number of issues that have been closed in this milestone">
           <span className="stat-value">{closedIssues.length}</span>
           <span className="stat-label">Issues closed</span>
         </div>
         {openIssues.length > 0 && (
-          <div className="stat">
+          <div className="stat" title="Number of issues still open in this milestone">
             <span className="stat-value stat-value--open">{openIssues.length}</span>
             <span className="stat-label">Issues open</span>
           </div>
         )}
-        <div className="stat">
+        <div className="stat" title="Number of pull requests that have been merged">
           <span className="stat-value stat-value--pr">{mergedPRs.length}</span>
           <span className="stat-label">PRs merged</span>
         </div>
         {closedPRs.length > 0 && (
-          <div className="stat">
+          <div className="stat" title="Number of pull requests closed without being merged">
             <span className="stat-value stat-value--closed">{closedPRs.length}</span>
             <span className="stat-label">PRs closed</span>
           </div>
@@ -296,15 +296,15 @@ export default function Timeline({ items, title }: Props) {
         {avgCycle !== null && (
           <>
             <div className="stat-divider" />
-            <div className="stat">
+            <div className="stat" title="Average days from issue creation to close, across all closed issues">
               <span className="stat-value">{avgCycle}d</span>
               <span className="stat-label">Avg cycle</span>
             </div>
-            <div className="stat">
+            <div className="stat" title={`Fastest issue closed in ${fastestCycle} day${fastestCycle !== 1 ? 's' : ''} (creation to close)`}>
               <span className="stat-value stat-value--fast">{fastestCycle}d</span>
               <span className="stat-label">Fastest</span>
             </div>
-            <div className="stat">
+            <div className="stat" title={`Slowest issue took ${slowestCycle} day${slowestCycle !== 1 ? 's' : ''} to close (creation to close)`}>
               <span className="stat-value stat-value--slow">{slowestCycle}d</span>
               <span className="stat-label">Slowest</span>
             </div>
