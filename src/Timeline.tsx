@@ -8,6 +8,7 @@ import Burndown from './Burndown';
 import CycleTime from './CycleTime';
 import Velocity from './Velocity';
 import CumulativeFlow from './CumulativeFlow';
+import ItemList from './ItemList';
 
 interface MilestoneMeta {
   number: number;
@@ -30,8 +31,8 @@ const ROW_HEIGHT = 31;
 type ExportFormat = 'CSV' | 'XLSX' | 'Markdown' | 'PNG — Current view' | 'PNG — Full timeline' | 'PDF';
 const EXPORT_FORMATS: ExportFormat[] = ['CSV', 'XLSX', 'Markdown', 'PNG — Current view', 'PNG — Full timeline', 'PDF'];
 
-type View = 'Gantt' | 'Burndown' | 'Cycle Time' | 'Velocity' | 'Cumulative Flow';
-const VIEWS: View[] = ['Gantt', 'Burndown', 'Cycle Time', 'Velocity', 'Cumulative Flow'];
+type View = 'Gantt' | 'Burndown' | 'Cycle Time' | 'Velocity' | 'Cumulative Flow' | 'List';
+const VIEWS: View[] = ['Gantt', 'Burndown', 'Cycle Time', 'Velocity', 'Cumulative Flow', 'List'];
 
 export default function Timeline({ items, milestones }: Props) {
   const [labelWidth, setLabelWidth]   = useState(400);
@@ -303,6 +304,7 @@ export default function Timeline({ items, milestones }: Props) {
       {view === 'Cycle Time'      && <CycleTime items={items} />}
       {view === 'Velocity'        && <Velocity items={items} />}
       {view === 'Cumulative Flow' && <CumulativeFlow items={items} />}
+      {view === 'List'            && <ItemList items={items} milestones={milestones} />}
 
       {/* Gantt view */}
       {view === 'Gantt' && (

@@ -979,3 +979,144 @@ body.dark .stat-value--fast   { color: #3fb950; }
   border-radius: 2px;
   flex-shrink: 0;
 }
+
+/* ── Item list view ── */
+
+.il-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) var(--bg-page);
+}
+
+.il-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.il-th {
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-page);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+.il-th:hover {
+  color: var(--text-primary);
+}
+
+.il-th--active {
+  color: var(--text-primary);
+}
+
+.il-sort-icon {
+  margin-left: 4px;
+  font-size: 9px;
+  opacity: 0.5;
+}
+
+.il-th--active .il-sort-icon {
+  opacity: 1;
+}
+
+.il-table tbody tr {
+  border-bottom: 1px solid var(--border);
+}
+
+.il-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.il-table tbody tr:hover {
+  background: var(--toggle-bg);
+}
+
+.il-table td {
+  padding: 7px 12px;
+  vertical-align: middle;
+}
+
+.il-row--open td {
+  opacity: 0.65;
+}
+
+.il-row--open:hover td {
+  opacity: 1;
+}
+
+.il-td-title {
+  max-width: 380px;
+}
+
+.il-title-link {
+  color: var(--text-primary);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+
+.il-title-link:hover {
+  color: #0969da;
+  text-decoration: underline;
+}
+
+.il-status {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.il-status--open   { background: rgba(214,149,0,0.15);  color: #d97706; }
+.il-status--closed { background: rgba(220,53,69,0.12);  color: #dc3545; }
+.il-status--merged { background: rgba(130,80,223,0.12); color: #8250df; }
+
+body.dark .il-status--open   { color: #f59e0b; }
+body.dark .il-status--merged { color: #c084fc; }
+
+.il-milestone {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.il-milestone-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.il-td-date {
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.il-td-days {
+  text-align: right;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.il-empty {
+  color: var(--border);
+}
