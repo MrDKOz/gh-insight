@@ -204,8 +204,8 @@ export default function Timeline({ items, milestones }: Props) {
 
   const noFilteredItems = filteredItems.length === 0;
 
-  const minTime    = Math.min(...allTimestamps);
-  const maxTime    = Math.max(Math.max(...allTimestamps), todayMs);
+  const minTime    = allTimestamps.length > 0 ? Math.min(...allTimestamps) : todayMs;
+  const maxTime    = allTimestamps.length > 0 ? Math.max(Math.max(...allTimestamps), todayMs) : todayMs;
   const totalMs    = maxTime - minTime || 1;
   const totalDays  = totalMs / MS;
   const trackWidth = Math.max(500, Math.round(totalDays * pixelsPerDay));
