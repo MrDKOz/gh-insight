@@ -5,8 +5,8 @@ import Timeline from './Timeline';
 import MilestonePicker from './MilestonePicker';
 import {
   DEMO_MILESTONE,   DEMO_ITEMS,
-  DEMO_MILESTONE_2,
-  DEMO_MILESTONE_3,
+  DEMO_MILESTONE_2, DEMO_ITEMS_2,
+  DEMO_MILESTONE_3, DEMO_ITEMS_3,
 } from './demo';
 
 const LS_TOKEN = 'gmt_token';
@@ -203,7 +203,11 @@ export default function App() {
     type:       'LOAD_DEMO',
     milestones: [DEMO_MILESTONE, DEMO_MILESTONE_2, DEMO_MILESTONE_3],
     selected:   [DEMO_MILESTONE],
-    itemsCache: { [DEMO_MILESTONE.number]: DEMO_ITEMS },
+    itemsCache: {
+      [DEMO_MILESTONE.number]:   DEMO_ITEMS,
+      [DEMO_MILESTONE_2.number]: DEMO_ITEMS_2,
+      [DEMO_MILESTONE_3.number]: DEMO_ITEMS_3,
+    },
   });
 
   const canLoad = !!token && !!owner && !!repo;
