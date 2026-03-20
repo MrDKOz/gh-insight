@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { fetchMilestones, fetchMilestoneItems } from './github';
 import type { Milestone, TimelineItem } from './types';
 import Timeline from './Timeline';
-import { DEMO_MILESTONE, DEMO_ITEMS } from './demo';
+import { DEMO_MILESTONE, DEMO_ITEMS, DEMO_MILESTONE_2, DEMO_ITEMS_2, DEMO_MILESTONE_3, DEMO_ITEMS_3 } from './demo';
 
 const LS_TOKEN = 'gmt_token';
 const LS_OWNER = 'gmt_owner';
@@ -104,9 +104,13 @@ export default function App() {
 
   const loadDemo = () => {
     setError(null);
-    setMilestones([DEMO_MILESTONE]);
-    setSelectedMilestones([DEMO_MILESTONE]);
-    setMilestoneItemsMap(new Map([[DEMO_MILESTONE.number, DEMO_ITEMS]]));
+    setMilestones([DEMO_MILESTONE, DEMO_MILESTONE_2, DEMO_MILESTONE_3]);
+    setSelectedMilestones([DEMO_MILESTONE, DEMO_MILESTONE_2, DEMO_MILESTONE_3]);
+    setMilestoneItemsMap(new Map([
+      [DEMO_MILESTONE.number,   DEMO_ITEMS],
+      [DEMO_MILESTONE_2.number, DEMO_ITEMS_2],
+      [DEMO_MILESTONE_3.number, DEMO_ITEMS_3],
+    ]));
     setLoadingNums(new Set());
   };
 
