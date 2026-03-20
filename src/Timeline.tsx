@@ -436,7 +436,8 @@ export default function Timeline({ items, milestones }: Props) {
                                             : 'tl-bar--pr-closed',
                 ].join(' ');
 
-                const barLabel = isOpen
+                const barWidthPx = (widthPct / 100) * trackWidth;
+                const barLabel = barWidthPx < 40 ? '' : isOpen
                   ? `${fmtDate(item.createdAt)} → today (${durationText})`
                   : duration !== null && duration <= 2
                     ? durationText
