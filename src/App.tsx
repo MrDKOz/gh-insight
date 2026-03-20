@@ -34,6 +34,7 @@ interface MilestoneState {
   itemsCache:  Record<number, TimelineItem[]>;
   loadingNums: number[];
   loadingList: boolean;
+  isDemo:      boolean;
   error:       string | null;
 }
 
@@ -56,6 +57,7 @@ const initialState: MilestoneState = {
   itemsCache:  {},
   loadingNums: [],
   loadingList: false,
+  isDemo:      false,
   error:       null,
 };
 
@@ -118,6 +120,7 @@ function milestoneReducer(state: MilestoneState, action: Action): MilestoneState
         itemsCache:  action.itemsCache,
         loadingNums: [],
         loadingList: false,
+        isDemo:      true,
         error:       null,
       };
 
@@ -302,7 +305,7 @@ export default function App() {
               onAdd={addMilestone}
               onRemove={removeMilestone}
             />
-            {state.selected.length > 0 && (
+            {state.selected.length > 0 && !state.isDemo && (
               <button
                 className="btn-secondary"
                 onClick={refreshMilestones}
