@@ -1,8 +1,10 @@
 import type { TimelineItem } from './types';
 
 export interface Filters {
-  startDate:        string;
-  endDate:          string;
+  createdStart:     string;
+  createdEnd:       string;
+  closedStart:      string;
+  closedEnd:        string;
   showOpenIssues:   boolean;
   showClosedIssues: boolean;
   showOpenPRs:      boolean;
@@ -11,8 +13,10 @@ export interface Filters {
 }
 
 export const DEFAULT_FILTERS: Filters = {
-  startDate:        '',
-  endDate:          '',
+  createdStart:     '',
+  createdEnd:       '',
+  closedStart:      '',
+  closedEnd:        '',
   showOpenIssues:   true,
   showClosedIssues: true,
   showOpenPRs:      true,
@@ -22,8 +26,15 @@ export const DEFAULT_FILTERS: Filters = {
 
 export function applyFilters(items: TimelineItem[], filters: Filters): TimelineItem[] {
   return items.filter(item => {
-    if (filters.startDate && item.createdAt.slice(0, 10) < filters.startDate) return false;
-    if (filters.endDate   && item.createdAt.slice(0, 10) > filters.endDate)   return false;
+    if (filters.createdStart && item.createdAt.slice(0, 10) < filters.createdStart) return false;
+    if (filters.createdEnd   && item.createdAt.slice(0, 10) > filters.createdEnd)   return false;
+
+    const end = item.type === 'issue' ? item.closedAt : (item.mergedAt ?? item.closedAt);
+    if (filters.closedStart || filters.closedEnd) {
+      if (!end) return false; // open items have no close date — exclude when filtering by closed
+      if (filters.closedStart && end.slice(0, 10) < filters.closedStart) return false;
+      if (filters.closedEnd   && end.slice(0, 10) > filters.closedEnd)   return false;
+    }
 
     if (item.type === 'issue') {
       if (!item.closedAt && !filters.showOpenIssues)   return false;
@@ -55,8 +66,9 @@ interface Props {
 export default function FilterBar({ filters, counts, onChange }: Props) {
   const set = (patch: Partial<Filters>) => onChange({ ...filters, ...patch });
 
-  const hasDateFilter = !!filters.startDate || !!filters.endDate;
-  const isActive = hasDateFilter
+  const hasCreatedFilter = !!filters.createdStart || !!filters.createdEnd;
+  const hasClosedFilter  = !!filters.closedStart  || !!filters.closedEnd;
+  const isActive = hasCreatedFilter || hasClosedFilter
     || !filters.showOpenIssues || !filters.showClosedIssues
     || !filters.showOpenPRs   || !filters.showMergedPRs || !filters.showClosedPRs;
 
@@ -77,20 +89,44 @@ export default function FilterBar({ filters, counts, onChange }: Props) {
         <input
           type="date"
           className="filter-date"
-          value={filters.startDate}
-          max={filters.endDate || undefined}
-          onChange={e => set({ startDate: e.target.value })}
+          value={filters.createdStart}
+          max={filters.createdEnd || undefined}
+          onChange={e => set({ createdStart: e.target.value })}
         />
         <span className="filter-sep">–</span>
         <input
           type="date"
           className="filter-date"
-          value={filters.endDate}
-          min={filters.startDate || undefined}
-          onChange={e => set({ endDate: e.target.value })}
+          value={filters.createdEnd}
+          min={filters.createdStart || undefined}
+          onChange={e => set({ createdEnd: e.target.value })}
         />
-        {hasDateFilter && (
-          <button className="filter-clear" onClick={() => set({ startDate: '', endDate: '' })}>
+        {hasCreatedFilter && (
+          <button className="filter-clear" onClick={() => set({ createdStart: '', createdEnd: '' })}>
+            ✕
+          </button>
+        )}
+      </div>
+
+      <div className="filter-group">
+        <span className="filter-label">Closed</span>
+        <input
+          type="date"
+          className="filter-date"
+          value={filters.closedStart}
+          max={filters.closedEnd || undefined}
+          onChange={e => set({ closedStart: e.target.value })}
+        />
+        <span className="filter-sep">–</span>
+        <input
+          type="date"
+          className="filter-date"
+          value={filters.closedEnd}
+          min={filters.closedStart || undefined}
+          onChange={e => set({ closedEnd: e.target.value })}
+        />
+        {hasClosedFilter && (
+          <button className="filter-clear" onClick={() => set({ closedStart: '', closedEnd: '' })}>
             ✕
           </button>
         )}
