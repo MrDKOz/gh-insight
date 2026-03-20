@@ -4,6 +4,8 @@ import { MS, fmtDate } from './utils';
 import { useOutsideClick } from './hooks';
 import { exportCSV, exportMarkdown, exportPNG, exportPDF, exportXLSX } from './export';
 import StatsBar from './StatsBar';
+import FilterBar, { DEFAULT_FILTERS, applyFilters } from './FilterBar';
+import type { Filters } from './FilterBar';
 import Burndown from './Burndown';
 import CycleTime from './CycleTime';
 import Velocity from './Velocity';
@@ -42,6 +44,7 @@ export default function Timeline({ items, milestones }: Props) {
   const [exporting, setExporting]     = useState<ExportFormat | null>(null);
   const [view, setView]               = useState<View>('Gantt');
   const [viewOpen, setViewOpen]       = useState(false);
+  const [filters, setFilters]         = useState<Filters>(DEFAULT_FILTERS);
 
   const wrapperRef    = useRef<HTMLDivElement>(null);
   const trackColRef   = useRef<HTMLDivElement>(null);
@@ -67,22 +70,34 @@ export default function Timeline({ items, milestones }: Props) {
     : milestones.length === 2 ? `${milestones[0].title} + ${milestones[1].title}`
     : `${milestones.length} milestones`;
 
-  const { issueItems, closedIssues, openIssues, prItems, mergedPRs, completedItems } =
+  const { issueItems, closedIssues, openIssues, prItems, mergedPRs } =
     useMemo(() => {
       const issueItems     = items.filter(i => i.type === 'issue');
       const prItems        = items.filter(i => i.type === 'pr');
       const closedIssues   = issueItems.filter(i => i.closedAt);
       const openIssues     = issueItems.filter(i => !i.closedAt);
       const mergedPRs      = prItems.filter(i => i.mergedAt);
-      const completedItems = items.filter(i =>
-        i.type === 'issue' ? !!i.closedAt : !!(i.mergedAt || i.closedAt),
-      );
-      return { issueItems, prItems, closedIssues, openIssues, mergedPRs, completedItems };
+      return { issueItems, prItems, closedIssues, openIssues, mergedPRs };
     }, [items]);
 
+  const filteredItems = useMemo(() => applyFilters(items, filters), [items, filters]);
+
+  const counts = useMemo(() => ({
+    openIssues:   openIssues.length,
+    closedIssues: closedIssues.length,
+    openPRs:      prItems.filter(i => !i.mergedAt && !i.closedAt).length,
+    mergedPRs:    mergedPRs.length,
+    closedPRs:    prItems.filter(i => !i.mergedAt && !!i.closedAt).length,
+  }), [openIssues, closedIssues, prItems, mergedPRs]);
+
+  const filteredCompletedItems = useMemo(
+    () => filteredItems.filter(i => i.type === 'issue' ? !!i.closedAt : !!(i.mergedAt || i.closedAt)),
+    [filteredItems],
+  );
+
   const sortedItems = useMemo(
-    () => [...items].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
-    [items],
+    () => [...filteredItems].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
+    [filteredItems],
   );
 
   // ── Effects ────────────────────────────────────────────────────────────────
@@ -149,25 +164,25 @@ export default function Timeline({ items, milestones }: Props) {
     setExportOpen(false);
     setExporting(fmt);
     try {
-      if (fmt === 'CSV')                    exportCSV(completedItems, title);
-      else if (fmt === 'Markdown')          exportMarkdown(completedItems, title);
+      if (fmt === 'CSV')                    exportCSV(filteredCompletedItems, title);
+      else if (fmt === 'Markdown')          exportMarkdown(filteredCompletedItems, title);
       else if (fmt === 'PNG — Current view')
         await exportPNG(wrapperRef.current!, trackColRef.current, title, 'current');
       else if (fmt === 'PNG — Full timeline')
         await exportPNG(wrapperRef.current!, trackColRef.current, title, 'full');
-      else if (fmt === 'PDF')               await exportPDF(completedItems, title);
-      else if (fmt === 'XLSX')              await exportXLSX(completedItems, title);
+      else if (fmt === 'PDF')               await exportPDF(filteredCompletedItems, title);
+      else if (fmt === 'XLSX')              await exportXLSX(filteredCompletedItems, title);
     } catch (e) {
       console.error(`Export ${fmt} failed:`, e);
     } finally {
       setExporting(null);
     }
-  }, [completedItems, title, disabledExports]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filteredCompletedItems, title, disabledExports]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Gantt layout ───────────────────────────────────────────────────────────
 
   const todayMs = Date.now();
-  const allTimestamps = useMemo(() => items.flatMap(item => {
+  const allTimestamps = useMemo(() => filteredItems.flatMap(item => {
     const ts = [new Date(item.createdAt).getTime()];
     if (item.type === 'issue') {
       if (item.closedAt) ts.push(new Date(item.closedAt).getTime());
@@ -176,7 +191,7 @@ export default function Timeline({ items, milestones }: Props) {
       if (end) ts.push(new Date(end).getTime());
     }
     return ts;
-  }), [items]);
+  }), [filteredItems]);
 
   if (items.length === 0) {
     return (
@@ -186,6 +201,8 @@ export default function Timeline({ items, milestones }: Props) {
       </div>
     );
   }
+
+  const noFilteredItems = filteredItems.length === 0;
 
   const minTime    = Math.min(...allTimestamps);
   const maxTime    = Math.max(Math.max(...allTimestamps), todayMs);
@@ -297,17 +314,21 @@ export default function Timeline({ items, milestones }: Props) {
       </div>
 
       {/* Stats bar */}
-      <StatsBar items={items} />
+      <StatsBar items={filteredItems} />
+
+      {/* Filter bar */}
+      <FilterBar filters={filters} counts={counts} onChange={setFilters} />
 
       {/* Non-Gantt views */}
-      {view === 'Burndown'        && <Burndown items={items} />}
-      {view === 'Cycle Time'      && <CycleTime items={items} />}
-      {view === 'Velocity'        && <Velocity items={items} />}
-      {view === 'Cumulative Flow' && <CumulativeFlow items={items} />}
-      {view === 'List'            && <ItemList items={items} milestones={milestones} />}
+      {noFilteredItems && <p className="tl-empty">No items match the current filters.</p>}
+      {!noFilteredItems && view === 'Burndown'        && <Burndown items={filteredItems} />}
+      {!noFilteredItems && view === 'Cycle Time'      && <CycleTime items={filteredItems} />}
+      {!noFilteredItems && view === 'Velocity'        && <Velocity items={filteredItems} />}
+      {!noFilteredItems && view === 'Cumulative Flow' && <CumulativeFlow items={filteredItems} />}
+      {!noFilteredItems && view === 'List'            && <ItemList items={filteredItems} milestones={milestones} />}
 
       {/* Gantt view */}
-      {view === 'Gantt' && (
+      {!noFilteredItems && view === 'Gantt' && (
         <>
           <div className="tl-legend">
             <div className="tl-legend-item">

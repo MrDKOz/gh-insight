@@ -980,6 +980,128 @@ body.dark .stat-value--fast   { color: #3fb950; }
   flex-shrink: 0;
 }
 
+/* ── Filter bar ── */
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-page);
+}
+
+.filter-bar--active {
+  border-color: #0969da44;
+  background: var(--hint-bg);
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.filter-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.filter-date {
+  height: 28px;
+  padding: 0 8px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-family: inherit;
+}
+
+.filter-date:focus {
+  outline: none;
+  border-color: #0969da;
+  box-shadow: 0 0 0 2px rgba(9,105,218,0.12);
+}
+
+.filter-sep {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.filter-clear {
+  height: 22px;
+  width: 22px;
+  padding: 0;
+  font-size: 11px;
+  line-height: 1;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.filter-clear:hover {
+  background: var(--toggle-bg);
+  color: var(--text-primary);
+}
+
+.filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--filter-color, #57606a) 35%, transparent);
+  background: color-mix(in srgb, var(--filter-color, #57606a) 10%, transparent);
+  color: var(--filter-color, var(--text-secondary));
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.15s;
+}
+
+.filter-toggle:hover {
+  background: color-mix(in srgb, var(--filter-color, #57606a) 18%, transparent);
+}
+
+.filter-toggle--off {
+  opacity: 0.35;
+}
+
+.filter-toggle-count {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.filter-reset {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 500;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  margin-left: auto;
+}
+
+.filter-reset:hover {
+  background: var(--toggle-bg);
+  color: var(--text-primary);
+}
+
 /* ── Item list view ── */
 
 .il-wrap {
