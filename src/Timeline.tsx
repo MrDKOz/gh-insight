@@ -43,7 +43,7 @@ export default function Timeline({ items, milestones }: Props) {
     : milestones.length === 1 ? milestones[0].title
     : milestones.length === 2 ? `${milestones[0].title} + ${milestones[1].title}`
     : `${milestones.length} milestones`;
-  const [labelWidth, setLabelWidth] = useState(320);
+  const [labelWidth, setLabelWidth] = useState(400);
   const [pixelsPerDay, setPixelsPerDay] = useState(30);
   const [axisHeight, setAxisHeight] = useState(36);
   const [exportOpen, setExportOpen] = useState(false);
@@ -218,8 +218,10 @@ export default function Timeline({ items, milestones }: Props) {
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
   );
 
-  const dateLabels = Array.from({ length: 9 }, (_, i) =>
-    formatDate(new Date(minTime + (totalMs * i) / 8).toISOString()),
+  // Scale date label density with track width: one label per ~110px, min 4, max 24
+  const numDateLabels = Math.max(4, Math.min(24, Math.floor(trackWidth / 110)));
+  const dateLabels = Array.from({ length: numDateLabels }, (_, i) =>
+    formatDate(new Date(minTime + (totalMs * i) / (numDateLabels - 1)).toISOString()),
   );
 
   const handleResizeStart = (e: React.MouseEvent) => {
@@ -227,7 +229,7 @@ export default function Timeline({ items, milestones }: Props) {
     const startX = e.clientX;
     const startWidth = labelWidth;
     const onMove = (ev: MouseEvent) =>
-      setLabelWidth(Math.max(150, startWidth + (ev.clientX - startX)));
+      setLabelWidth(Math.max(200, startWidth + (ev.clientX - startX)));
     const onUp = () => {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);

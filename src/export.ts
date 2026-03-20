@@ -143,21 +143,37 @@ export async function exportPNG(
   const { toPng } = await import('html-to-image');
 
   // For the full Gantt export, temporarily expand the scrollable track column
-  // so all bars are visible. For other views (trackColEl is null) or current-
-  // view mode, capture the DOM as-is.
-  let prevOverflowX = '';
-  let prevWidth = '';
+  // so all bars are visible, then also widen the wrapper so html-to-image
+  // captures the full content rather than clipping at its CSS box width.
+  // For other views (trackColEl is null) or current-view mode, capture as-is.
+  let prevTrackOverflowX = '';
+  let prevTrackWidth = '';
+  let prevWrapperWidth = '';
+  let captureWidth: number | undefined;
+  let captureHeight: number | undefined;
+
   if (mode === 'full' && trackColEl) {
-    prevOverflowX = trackColEl.style.overflowX;
-    prevWidth = trackColEl.style.width;
+    prevTrackOverflowX = trackColEl.style.overflowX;
+    prevTrackWidth = trackColEl.style.width;
+    prevWrapperWidth = wrapperEl.style.width;
+
+    // Expand track column to its full scroll width
     trackColEl.style.overflowX = 'visible';
     trackColEl.style.width = `${trackColEl.scrollWidth}px`;
+
+    // Expand the wrapper so its inline width overrides any CSS max-width,
+    // letting html-to-image see and capture all the content
+    captureWidth  = wrapperEl.scrollWidth;
+    captureHeight = wrapperEl.scrollHeight;
+    wrapperEl.style.width = `${captureWidth}px`;
   }
 
   try {
     const dataUrl = await toPng(wrapperEl, {
       cacheBust: true,
       pixelRatio: 2,
+      ...(captureWidth  !== undefined ? { width:  captureWidth  } : {}),
+      ...(captureHeight !== undefined ? { height: captureHeight } : {}),
       filter: node =>
         !(node instanceof Element && node.hasAttribute('data-export-exclude')),
     });
@@ -167,8 +183,9 @@ export async function exportPNG(
     a.click();
   } finally {
     if (mode === 'full' && trackColEl) {
-      trackColEl.style.overflowX = prevOverflowX;
-      trackColEl.style.width = prevWidth;
+      trackColEl.style.overflowX = prevTrackOverflowX;
+      trackColEl.style.width = prevTrackWidth;
+      wrapperEl.style.width = prevWrapperWidth;
     }
   }
 }
