@@ -258,19 +258,19 @@ export default function Timeline({ items, title }: Props) {
 
           {/* Export */}
           <div className="export-menu" ref={exportMenuRef}>
+            {hasLimitedExports && (
+              <span
+                className="export-limit-badge"
+                title="Some export formats are not available in this view"
+                aria-label="Some formats unavailable"
+              />
+            )}
             <button
               className="btn-export"
               onClick={() => setExportOpen((o) => !o)}
               disabled={exporting !== null}
             >
               {exporting ? `Exporting ${exporting}…` : 'Export'}
-              {hasLimitedExports && !exporting && (
-                <span
-                  className="export-limited-icon"
-                  title="Some export formats are not available in this view"
-                  aria-label="Some formats unavailable"
-                >ⓘ</span>
-              )}
               <span aria-hidden> ▾</span>
             </button>
             {exportOpen && (

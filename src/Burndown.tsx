@@ -221,7 +221,8 @@ export default function Burndown({ items }: Props) {
 
         {/* Current open count callout */}
         <text x={L + CW - 4} y={T - 6} textAnchor="end"
-          fill={C.callout} fontSize={12} fontWeight="bold" fontFamily="inherit">
+          fill={C.callout} fontSize={12} fontWeight="bold" fontFamily="inherit"
+          className="bd-callout-text">
           {currentOpen} open
         </text>
       </svg>

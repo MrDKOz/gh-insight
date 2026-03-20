@@ -326,12 +326,18 @@ select:focus {
   cursor: not-allowed;
 }
 
-.export-limited-icon {
-  font-size: 11px;
-  margin: 0 2px 0 4px;
-  opacity: 0.65;
+.export-limit-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #d97706;
+  border: 2px solid var(--bg-surface);
+  z-index: 1;
+  pointer-events: none;
   cursor: help;
-  vertical-align: middle;
 }
 
 .tl-empty {
@@ -757,4 +763,10 @@ body.dark .stat-value--fast   { color: #3fb950; }
   border-radius: 50%;
   background: #0969da;
   flex-shrink: 0;
+}
+
+/* Callout text: CSS var overrides the hardcoded light-mode SVG
+   presentation attribute so it stays readable in dark mode */
+.bd-callout-text {
+  fill: var(--text-primary);
 }

@@ -86,7 +86,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>GitHub Milestone Timeline</h1>
+        <h1>GitHub Milestone Dashboard</h1>
         <button className="btn-theme" onClick={() => setDark((d) => !d)} title={dark ? 'Switch to light mode' : 'Switch to dark mode'}>
           {dark ? (
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
