@@ -713,6 +713,26 @@ body.dark .stat-value--fast   { color: #3fb950; }
   padding: 8px 0;
 }
 
+/* SVG theming — CSS vars override the hardcoded light-mode presentation
+   attributes so all charts render correctly in dark mode.
+   The hardcoded values stay in place as PNG-export fallbacks (html-to-image
+   can't resolve CSS custom properties in its cloned document). */
+.chart-label {
+  fill: var(--text-secondary);
+}
+
+.chart-label--strong {
+  fill: var(--text-primary);
+}
+
+.chart-axis {
+  stroke: var(--text-secondary);
+}
+
+.chart-grid {
+  stroke: var(--border);
+}
+
 /* ── Cycle time dots ── */
 
 .ct-dot {

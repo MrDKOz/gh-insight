@@ -129,7 +129,7 @@ export default function CycleTime({ items }: Props) {
         {yLabels.map(d => (
           <line key={d}
             x1={L} y1={pyFn(d).toFixed(1)} x2={L + CW} y2={pyFn(d).toFixed(1)}
-            stroke={COL.grid} strokeWidth={1} strokeDasharray="4 3" />
+            stroke={COL.grid} strokeWidth={1} strokeDasharray="4 3" className="chart-grid" />
         ))}
 
         {/* Median reference line */}
@@ -164,13 +164,13 @@ export default function CycleTime({ items }: Props) {
         ))}
 
         {/* Axes */}
-        <line x1={L} y1={T + CH} x2={L + CW} y2={T + CH} stroke={COL.axis} strokeWidth={1} />
-        <line x1={L} y1={T}      x2={L}       y2={T + CH} stroke={COL.axis} strokeWidth={1} />
+        <line x1={L} y1={T + CH} x2={L + CW} y2={T + CH} stroke={COL.axis} strokeWidth={1} className="chart-axis" />
+        <line x1={L} y1={T}      x2={L}       y2={T + CH} stroke={COL.axis} strokeWidth={1} className="chart-axis" />
 
         {/* Y labels */}
         {yLabels.map(d => (
           <text key={d} x={L - 6} y={pyFn(d) + 4} textAnchor="end"
-            fill={COL.label} fontSize={11} fontFamily="inherit">
+            fill={COL.label} fontSize={11} fontFamily="inherit" className="chart-label">
             {d}d
           </text>
         ))}
@@ -179,14 +179,14 @@ export default function CycleTime({ items }: Props) {
         {xTimes.map((t, i) => (
           <text key={i} x={pxFn(t)} y={T + CH + 20}
             textAnchor={i === 0 ? 'start' : i === numX - 1 ? 'end' : 'middle'}
-            fill={COL.label} fontSize={11} fontFamily="inherit">
+            fill={COL.label} fontSize={11} fontFamily="inherit" className="chart-label">
             {fmtDate(new Date(t).toISOString())}
           </text>
         ))}
 
         {/* Rotated Y axis label */}
         <text x={12} y={T + CH / 2} textAnchor="middle"
-          fill={COL.label} fontSize={11} fontFamily="inherit"
+          fill={COL.label} fontSize={11} fontFamily="inherit" className="chart-label"
           transform={`rotate(-90 12 ${T + CH / 2})`}>
           Days to close
         </text>

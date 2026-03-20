@@ -126,7 +126,7 @@ export default function Velocity({ items }: Props) {
               {hover.week.closed} PR{hover.week.closed !== 1 ? 's' : ''} closed
             </span>
           )}
-          <span className="bd-hovercard-date" style={{ borderTop: '1px solid #d0d7de', paddingTop: 4, marginTop: 2 }}>
+          <span className="bd-hovercard-date" style={{ borderTop: '1px solid var(--border)', paddingTop: 4, marginTop: 2 }}>
             Total: {hover.week.issues + hover.week.merged + hover.week.closed}
           </span>
         </div>
@@ -142,7 +142,7 @@ export default function Velocity({ items }: Props) {
         {yLabels.map(c => (
           <line key={c}
             x1={L} y1={pyFn(c).toFixed(1)} x2={L + CW} y2={pyFn(c).toFixed(1)}
-            stroke={COL.grid} strokeWidth={1} strokeDasharray="4 3" />
+            stroke={COL.grid} strokeWidth={1} strokeDasharray="4 3" className="chart-grid" />
         ))}
 
         {/* Stacked bars: issues (bottom) → merged PRs → closed PRs (top) */}
@@ -186,13 +186,13 @@ export default function Velocity({ items }: Props) {
         })}
 
         {/* Axes */}
-        <line x1={L} y1={T + CH} x2={L + CW} y2={T + CH} stroke={COL.axis} strokeWidth={1} />
-        <line x1={L} y1={T}      x2={L}       y2={T + CH} stroke={COL.axis} strokeWidth={1} />
+        <line x1={L} y1={T + CH} x2={L + CW} y2={T + CH} stroke={COL.axis} strokeWidth={1} className="chart-axis" />
+        <line x1={L} y1={T}      x2={L}       y2={T + CH} stroke={COL.axis} strokeWidth={1} className="chart-axis" />
 
         {/* Y labels */}
         {yLabels.map(c => (
           <text key={c} x={L - 6} y={pyFn(c) + 4} textAnchor="end"
-            fill={COL.label} fontSize={11} fontFamily="inherit">
+            fill={COL.label} fontSize={11} fontFamily="inherit" className="chart-label">
             {c}
           </text>
         ))}
@@ -203,7 +203,7 @@ export default function Velocity({ items }: Props) {
             x={(barX(wi) + barW / 2).toFixed(1)}
             y={T + CH + 20}
             textAnchor={li === 0 ? 'start' : li === numX - 1 ? 'end' : 'middle'}
-            fill={COL.label} fontSize={11} fontFamily="inherit">
+            fill={COL.label} fontSize={11} fontFamily="inherit" className="chart-label">
             {fmtDate(new Date(weeks[wi].startMs).toISOString())}
           </text>
         ))}
@@ -216,7 +216,7 @@ export default function Velocity({ items }: Props) {
         ].map(({ col, label }, i) => (
           <g key={i} transform={`translate(${L + CW - 160 + i * 0}, ${T + i * 15})`}>
             <rect x={0} y={-8} width={10} height={10} fill={col} rx={2} />
-            <text x={14} y={0} fill={COL.label} fontSize={10} fontFamily="inherit">{label}</text>
+            <text x={14} y={0} fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">{label}</text>
           </g>
         ))}
       </svg>

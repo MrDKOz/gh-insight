@@ -153,7 +153,7 @@ export default function Burndown({ items }: Props) {
             key={count}
             x1={L} y1={pyFn(count).toFixed(1)}
             x2={L + CW} y2={pyFn(count).toFixed(1)}
-            stroke={C.grid} strokeWidth={1} strokeDasharray="4 3"
+            stroke={C.grid} strokeWidth={1} strokeDasharray="4 3" className="chart-grid"
           />
         ))}
 
@@ -195,13 +195,13 @@ export default function Burndown({ items }: Props) {
         )}
 
         {/* Axes */}
-        <line x1={L} y1={T + CH} x2={L + CW} y2={T + CH} stroke={C.axis} strokeWidth={1} />
-        <line x1={L} y1={T}      x2={L}       y2={T + CH} stroke={C.axis} strokeWidth={1} />
+        <line x1={L} y1={T + CH} x2={L + CW} y2={T + CH} stroke={C.axis} strokeWidth={1} className="chart-axis" />
+        <line x1={L} y1={T}      x2={L}       y2={T + CH} stroke={C.axis} strokeWidth={1} className="chart-axis" />
 
         {/* Y axis labels — every step value */}
         {yLabels.map(count => (
           <text key={count} x={L - 6} y={pyFn(count) + 4}
-            textAnchor="end" fill={C.label} fontSize={11} fontFamily="inherit">
+            textAnchor="end" fill={C.label} fontSize={11} fontFamily="inherit" className="chart-label">
             {count}
           </text>
         ))}
@@ -213,7 +213,7 @@ export default function Burndown({ items }: Props) {
             x={pxFn(ptIdx)}
             y={T + CH + 22}
             textAnchor={labelIdx === 0 ? 'start' : labelIdx === numXLabels - 1 ? 'end' : 'middle'}
-            fill={C.label} fontSize={11} fontFamily="inherit"
+            fill={C.label} fontSize={11} fontFamily="inherit" className="chart-label"
           >
             {formatDate(new Date(points[ptIdx].t).toISOString())}
           </text>
