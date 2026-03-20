@@ -1,20 +1,38 @@
-import type { Milestone, TimelineItem } from './types';
+import type { Milestone, TimelineItem } from "../types";
 
-const GH_API = 'https://api.github.com';
-const GH_GRAPHQL = 'https://api.github.com/graphql';
+const GH_API = "https://api.github.com";
+const GH_GRAPHQL = "https://api.github.com/graphql";
+
+type RawMilestone = {
+  number: number;
+  title: string;
+  state: "open" | "closed";
+  open_issues: number;
+  closed_issues: number;
+};
+
+function mapMilestone(raw: RawMilestone): Milestone {
+  return {
+    number: raw.number,
+    title: raw.title,
+    state: raw.state,
+    openIssues: raw.open_issues,
+    closedIssues: raw.closed_issues,
+  };
+}
 
 function authHeaders(token: string): Record<string, string> {
   return {
     Authorization: `Bearer ${token}`,
-    Accept: 'application/vnd.github.v3+json',
+    Accept: "application/vnd.github.v3+json",
   };
 }
 
 async function checkResponse(res: Response): Promise<void> {
   if (!res.ok) {
-    let ghMessage = '';
+    let ghMessage = "";
     try {
-      const body = await res.json() as { message?: string };
+      const body = (await res.json()) as { message?: string };
       if (body.message) ghMessage = body.message;
     } catch {
       // ignore
@@ -22,27 +40,21 @@ async function checkResponse(res: Response): Promise<void> {
 
     if (res.status === 401) {
       throw new Error(
-        `Authentication failed (401) — check that your token is valid and not expired.${ghMessage ? ` GitHub: ${ghMessage}` : ''}`,
+        `Authentication failed (401) — check that your token is valid and not expired.${ghMessage ? ` GitHub: ${ghMessage}` : ""}`,
       );
     }
     if (res.status === 404) {
       throw new Error(
         `Repository not found (404) — verify the owner/repo names are correct. ` +
-        `For private repos, ensure your token has the "repo" scope (classic) or "Contents: Read" permission (fine-grained).` +
-        `${ghMessage ? ` GitHub: ${ghMessage}` : ''}`,
+          `For private repos, ensure your token has the "repo" scope (classic) or "Contents: Read" permission (fine-grained).` +
+          `${ghMessage ? ` GitHub: ${ghMessage}` : ""}`,
       );
     }
-    throw new Error(
-      `GitHub API error ${res.status}${ghMessage ? `: ${ghMessage}` : ''}`,
-    );
+    throw new Error(`GitHub API error ${res.status}${ghMessage ? `: ${ghMessage}` : ""}`);
   }
 }
 
-export async function fetchMilestones(
-  owner: string,
-  repo: string,
-  token: string,
-): Promise<Milestone[]> {
+async function fetchMilestones(owner: string, repo: string, token: string): Promise<Milestone[]> {
   const results: Milestone[] = [];
   let page = 1;
 
@@ -52,8 +64,8 @@ export async function fetchMilestones(
       { headers: authHeaders(token) },
     );
     await checkResponse(res);
-    const data = await res.json() as Milestone[];
-    results.push(...data);
+    const data = (await res.json()) as RawMilestone[];
+    results.push(...data.map(mapMilestone));
     if (data.length < 100) break;
     page++;
   }
@@ -93,7 +105,7 @@ const MILESTONE_QUERY = `
   }
 `;
 
-interface GQLIssueNode {
+type GQLIssueNode = {
   number: number;
   title: string;
   url: string;
@@ -109,9 +121,9 @@ interface GQLIssueNode {
       closedAt: string | null;
     }>;
   };
-}
+};
 
-interface GQLResponse {
+type GQLResponse = {
   data?: {
     repository?: {
       milestone?: {
@@ -123,9 +135,9 @@ interface GQLResponse {
     } | null;
   };
   errors?: Array<{ message: string }>;
-}
+};
 
-export async function fetchMilestoneItems(
+async function fetchMilestoneItems(
   owner: string,
   repo: string,
   token: string,
@@ -136,10 +148,10 @@ export async function fetchMilestoneItems(
 
   while (true) {
     const res = await fetch(GH_GRAPHQL, {
-      method: 'POST',
+      method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         query: MILESTONE_QUERY,
@@ -148,7 +160,7 @@ export async function fetchMilestoneItems(
     });
 
     await checkResponse(res);
-    const json = await res.json() as GQLResponse;
+    const json = (await res.json()) as GQLResponse;
 
     if (json.errors && json.errors.length > 0) {
       throw new Error(json.errors[0].message);
@@ -156,7 +168,7 @@ export async function fetchMilestoneItems(
 
     const milestone = json.data?.repository?.milestone;
     if (!milestone) {
-      throw new Error('Milestone not found in repository');
+      throw new Error("Milestone not found in repository");
     }
 
     const { nodes, pageInfo } = milestone.issues;
@@ -166,7 +178,6 @@ export async function fetchMilestoneItems(
     after = pageInfo.endCursor;
   }
 
-  // Build timeline items, deduplicating PRs that close multiple issues
   const items: TimelineItem[] = [];
   const seenPRs = new Set<number>();
 
@@ -178,7 +189,7 @@ export async function fetchMilestoneItems(
       if (!seenPRs.has(pr.number)) {
         seenPRs.add(pr.number);
         items.push({
-          type: 'pr',
+          type: "pr",
           number: pr.number,
           title: pr.title,
           url: pr.url,
@@ -192,7 +203,7 @@ export async function fetchMilestoneItems(
     }
 
     items.push({
-      type: 'issue',
+      type: "issue",
       number: issue.number,
       title: issue.title,
       url: issue.url,
@@ -205,3 +216,5 @@ export async function fetchMilestoneItems(
 
   return items;
 }
+
+export { fetchMilestones, fetchMilestoneItems };

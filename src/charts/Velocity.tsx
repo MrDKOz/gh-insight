@@ -1,12 +1,12 @@
-import { useState, useRef } from 'react';
-import type { TimelineItem } from './types';
-import { fmtDate, itemEndDate, COLORS, hoverCardPos } from './utils';
+import { useState, useRef } from "react";
+import type { FunctionComponent } from "react";
+import type { TimelineItem } from "../types";
+import { fmtDate, itemEndDate, COLORS, hoverCardPos } from "../utils/utils";
 
-interface Props {
+type Props = {
   items: TimelineItem[];
-}
+};
 
-/** Returns the Monday of the ISO week containing `ms` (midnight UTC). */
 function weekStart(ms: number): number {
   const d = new Date(ms);
   const dow = d.getDay() === 0 ? 6 : d.getDay() - 1; // 0=Mon … 6=Sun
@@ -26,24 +26,24 @@ const COL = {
   label:    COLORS.chartAxis,
 };
 
-interface Week {
+type Week = {
   startMs: number;
   endMs:   number;
   issues:  number;
   merged:  number;
   closed:  number;
-}
+};
 
-interface Hover {
-  x: number; y: number;
+type Hover = {
+  x: number;
+  y: number;
   week: Week;
-}
+};
 
-export default function Velocity({ items }: Props) {
+const Velocity: FunctionComponent<Props> = ({ items }) => {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<Hover | null>(null);
 
-  // Bucket completed items by calendar week
   const buckets = new Map<number, Week>();
   for (const item of items) {
     const endDate = itemEndDate(item);
@@ -53,7 +53,7 @@ export default function Velocity({ items }: Props) {
       buckets.set(ws, { startMs: ws, endMs: ws + 6 * 86_400_000, issues: 0, merged: 0, closed: 0 });
     }
     const w = buckets.get(ws)!;
-    if (item.type === 'issue')      w.issues++;
+    if (item.type === "issue")      w.issues++;
     else if (item.mergedAt)         w.merged++;
     else                            w.closed++;
   }
@@ -64,21 +64,19 @@ export default function Velocity({ items }: Props) {
     return <p className="tl-empty">No completed items to plot velocity for.</p>;
   }
 
-  const maxTotal = Math.max(...weeks.map(w => w.issues + w.merged + w.closed), 1);
+  const maxTotal = Math.max(...weeks.map((w) => w.issues + w.merged + w.closed), 1);
 
   const pyFn = (count: number) => T + (1 - count / maxTotal) * CH;
 
-  const slotW   = CW / weeks.length;
-  const barW    = Math.min(Math.max(slotW * 0.72, 6), 80);
-  const barX    = (i: number) => L + i * slotW + (slotW - barW) / 2;
+  const slotW  = CW / weeks.length;
+  const barW   = Math.min(Math.max(slotW * 0.72, 6), 80);
+  const barX   = (i: number) => L + i * slotW + (slotW - barW) / 2;
 
-  // Y labels — every integer when small, stepped otherwise
   const yStep   = maxTotal <= 12 ? 1 : maxTotal <= 30 ? 2 : Math.ceil(maxTotal / 8);
   const yLabels = Array.from({ length: Math.floor(maxTotal / yStep) + 1 }, (_, i) => i * yStep);
 
-  // X axis — up to 8 labels (week start dates)
-  const numX      = Math.min(8, weeks.length);
-  const xIndices  = Array.from({ length: numX }, (_, i) =>
+  const numX     = Math.min(8, weeks.length);
+  const xIndices = Array.from({ length: numX }, (_, i) =>
     Math.round((i / Math.max(numX - 1, 1)) * (weeks.length - 1)),
   );
 
@@ -93,7 +91,7 @@ export default function Velocity({ items }: Props) {
     : {};
 
   return (
-    <div className="chart-wrap" ref={wrapRef} style={{ position: 'relative' }}>
+    <div className="chart-wrap" ref={wrapRef} style={{ position: "relative" }}>
       {hover && (
         <div className="bd-hovercard" style={cardStyle}>
           <span className="bd-hovercard-date">
@@ -102,22 +100,22 @@ export default function Velocity({ items }: Props) {
           {hover.week.issues > 0 && (
             <span className="bd-hovercard-count">
               <span className="bd-hovercard-dot" style={{ background: COL.issue }} />
-              {hover.week.issues} issue{hover.week.issues !== 1 ? 's' : ''} closed
+              {hover.week.issues} issue{hover.week.issues !== 1 ? "s" : ""} closed
             </span>
           )}
           {hover.week.merged > 0 && (
             <span className="bd-hovercard-count">
               <span className="bd-hovercard-dot" style={{ background: COL.prMerged }} />
-              {hover.week.merged} PR{hover.week.merged !== 1 ? 's' : ''} merged
+              {hover.week.merged} PR{hover.week.merged !== 1 ? "s" : ""} merged
             </span>
           )}
           {hover.week.closed > 0 && (
             <span className="bd-hovercard-count">
               <span className="bd-hovercard-dot" style={{ background: COL.prClosed }} />
-              {hover.week.closed} PR{hover.week.closed !== 1 ? 's' : ''} closed
+              {hover.week.closed} PR{hover.week.closed !== 1 ? "s" : ""} closed
             </span>
           )}
-          <span className="bd-hovercard-date" style={{ borderTop: '1px solid var(--border)', paddingTop: 4, marginTop: 2 }}>
+          <span className="bd-hovercard-date" style={{ borderTop: "1px solid var(--border)", paddingTop: 4, marginTop: 2 }}>
             Total: {hover.week.issues + hover.week.merged + hover.week.closed}
           </span>
         </div>
@@ -125,21 +123,19 @@ export default function Velocity({ items }: Props) {
 
       <svg
         viewBox={`0 0 ${W} ${H}`}
-        style={{ width: '100%', height: 'auto', display: 'block' }}
+        style={{ width: "100%", height: "auto", display: "block" }}
         aria-label="Velocity bar chart"
         onMouseLeave={() => setHover(null)}
       >
-        {/* Grid */}
-        {yLabels.map(c => (
+        {yLabels.map((c) => (
           <line key={c}
             x1={L} y1={pyFn(c).toFixed(1)} x2={L + CW} y2={pyFn(c).toFixed(1)}
             stroke={COL.grid} strokeWidth={1} strokeDasharray="4 3" className="chart-grid" />
         ))}
 
-        {/* Stacked bars: issues (bottom) → merged PRs → closed PRs (top) */}
         {weeks.map((week, i) => {
-          const bx     = barX(i);
-          const bottom = T + CH;
+          const bx      = barX(i);
+          const bottom  = T + CH;
           const hIssue  = (week.issues / maxTotal) * CH;
           const hMerged = (week.merged / maxTotal) * CH;
           const hClosed = (week.closed / maxTotal) * CH;
@@ -164,46 +160,41 @@ export default function Velocity({ items }: Props) {
                   width={barW.toFixed(1)} height={hClosed.toFixed(1)}
                   fill={COL.prClosed} opacity={0.88} rx={2} />
               )}
-              {/* Transparent full-height hover target */}
               <rect
                 x={bx.toFixed(1)} y={T}
                 width={barW.toFixed(1)} height={CH}
                 fill="transparent"
                 className="vel-hover-area"
-                onMouseEnter={e => onEnter(e, week)}
+                onMouseEnter={(e) => onEnter(e, week)}
               />
             </g>
           );
         })}
 
-        {/* Axes */}
         <line x1={L} y1={T + CH} x2={L + CW} y2={T + CH} stroke={COL.axis} strokeWidth={1} className="chart-axis" />
         <line x1={L} y1={T}      x2={L}       y2={T + CH} stroke={COL.axis} strokeWidth={1} className="chart-axis" />
 
-        {/* Y labels */}
-        {yLabels.map(c => (
+        {yLabels.map((c) => (
           <text key={c} x={L - 6} y={pyFn(c) + 4} textAnchor="end"
             fill={COL.label} fontSize={11} fontFamily="inherit" className="chart-label">
             {c}
           </text>
         ))}
 
-        {/* X labels */}
         {xIndices.map((wi, li) => (
           <text key={wi}
             x={(barX(wi) + barW / 2).toFixed(1)}
             y={T + CH + 20}
-            textAnchor={li === 0 ? 'start' : li === numX - 1 ? 'end' : 'middle'}
+            textAnchor={li === 0 ? "start" : li === numX - 1 ? "end" : "middle"}
             fill={COL.label} fontSize={11} fontFamily="inherit" className="chart-label">
             {fmtDate(new Date(weeks[wi].startMs).toISOString())}
           </text>
         ))}
 
-        {/* Legend */}
         {[
-          { col: COL.issue,    label: 'Issues closed' },
-          { col: COL.prMerged, label: 'PRs merged' },
-          { col: COL.prClosed, label: 'PRs closed' },
+          { col: COL.issue,    label: "Issues closed" },
+          { col: COL.prMerged, label: "PRs merged" },
+          { col: COL.prClosed, label: "PRs closed" },
         ].map(({ col, label }, i) => (
           <g key={i} transform={`translate(${L + CW - 160 + i * 0}, ${T + i * 15})`}>
             <rect x={0} y={-8} width={10} height={10} fill={col} rx={2} />
@@ -213,4 +204,6 @@ export default function Velocity({ items }: Props) {
       </svg>
     </div>
   );
-}
+};
+
+export { Velocity };

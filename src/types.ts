@@ -1,13 +1,13 @@
-export interface Milestone {
+type Milestone = {
   number: number;
   title: string;
-  state: 'open' | 'closed';
-  open_issues: number;
-  closed_issues: number;
-}
+  state: "open" | "closed";
+  openIssues: number;
+  closedIssues: number;
+};
 
-export interface PRItem {
-  type: 'pr';
+type PRItem = {
+  type: "pr";
   number: number;
   title: string;
   url: string;
@@ -16,10 +16,10 @@ export interface PRItem {
   closedAt: string | null;
   linkedIssue: number;
   milestoneNumber: number;
-}
+};
 
-export interface IssueItem {
-  type: 'issue';
+type IssueItem = {
+  type: "issue";
   number: number;
   title: string;
   url: string;
@@ -27,12 +27,14 @@ export interface IssueItem {
   closedAt: string | null;
   linkedPRs: number[];
   milestoneNumber: number;
-}
+};
 
-export type TimelineItem = IssueItem | PRItem;
+type TimelineItem = IssueItem | PRItem;
 
-export interface MilestoneMeta {
+type MilestoneMeta = {
   number: number;
-  title:  string;
-  color:  string;
-}
+  title: string;
+  color: string;
+};
+
+export type { Milestone, PRItem, IssueItem, TimelineItem, MilestoneMeta };
