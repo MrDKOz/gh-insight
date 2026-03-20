@@ -1,4 +1,15 @@
 import { useState, useMemo } from 'react';
+import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
+import Link from '@mui/material/Link';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import TableSortLabel from '@mui/material/TableSortLabel';
+import Typography from '@mui/material/Typography';
 import type { TimelineItem } from './types';
 import { MS, fmtDate } from './utils';
 
@@ -91,34 +102,49 @@ export default function ItemList({ items, milestones }: Props) {
     });
   }, [items, sortCol, sortDir, milestoneMap]);
 
+  const typeBadgeSx: Record<string, object> = {
+    issue:     { bgcolor: '#0969da', color: '#fff' },
+    pr:        { bgcolor: '#8250df', color: '#fff' },
+    'pr-closed': { bgcolor: '#dc3545', color: '#fff' },
+  };
+
+  const statusChipSx: Record<string, object> = {
+    open:   { bgcolor: 'rgba(214,149,0,0.15)',  color: '#d97706' },
+    closed: { bgcolor: 'rgba(220,53,69,0.12)',  color: '#dc3545' },
+    merged: { bgcolor: 'rgba(130,80,223,0.12)', color: '#8250df' },
+  };
+
   const Th = ({ col, label }: { col: SortCol; label: string }) => (
-    <th
-      className={`il-th${sortCol === col ? ' il-th--active' : ''}`}
-      onClick={() => handleSort(col)}
+    <TableCell
+      sortDirection={sortCol === col ? sortDir : false}
+      sx={{ fontWeight: 600, fontSize: '0.6875rem', py: 1, whiteSpace: 'nowrap' }}
     >
-      {label}
-      <span className="il-sort-icon" aria-hidden="true">
-        {sortCol === col ? (sortDir === 'asc' ? '▲' : '▼') : '⬍'}
-      </span>
-    </th>
+      <TableSortLabel
+        active={sortCol === col}
+        direction={sortCol === col ? sortDir : 'asc'}
+        onClick={() => handleSort(col)}
+      >
+        {label}
+      </TableSortLabel>
+    </TableCell>
   );
 
   return (
-    <div className="il-wrap">
-      <table className="il-table">
-        <thead>
-          <tr>
-            <Th col="type"      label="Type"      />
-            <Th col="number"    label="#"          />
-            <Th col="title"     label="Title"      />
-            <Th col="status"    label="Status"     />
+    <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1 }}>
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <Th col="type"    label="Type"      />
+            <Th col="number"  label="#"          />
+            <Th col="title"   label="Title"      />
+            <Th col="status"  label="Status"     />
             {isMulti && <Th col="milestone" label="Milestone" />}
-            <Th col="created"   label="Created"    />
-            <Th col="closed"    label="Closed"     />
-            <Th col="days"      label="Days"       />
-          </tr>
-        </thead>
-        <tbody>
+            <Th col="created" label="Created"    />
+            <Th col="closed"  label="Closed"     />
+            <Th col="days"    label="Days"        />
+          </TableRow>
+        </TableHead>
+        <TableBody>
           {sorted.map(item => {
             const end    = itemEndDate(item);
             const status = itemStatus(item);
@@ -127,55 +153,75 @@ export default function ItemList({ items, milestones }: Props) {
               : null;
             const isOpen     = status === 'Open';
             const isClosedPR = item.type === 'pr' && !item.mergedAt && !!item.closedAt;
-            const badgeClass = item.type === 'issue'
-              ? 'tl-badge tl-badge--issue'
-              : isClosedPR ? 'tl-badge tl-badge--pr-closed'
-              : 'tl-badge tl-badge--pr';
-            const ms = milestoneMap.get(item.milestoneNumber);
+            const badgeKey   = item.type === 'issue' ? 'issue' : isClosedPR ? 'pr-closed' : 'pr';
+            const ms         = milestoneMap.get(item.milestoneNumber);
 
             return (
-              <tr key={`${item.type}-${item.number}`} className={isOpen ? 'il-row--open' : ''}>
-                <td><span className={badgeClass}>{item.type.toUpperCase()}</span></td>
-                <td>
-                  <a
+              <TableRow
+                key={`${item.type}-${item.number}`}
+                sx={{ opacity: isOpen ? 0.65 : 1, '&:hover': { opacity: 1, bgcolor: 'action.hover' } }}
+              >
+                <TableCell>
+                  <Chip
+                    label={item.type.toUpperCase()}
+                    size="small"
+                    sx={{ ...typeBadgeSx[badgeKey], fontSize: '0.5625rem', fontWeight: 700, height: 18, letterSpacing: 0.3, borderRadius: 0.5 }}
+                  />
+                </TableCell>
+                <TableCell>
+                  <Link
                     href={item.url}
                     target="_blank"
                     rel="noreferrer"
-                    className={`tl-num tl-num--${item.type}`}
+                    underline="hover"
+                    sx={{ color: item.type === 'issue' ? '#0969da' : '#8250df', fontWeight: 700, fontSize: '0.75rem' }}
                   >
                     #{item.number}
-                  </a>
-                </td>
-                <td className="il-td-title">
-                  <a href={item.url} target="_blank" rel="noreferrer" className="il-title-link">
+                  </Link>
+                </TableCell>
+                <TableCell sx={{ maxWidth: 380 }}>
+                  <Link
+                    href={item.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    underline="hover"
+                    color="text.primary"
+                    sx={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.8125rem' }}
+                  >
                     {item.title}
-                  </a>
-                </td>
-                <td>
-                  <span className={`il-status il-status--${status.toLowerCase()}`}>{status}</span>
-                </td>
+                  </Link>
+                </TableCell>
+                <TableCell>
+                  <Chip
+                    label={status}
+                    size="small"
+                    sx={{ ...statusChipSx[status.toLowerCase()], fontSize: '0.6875rem', fontWeight: 600, height: 22 }}
+                  />
+                </TableCell>
                 {isMulti && (
-                  <td>
+                  <TableCell>
                     {ms && (
-                      <span className="il-milestone">
-                        <span className="il-milestone-dot" style={{ background: ms.color }} />
+                      <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, fontSize: '0.75rem', color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: ms.color, flexShrink: 0 }} />
                         {ms.title}
-                      </span>
+                      </Box>
                     )}
-                  </td>
+                  </TableCell>
                 )}
-                <td className="il-td-date">{fmtDate(item.createdAt)}</td>
-                <td className="il-td-date">
-                  {end ? fmtDate(end) : <span className="il-empty">—</span>}
-                </td>
-                <td className="il-td-days">
-                  {days !== null ? days : <span className="il-empty">—</span>}
-                </td>
-              </tr>
+                <TableCell sx={{ whiteSpace: 'nowrap', color: 'text.secondary', fontSize: '0.75rem' }}>
+                  {fmtDate(item.createdAt)}
+                </TableCell>
+                <TableCell sx={{ whiteSpace: 'nowrap', color: 'text.secondary', fontSize: '0.75rem' }}>
+                  {end ? fmtDate(end) : <Typography component="span" color="divider">—</Typography>}
+                </TableCell>
+                <TableCell align="right" sx={{ whiteSpace: 'nowrap', color: 'text.secondary', fontSize: '0.75rem', fontVariantNumeric: 'tabular-nums' }}>
+                  {days !== null ? days : <Typography component="span" color="divider">—</Typography>}
+                </TableCell>
+              </TableRow>
             );
           })}
-        </tbody>
-      </table>
-    </div>
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 }

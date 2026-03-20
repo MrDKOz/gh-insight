@@ -1,6 +1,12 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState } from 'react';
+import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+import Chip from '@mui/material/Chip';
+import Button from '@mui/material/Button';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
 import type { Milestone } from './types';
-import { useOutsideClick } from './hooks';
 
 interface Props {
   milestones:  Milestone[];
@@ -14,67 +20,64 @@ interface Props {
 export default function MilestonePicker({
   milestones, selected, loadingNums, colorFor, onAdd, onRemove,
 }: Props) {
-  const [open, setOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  const closeMenu = useCallback(() => setOpen(false), []);
-  useOutsideClick(menuRef, open, closeMenu);
-
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const unselected = milestones.filter(m => !selected.find(s => s.number === m.number));
 
   return (
-    <div className="field">
-      <span className="field-label">Milestones</span>
-      <div className="ms-picker">
+    <Box>
+      <Typography variant="caption" fontWeight={600} display="block" sx={{ mb: 0.5 }}>Milestones</Typography>
+      <Stack direction="row" flexWrap="wrap" alignItems="center" gap={0.75} sx={{ minHeight: 40 }}>
         {selected.map(ms => (
-          <span
+          <Chip
             key={ms.number}
-            className="ms-chip"
-            style={{ background: colorFor(ms.number) }}
-          >
-            {loadingNums.includes(ms.number) ? '…' : ms.title}
-            <button
-              className="ms-chip__remove"
-              onClick={() => onRemove(ms.number)}
-              aria-label={`Remove ${ms.title}`}
-            >
-              ×
-            </button>
-          </span>
+            label={loadingNums.includes(ms.number) ? '…' : ms.title}
+            onDelete={() => onRemove(ms.number)}
+            size="small"
+            sx={{
+              bgcolor: colorFor(ms.number),
+              color: '#fff',
+              fontWeight: 500,
+              '& .MuiChip-deleteIcon': {
+                color: 'rgba(255,255,255,0.7)',
+                '&:hover': { color: '#fff' },
+              },
+            }}
+          />
         ))}
 
         {unselected.length > 0 && (
-          <div className="ms-add-menu" ref={menuRef}>
-            <button
-              className="btn-secondary ms-add-btn"
-              onClick={() => setOpen(o => !o)}
+          <>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={e => setAnchorEl(e.currentTarget)}
               disabled={loadingNums.length > 0}
             >
               {selected.length === 0 ? `Select milestone (${unselected.length})` : `+ Add (${unselected.length})`}
-            </button>
-            {open && (
-              <div className="ms-dropdown">
-                {unselected.map(ms => (
-                  <button
-                    key={ms.number}
-                    className="ms-option"
-                    onClick={() => { onAdd(ms); setOpen(false); }}
-                  >
-                    <span
-                      className="ms-option-dot"
-                      style={{ background: colorFor(ms.number) }}
-                    />
-                    <span className="ms-option-title">{ms.title}</span>
-                    <span className="ms-option-meta">
-                      {ms.open_issues + ms.closed_issues} issue{ms.open_issues + ms.closed_issues !== 1 ? 's' : ''} ({ms.state})
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+            </Button>
+            <Menu
+              anchorEl={anchorEl}
+              open={Boolean(anchorEl)}
+              onClose={() => setAnchorEl(null)}
+              slotProps={{ paper: { sx: { maxHeight: 260, minWidth: 240, maxWidth: 340 } } }}
+            >
+              {unselected.map(ms => (
+                <MenuItem
+                  key={ms.number}
+                  onClick={() => { onAdd(ms); setAnchorEl(null); }}
+                  dense
+                >
+                  <Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: colorFor(ms.number), mr: 1.5, flexShrink: 0 }} />
+                  <Typography noWrap sx={{ flex: 1, fontSize: '0.8125rem' }}>{ms.title}</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ ml: 1.5, whiteSpace: 'nowrap' }}>
+                    {ms.open_issues + ms.closed_issues} issue{ms.open_issues + ms.closed_issues !== 1 ? 's' : ''} ({ms.state})
+                  </Typography>
+                </MenuItem>
+              ))}
+            </Menu>
+          </>
         )}
-      </div>
-    </div>
+      </Stack>
+    </Box>
   );
 }

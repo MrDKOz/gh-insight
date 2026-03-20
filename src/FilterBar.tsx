@@ -1,3 +1,9 @@
+import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+import TextField from '@mui/material/TextField';
+import Chip from '@mui/material/Chip';
+import IconButton from '@mui/material/IconButton';
 import type { TimelineItem } from './types';
 
 export interface Filters {
@@ -86,21 +92,23 @@ interface DateFieldProps {
 }
 
 const DateField = ({ value, min, max, onChange, onClear }: DateFieldProps) => (
-  <div className="filter-date-wrap">
-    <input
+  <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+    <TextField
       type="date"
-      className="filter-date"
+      size="small"
       value={value}
-      min={min}
-      max={max}
+      slotProps={{ htmlInput: { min, max } }}
       onChange={e => onChange(e.target.value)}
+      sx={{ '& .MuiInputBase-input': { fontSize: '0.8125rem', py: 0.625 } }}
     />
-    {value && (
-      <button className="filter-date-clear" onClick={onClear} title="Clear date">
-        <IconX />
-      </button>
-    )}
-  </div>
+    <Box sx={{ width: 28, height: 28, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {value && (
+        <IconButton size="small" onClick={onClear} title="Clear date" sx={{ p: 0.25 }}>
+          <IconX />
+        </IconButton>
+      )}
+    </Box>
+  </Box>
 );
 
 export default function FilterBar({ filters, counts, onChange }: Props) {
@@ -122,61 +130,88 @@ export default function FilterBar({ filters, counts, onChange }: Props) {
   ).filter(t => t.count > 0);
 
   return (
-    <div className={`filter-bar${isActive ? ' filter-bar--active' : ''}`}>
-      <div className="filter-group">
-        <span className="filter-label">Created</span>
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: 1,
+        px: 1.5,
+        py: 1,
+        border: 1,
+        borderRadius: 1,
+        borderColor: isActive ? 'primary.light' : 'divider',
+        bgcolor: 'background.paper',
+      }}
+    >
+      <Stack direction="row" alignItems="center" gap={0.75} flexWrap="wrap">
+        <Typography variant="caption" fontWeight={600} color="text.secondary">Created</Typography>
         <DateField
           value={filters.createdStart}
           max={filters.createdEnd || undefined}
           onChange={v => set({ createdStart: v })}
           onClear={() => set({ createdStart: '' })}
         />
-        <span className="filter-sep">–</span>
+        <Typography variant="caption" color="text.secondary">–</Typography>
         <DateField
           value={filters.createdEnd}
           min={filters.createdStart || undefined}
           onChange={v => set({ createdEnd: v })}
           onClear={() => set({ createdEnd: '' })}
         />
-      </div>
+      </Stack>
 
-      <div className="filter-group">
-        <span className="filter-label">Closed</span>
+      <Stack direction="row" alignItems="center" gap={0.75} flexWrap="wrap">
+        <Typography variant="caption" fontWeight={600} color="text.secondary">Closed</Typography>
         <DateField
           value={filters.closedStart}
           max={filters.closedEnd || undefined}
           onChange={v => set({ closedStart: v })}
           onClear={() => set({ closedStart: '' })}
         />
-        <span className="filter-sep">–</span>
+        <Typography variant="caption" color="text.secondary">–</Typography>
         <DateField
           value={filters.closedEnd}
           min={filters.closedStart || undefined}
           onChange={v => set({ closedEnd: v })}
           onClear={() => set({ closedEnd: '' })}
         />
-      </div>
+      </Stack>
 
-      <div className="filter-group">
+      <Stack direction="row" alignItems="center" gap={0.75} flexWrap="wrap">
         {toggles.map(({ key, label, count, color }) => (
-          <button
+          <Chip
             key={key}
-            className={`filter-toggle${filters[key] ? '' : ' filter-toggle--off'}`}
-            style={{ '--filter-color': color } as React.CSSProperties}
+            label={
+              <Stack component="span" direction="row" alignItems="center" gap={0.5}>
+                {label}
+                <Box component="span" sx={{ fontSize: '0.625rem', opacity: 0.7 }}>{count}</Box>
+              </Stack>
+            }
+            size="small"
             onClick={() => set({ [key]: !filters[key] })}
             title={filters[key] ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
-          >
-            {label}
-            <span className="filter-toggle-count">{count}</span>
-          </button>
+            sx={{
+              height: 26,
+              cursor: 'pointer',
+              color: filters[key] ? color : 'text.secondary',
+              bgcolor: `${color}1a`,
+              border: '1px solid',
+              borderColor: `${color}55`,
+              opacity: filters[key] ? 1 : 0.35,
+              fontWeight: 500,
+              fontSize: '0.6875rem',
+              '&:hover': { bgcolor: `${color}2e`, opacity: 1 },
+            }}
+          />
         ))}
-      </div>
+      </Stack>
 
       {isActive && (
-        <button className="filter-reset" onClick={() => onChange(DEFAULT_FILTERS)} title="Reset all filters">
+        <IconButton size="small" onClick={() => onChange(DEFAULT_FILTERS)} title="Reset all filters" sx={{ ml: 'auto' }}>
           <IconReset />
-        </button>
+        </IconButton>
       )}
-    </div>
+    </Box>
   );
 }

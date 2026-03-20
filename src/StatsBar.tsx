@@ -1,6 +1,34 @@
 import { useMemo } from 'react';
+import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+import Divider from '@mui/material/Divider';
 import type { TimelineItem } from './types';
 import { MS } from './utils';
+
+interface StatProps {
+  value: string;
+  label: string;
+  title?: string;
+  lightColor?: string;
+  darkColor?: string;
+}
+
+const Stat = ({ value, label, title, lightColor, darkColor }: StatProps) => (
+  <Box title={title} sx={{ textAlign: 'center' }}>
+    <Typography
+      variant="h6"
+      fontWeight={700}
+      lineHeight={1}
+      sx={lightColor ? (theme) => ({ color: theme.palette.mode === 'dark' ? (darkColor ?? lightColor) : lightColor }) : undefined}
+    >
+      {value}
+    </Typography>
+    <Typography variant="caption" color="text.secondary" display="block" sx={{ whiteSpace: 'nowrap', mt: 0.25 }}>
+      {label}
+    </Typography>
+  </Box>
+);
 
 interface Props {
   items: TimelineItem[];
@@ -29,50 +57,35 @@ export default function StatsBar({ items }: Props) {
     }, [items]);
 
   return (
-    <div className="stats-bar">
-      <div className="stat" title="Number of issues that have been closed">
-        <span className="stat-value">{closedIssues.length}</span>
-        <span className="stat-label">Issues closed</span>
-      </div>
+    <Stack direction="row" alignItems="center" gap={2.5} flexWrap="wrap" sx={{ py: 1.5, borderBottom: 1, borderColor: 'divider' }}>
+      <Stat value={String(closedIssues.length)} label="Issues closed" title="Number of issues that have been closed" />
       {openIssues.length > 0 && (
-        <div className="stat" title="Number of issues still open">
-          <span className="stat-value stat-value--open">{openIssues.length}</span>
-          <span className="stat-label">Issues open</span>
-        </div>
+        <Stat value={String(openIssues.length)} lightColor="#d97706" darkColor="#f59e0b" label="Issues open" title="Number of issues still open" />
       )}
-      <div className="stat" title="Number of pull requests that have been merged">
-        <span className="stat-value stat-value--pr">{mergedPRs.length}</span>
-        <span className="stat-label">PRs merged</span>
-      </div>
+      <Stat value={String(mergedPRs.length)} lightColor="#8250df" label="PRs merged" title="Number of pull requests that have been merged" />
       {closedPRs.length > 0 && (
-        <div className="stat" title="Number of pull requests closed without being merged">
-          <span className="stat-value stat-value--closed">{closedPRs.length}</span>
-          <span className="stat-label">PRs closed</span>
-        </div>
+        <Stat value={String(closedPRs.length)} lightColor="#dc3545" label="PRs closed" title="Number of pull requests closed without being merged" />
       )}
       {avgCycle !== null && (
         <>
-          <div className="stat-divider" />
-          <div className="stat" title="Average days from issue creation to close, across all closed issues">
-            <span className="stat-value">{avgCycle}d</span>
-            <span className="stat-label">Avg cycle</span>
-          </div>
-          <div
-            className="stat"
+          <Divider orientation="vertical" flexItem />
+          <Stat value={`${avgCycle}d`} label="Avg cycle" title="Average days from issue creation to close, across all closed issues" />
+          <Stat
+            value={`${fastestCycle}d`}
+            lightColor="#1a7f37"
+            darkColor="#3fb950"
+            label="Fastest"
             title={`Fastest issue closed in ${fastestCycle} day${fastestCycle !== 1 ? 's' : ''} (creation to close)`}
-          >
-            <span className="stat-value stat-value--fast">{fastestCycle}d</span>
-            <span className="stat-label">Fastest</span>
-          </div>
-          <div
-            className="stat"
+          />
+          <Stat
+            value={`${slowestCycle}d`}
+            lightColor="#d97706"
+            darkColor="#f59e0b"
+            label="Slowest"
             title={`Slowest issue took ${slowestCycle} day${slowestCycle !== 1 ? 's' : ''} to close (creation to close)`}
-          >
-            <span className="stat-value stat-value--slow">{slowestCycle}d</span>
-            <span className="stat-label">Slowest</span>
-          </div>
+          />
         </>
       )}
-    </div>
+    </Stack>
   );
 }

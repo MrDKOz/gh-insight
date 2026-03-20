@@ -1,7 +1,14 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import Box from '@mui/material/Box';
+import Paper from '@mui/material/Paper';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
+import Badge from '@mui/material/Badge';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
 import type { TimelineItem } from './types';
 import { MS, fmtDate } from './utils';
-import { useOutsideClick } from './hooks';
 import { exportCSV, exportMarkdown, exportPNG, exportPDF, exportXLSX } from './export';
 import StatsBar from './StatsBar';
 import FilterBar, { DEFAULT_FILTERS, applyFilters } from './FilterBar';
@@ -40,17 +47,15 @@ export default function Timeline({ items, milestones }: Props) {
   const [labelWidth, setLabelWidth]   = useState(400);
   const [pixelsPerDay, setPixelsPerDay] = useState(30);
   const [axisHeight, setAxisHeight]   = useState(36);
-  const [exportOpen, setExportOpen]   = useState(false);
-  const [exporting, setExporting]     = useState<ExportFormat | null>(null);
-  const [view, setView]               = useState<View>('Gantt');
-  const [viewOpen, setViewOpen]       = useState(false);
-  const [filters, setFilters]         = useState<Filters>(DEFAULT_FILTERS);
+  const [exportAnchor, setExportAnchor] = useState<HTMLElement | null>(null);
+  const [exporting, setExporting]       = useState<ExportFormat | null>(null);
+  const [view, setView]                 = useState<View>('Gantt');
+  const [viewAnchor, setViewAnchor]     = useState<HTMLElement | null>(null);
+  const [filters, setFilters]           = useState<Filters>(DEFAULT_FILTERS);
 
-  const wrapperRef    = useRef<HTMLDivElement>(null);
-  const trackColRef   = useRef<HTMLDivElement>(null);
-  const axisRef       = useRef<HTMLDivElement>(null);
-  const exportMenuRef = useRef<HTMLDivElement>(null);
-  const viewMenuRef   = useRef<HTMLDivElement>(null);
+  const wrapperRef  = useRef<HTMLDivElement>(null);
+  const trackColRef = useRef<HTMLDivElement>(null);
+  const axisRef     = useRef<HTMLDivElement>(null);
   const stateRef      = useRef({ pixelsPerDay, totalDays: 0, trackWidth: 0 });
   const pendingScrollRef = useRef<number | null>(null);
   // Holds cleanup for the window mousemove/mouseup drag listeners so they're
@@ -144,11 +149,6 @@ export default function Timeline({ items, milestones }: Props) {
     }
   }, [pixelsPerDay]);
 
-  // Close dropdowns on outside click
-  const closeExport = useCallback(() => setExportOpen(false), []);
-  const closeView   = useCallback(() => setViewOpen(false),   []);
-  useOutsideClick(exportMenuRef, exportOpen, closeExport);
-  useOutsideClick(viewMenuRef,   viewOpen,   closeView);
 
   // ── Export ─────────────────────────────────────────────────────────────────
 
@@ -161,7 +161,7 @@ export default function Timeline({ items, milestones }: Props) {
 
   const handleExport = useCallback(async (fmt: ExportFormat) => {
     if (disabledExports[fmt]) return;
-    setExportOpen(false);
+    setExportAnchor(null);
     setExporting(fmt);
     try {
       if (fmt === 'CSV')                    exportCSV(filteredCompletedItems, title);
@@ -195,10 +195,10 @@ export default function Timeline({ items, milestones }: Props) {
 
   if (items.length === 0) {
     return (
-      <div className="tl-wrapper">
-        <div className="tl-header"><h2>{title}</h2></div>
-        <p className="tl-empty">No items found in this milestone.</p>
-      </div>
+      <Paper sx={{ p: 3 }}>
+        <Typography variant="h6" fontWeight={700}>{title}</Typography>
+        <Typography color="text.secondary" sx={{ mt: 1 }}>No items found in this milestone.</Typography>
+      </Paper>
     );
   }
 
@@ -243,75 +243,53 @@ export default function Timeline({ items, milestones }: Props) {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="tl-wrapper" ref={wrapperRef}>
+    <Paper sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 1.5 }} ref={wrapperRef}>
       {/* Header */}
-      <div className="tl-header">
-        <div>
-          <h2>{title}</h2>
-          <p className="tl-subtitle">
+      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={2}>
+        <Box>
+          <Typography variant="h6" fontWeight={700}>{title}</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
             {issueItems.length} issue{issueItems.length !== 1 ? 's' : ''} ({closedIssues.length} closed),{' '}
             {prItems.length} PR{prItems.length !== 1 ? 's' : ''} ({mergedPRs.length} merged)
-          </p>
-        </div>
+          </Typography>
+        </Box>
 
-        <div className="tl-header-actions" data-export-exclude>
+        <Stack direction="row" gap={1} alignItems="center" flexShrink={0} data-export-exclude>
           {/* View switcher */}
-          <div className="view-menu" ref={viewMenuRef}>
-            <button className="btn-view" onClick={() => setViewOpen(o => !o)}>
-              {view}<span aria-hidden> ▾</span>
-            </button>
-            {viewOpen && (
-              <div className="view-dropdown">
-                {VIEWS.map(v => (
-                  <button
-                    key={v}
-                    className={`view-option${v === view ? ' view-option--active' : ''}`}
-                    onClick={() => { setView(v); setViewOpen(false); }}
-                  >
-                    {v}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <Button variant="outlined" size="small" onClick={e => setViewAnchor(e.currentTarget)}>
+            {view} ▾
+          </Button>
+          <Menu anchorEl={viewAnchor} open={Boolean(viewAnchor)} onClose={() => setViewAnchor(null)}>
+            {VIEWS.map(v => (
+              <MenuItem key={v} selected={v === view} dense onClick={() => { setView(v); setViewAnchor(null); }}>
+                {v}
+              </MenuItem>
+            ))}
+          </Menu>
 
           {/* Export */}
-          <div className="export-menu" ref={exportMenuRef}>
-            {hasLimitedExports && (
-              <span
-                className="export-limit-badge"
-                title="Some export formats are not available in this view"
-                aria-label="Some formats unavailable"
-              />
-            )}
-            <button
-              className="btn-export"
-              onClick={() => setExportOpen(o => !o)}
+          <Badge color="warning" variant="dot" invisible={!hasLimitedExports} title={hasLimitedExports ? 'Some export formats are not available in this view' : undefined}>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={e => setExportAnchor(e.currentTarget)}
               disabled={exporting !== null}
             >
-              {exporting ? `Exporting ${exporting}…` : 'Export'}<span aria-hidden> ▾</span>
-            </button>
-            {exportOpen && (
-              <div className="export-dropdown">
-                {EXPORT_FORMATS.map(fmt => {
-                  const reason = disabledExports[fmt];
-                  return (
-                    <button
-                      key={fmt}
-                      className={`export-option${reason ? ' export-option--disabled' : ''}`}
-                      onClick={() => handleExport(fmt)}
-                      disabled={!!reason}
-                      title={reason}
-                    >
-                      {fmt}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+              {exporting ? `Exporting ${exporting}…` : 'Export ▾'}
+            </Button>
+          </Badge>
+          <Menu anchorEl={exportAnchor} open={Boolean(exportAnchor)} onClose={() => setExportAnchor(null)}>
+            {EXPORT_FORMATS.map(fmt => {
+              const reason = disabledExports[fmt];
+              return (
+                <MenuItem key={fmt} disabled={!!reason} dense onClick={() => handleExport(fmt)} title={reason}>
+                  {fmt}
+                </MenuItem>
+              );
+            })}
+          </Menu>
+        </Stack>
+      </Stack>
 
       {/* Stats bar */}
       <StatsBar items={filteredItems} />
@@ -320,7 +298,7 @@ export default function Timeline({ items, milestones }: Props) {
       <FilterBar filters={filters} counts={counts} onChange={setFilters} />
 
       {/* Non-Gantt views */}
-      {noFilteredItems && <p className="tl-empty">No items match the current filters.</p>}
+      {noFilteredItems && <Typography color="text.secondary" sx={{ py: 2 }}>No items match the current filters.</Typography>}
       {!noFilteredItems && view === 'Burndown'        && <Burndown items={filteredItems} />}
       {!noFilteredItems && view === 'Cycle Time'      && <CycleTime items={filteredItems} />}
       {!noFilteredItems && view === 'Velocity'        && <Velocity items={filteredItems} />}
@@ -483,6 +461,6 @@ export default function Timeline({ items, milestones }: Props) {
           </div>
         </>
       )}
-    </div>
+    </Paper>
   );
 }
