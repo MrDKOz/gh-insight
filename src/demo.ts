@@ -17,6 +17,7 @@ export const DEMO_ITEMS: TimelineItem[] = [
     createdAt: '2025-01-06T09:00:00Z',
     closedAt: '2025-01-24T16:30:00Z',
     linkedPRs: [210],
+    milestoneNumber: 1,
   },
   {
     type: 'pr',
@@ -27,6 +28,7 @@ export const DEMO_ITEMS: TimelineItem[] = [
     mergedAt: '2025-01-24T16:00:00Z',
     closedAt: '2025-01-24T16:00:00Z',
     linkedIssue: 101,
+    milestoneNumber: 1,
   },
   {
     type: 'issue',
@@ -36,6 +38,7 @@ export const DEMO_ITEMS: TimelineItem[] = [
     createdAt: '2025-01-08T10:00:00Z',
     closedAt: '2025-02-03T14:00:00Z',
     linkedPRs: [214, 218],
+    milestoneNumber: 1,
   },
   {
     type: 'pr',
@@ -46,6 +49,7 @@ export const DEMO_ITEMS: TimelineItem[] = [
     mergedAt: '2025-01-29T15:00:00Z',
     closedAt: '2025-01-29T15:00:00Z',
     linkedIssue: 102,
+    milestoneNumber: 1,
   },
   {
     type: 'pr',
@@ -56,6 +60,7 @@ export const DEMO_ITEMS: TimelineItem[] = [
     mergedAt: '2025-02-03T13:45:00Z',
     closedAt: '2025-02-03T13:45:00Z',
     linkedIssue: 102,
+    milestoneNumber: 1,
   },
   {
     type: 'issue',
@@ -65,6 +70,7 @@ export const DEMO_ITEMS: TimelineItem[] = [
     createdAt: '2025-01-10T08:00:00Z',
     closedAt: '2025-01-17T10:00:00Z',
     linkedPRs: [211],
+    milestoneNumber: 1,
   },
   {
     type: 'pr',
@@ -75,6 +81,7 @@ export const DEMO_ITEMS: TimelineItem[] = [
     mergedAt: '2025-01-17T09:45:00Z',
     closedAt: '2025-01-17T09:45:00Z',
     linkedIssue: 103,
+    milestoneNumber: 1,
   },
   {
     type: 'issue',
@@ -84,6 +91,7 @@ export const DEMO_ITEMS: TimelineItem[] = [
     createdAt: '2025-01-14T11:00:00Z',
     closedAt: '2025-01-15T09:00:00Z',
     linkedPRs: [212],
+    milestoneNumber: 1,
   },
   {
     type: 'pr',
@@ -94,6 +102,7 @@ export const DEMO_ITEMS: TimelineItem[] = [
     mergedAt: '2025-01-15T08:50:00Z',
     closedAt: '2025-01-15T08:50:00Z',
     linkedIssue: 104,
+    milestoneNumber: 1,
   },
   {
     type: 'issue',
@@ -103,6 +112,7 @@ export const DEMO_ITEMS: TimelineItem[] = [
     createdAt: '2025-01-03T09:00:00Z',
     closedAt: '2025-02-10T17:00:00Z',
     linkedPRs: [220],
+    milestoneNumber: 1,
   },
   {
     type: 'pr',
@@ -113,6 +123,7 @@ export const DEMO_ITEMS: TimelineItem[] = [
     mergedAt: '2025-02-10T16:30:00Z',
     closedAt: '2025-02-10T16:30:00Z',
     linkedIssue: 105,
+    milestoneNumber: 1,
   },
   {
     type: 'issue',
@@ -122,6 +133,7 @@ export const DEMO_ITEMS: TimelineItem[] = [
     createdAt: '2025-01-12T10:00:00Z',
     closedAt: '2025-01-31T11:00:00Z',
     linkedPRs: [216],
+    milestoneNumber: 1,
   },
   {
     type: 'pr',
@@ -132,6 +144,7 @@ export const DEMO_ITEMS: TimelineItem[] = [
     mergedAt: '2025-01-31T10:45:00Z',
     closedAt: '2025-01-31T10:45:00Z',
     linkedIssue: 106,
+    milestoneNumber: 1,
   },
   {
     type: 'issue',
@@ -141,6 +154,7 @@ export const DEMO_ITEMS: TimelineItem[] = [
     createdAt: '2025-01-18T14:00:00Z',
     closedAt: '2025-01-22T12:00:00Z',
     linkedPRs: [215],
+    milestoneNumber: 1,
   },
   {
     type: 'pr',
@@ -151,6 +165,7 @@ export const DEMO_ITEMS: TimelineItem[] = [
     mergedAt: '2025-01-22T11:30:00Z',
     closedAt: '2025-01-22T11:30:00Z',
     linkedIssue: 107,
+    milestoneNumber: 1,
   },
   {
     type: 'issue',
@@ -160,6 +175,7 @@ export const DEMO_ITEMS: TimelineItem[] = [
     createdAt: '2025-01-21T09:00:00Z',
     closedAt: '2025-01-23T15:00:00Z',
     linkedPRs: [217],
+    milestoneNumber: 1,
   },
   {
     type: 'pr',
@@ -170,5 +186,6 @@ export const DEMO_ITEMS: TimelineItem[] = [
     mergedAt: null,
     closedAt: '2025-01-23T14:50:00Z',
     linkedIssue: 108,
+    milestoneNumber: 1,
   },
 ];

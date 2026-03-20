@@ -186,6 +186,7 @@ export async function fetchMilestoneItems(
           mergedAt: pr.mergedAt,
           closedAt: pr.closedAt,
           linkedIssue: issue.number,
+          milestoneNumber,
         });
       }
     }
@@ -198,6 +199,7 @@ export async function fetchMilestoneItems(
       createdAt: issue.createdAt,
       closedAt: issue.closedAt,
       linkedPRs: linkedPRNums,
+      milestoneNumber,
     });
   }
 

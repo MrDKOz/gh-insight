@@ -15,6 +15,7 @@ export interface PRItem {
   mergedAt: string | null;
   closedAt: string | null;
   linkedIssue: number;
+  milestoneNumber: number;
 }
 
 export interface IssueItem {
@@ -25,6 +26,7 @@ export interface IssueItem {
   createdAt: string;
   closedAt: string | null;
   linkedPRs: number[];
+  milestoneNumber: number;
 }
 
 export type TimelineItem = IssueItem | PRItem;

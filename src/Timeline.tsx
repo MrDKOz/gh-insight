@@ -6,9 +6,15 @@ import CycleTime from './CycleTime';
 import Velocity from './Velocity';
 import CumulativeFlow from './CumulativeFlow';
 
+interface MilestoneMeta {
+  number: number;
+  title: string;
+  color: string;
+}
+
 interface Props {
   items: TimelineItem[];
-  title: string;
+  milestones: MilestoneMeta[];
 }
 
 function formatDate(iso: string | null | undefined): string {
@@ -29,7 +35,14 @@ const EXPORT_FORMATS: ExportFormat[] = ['CSV', 'XLSX', 'Markdown', 'PNG — Curr
 type View = 'Gantt' | 'Burndown' | 'Cycle Time' | 'Velocity' | 'Cumulative Flow';
 const VIEWS: View[] = ['Gantt', 'Burndown', 'Cycle Time', 'Velocity', 'Cumulative Flow'];
 
-export default function Timeline({ items, title }: Props) {
+export default function Timeline({ items, milestones }: Props) {
+  const milestoneColorMap = new Map(milestones.map(m => [m.number, m.color]));
+  const isMultiMilestone = milestones.length > 1;
+  const title =
+    milestones.length === 0 ? 'Milestone'
+    : milestones.length === 1 ? milestones[0].title
+    : milestones.length === 2 ? `${milestones[0].title} + ${milestones[1].title}`
+    : `${milestones.length} milestones`;
   const [labelWidth, setLabelWidth] = useState(320);
   const [pixelsPerDay, setPixelsPerDay] = useState(30);
   const [axisHeight, setAxisHeight] = useState(36);
@@ -371,6 +384,17 @@ export default function Timeline({ items, title }: Props) {
             </div>
           </div>
 
+          {isMultiMilestone && (
+            <div className="tl-milestone-legend">
+              {milestones.map(m => (
+                <div key={m.number} className="tl-milestone-legend-item">
+                  <span className="tl-milestone-swatch" style={{ background: m.color }} />
+                  <span>{m.title}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           <p className="tl-hint">
             Click issue/PR numbers to open in GitHub &nbsp;·&nbsp; Drag handle to resize labels
             &nbsp;·&nbsp; Scroll wheel to zoom
@@ -395,7 +419,13 @@ export default function Timeline({ items, title }: Props) {
                   <div
                     key={`lbl-${item.type}-${item.number}`}
                     className="tl-label"
-                    style={{ height: ROW_HEIGHT, opacity: isOpen ? 0.75 : 1 }}
+                    style={{
+                      height: ROW_HEIGHT,
+                      opacity: isOpen ? 0.75 : 1,
+                      boxShadow: isMultiMilestone
+                        ? `inset 3px 0 0 ${milestoneColorMap.get(item.milestoneNumber) ?? '#57606a'}`
+                        : undefined,
+                    }}
                   >
                     <span className={badgeClass}>{item.type.toUpperCase()}</span>
                     <a

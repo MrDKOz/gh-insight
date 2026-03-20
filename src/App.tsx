@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { fetchMilestones, fetchMilestoneItems } from './github';
 import type { Milestone, TimelineItem } from './types';
 import Timeline from './Timeline';
@@ -6,20 +6,26 @@ import { DEMO_MILESTONE, DEMO_ITEMS } from './demo';
 
 const LS_TOKEN = 'gmt_token';
 const LS_OWNER = 'gmt_owner';
-const LS_REPO = 'gmt_repo';
-const LS_DARK = 'gmt_dark';
+const LS_REPO  = 'gmt_repo';
+const LS_DARK  = 'gmt_dark';
+
+const MILESTONE_COLORS = ['#0969da', '#8250df', '#1a7f37', '#d97706', '#cf222e', '#0550ae'];
 
 export default function App() {
-  const [dark, setDark] = useState(() => localStorage.getItem(LS_DARK) !== 'false');
+  const [dark, setDark]   = useState(() => localStorage.getItem(LS_DARK) !== 'false');
   const [token, setToken] = useState(() => localStorage.getItem(LS_TOKEN) ?? '');
   const [owner, setOwner] = useState(() => localStorage.getItem(LS_OWNER) ?? '');
-  const [repo, setRepo] = useState(() => localStorage.getItem(LS_REPO) ?? '');
-  const [milestones, setMilestones] = useState<Milestone[]>([]);
-  const [selectedMilestone, setSelectedMilestone] = useState<Milestone | null>(null);
-  const [items, setItems] = useState<TimelineItem[]>([]);
-  const [loadingMilestones, setLoadingMilestones] = useState(false);
-  const [loadingItems, setLoadingItems] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [repo, setRepo]   = useState(() => localStorage.getItem(LS_REPO)  ?? '');
+
+  const [milestones, setMilestones]                 = useState<Milestone[]>([]);
+  const [selectedMilestones, setSelectedMilestones] = useState<Milestone[]>([]);
+  const [milestoneItemsMap, setMilestoneItemsMap]   = useState<Map<number, TimelineItem[]>>(new Map());
+  const [loadingNums, setLoadingNums]               = useState<Set<number>>(new Set());
+  const [loadingMilestones, setLoadingMilestones]   = useState(false);
+  const [addOpen, setAddOpen]                       = useState(false);
+  const [error, setError]                           = useState<string | null>(null);
+
+  const msMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     localStorage.setItem(LS_DARK, String(dark));
@@ -27,7 +33,7 @@ export default function App() {
   }, [dark]);
   useEffect(() => { localStorage.setItem(LS_TOKEN, token); }, [token]);
   useEffect(() => { localStorage.setItem(LS_OWNER, owner); }, [owner]);
-  useEffect(() => { localStorage.setItem(LS_REPO, repo); }, [repo]);
+  useEffect(() => { localStorage.setItem(LS_REPO,  repo);  }, [repo]);
 
   // Apply saved theme on first render
   useEffect(() => {
@@ -35,13 +41,31 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Close add-milestone dropdown on outside click
+  useEffect(() => {
+    if (!addOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (msMenuRef.current && !msMenuRef.current.contains(e.target as Node)) {
+        setAddOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [addOpen]);
+
+  const milestoneColorFor = (num: number) => {
+    const idx = milestones.findIndex(m => m.number === num);
+    return MILESTONE_COLORS[Math.max(0, idx) % MILESTONE_COLORS.length];
+  };
+
   const loadMilestones = async () => {
     if (!token || !owner || !repo) return;
     setLoadingMilestones(true);
     setError(null);
     setMilestones([]);
-    setItems([]);
-    setSelectedMilestone(null);
+    setSelectedMilestones([]);
+    setMilestoneItemsMap(new Map());
+    setLoadingNums(new Set());
     try {
       const data = await fetchMilestones(owner, repo, token);
       setMilestones(data);
@@ -53,35 +77,52 @@ export default function App() {
     }
   };
 
-  const handleMilestoneChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const num = parseInt(e.target.value, 10);
-    if (isNaN(num)) return;
-    const ms = milestones.find((m) => m.number === num) ?? null;
-    setSelectedMilestone(ms);
-    setItems([]);
+  const addMilestone = async (ms: Milestone) => {
+    if (selectedMilestones.find(m => m.number === ms.number)) return;
+    setSelectedMilestones(prev => [...prev, ms]);
+    setAddOpen(false);
     setError(null);
-    if (!ms) return;
 
-    setLoadingItems(true);
-    try {
-      const data = await fetchMilestoneItems(owner, repo, token, num);
-      setItems(data);
-      if (data.length === 0) setError('No issues found in this milestone.');
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setLoadingItems(false);
+    if (!milestoneItemsMap.has(ms.number)) {
+      setLoadingNums(prev => new Set([...prev, ms.number]));
+      try {
+        const data = await fetchMilestoneItems(owner, repo, token, ms.number);
+        setMilestoneItemsMap(prev => new Map([...prev, [ms.number, data]]));
+        if (data.length === 0) setError(`No items found in milestone "${ms.title}".`);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+        setSelectedMilestones(prev => prev.filter(m => m.number !== ms.number));
+      } finally {
+        setLoadingNums(prev => { const s = new Set(prev); s.delete(ms.number); return s; });
+      }
     }
+  };
+
+  const removeMilestone = (num: number) => {
+    setSelectedMilestones(prev => prev.filter(m => m.number !== num));
   };
 
   const loadDemo = () => {
     setError(null);
     setMilestones([DEMO_MILESTONE]);
-    setSelectedMilestone(DEMO_MILESTONE);
-    setItems(DEMO_ITEMS);
+    setSelectedMilestones([DEMO_MILESTONE]);
+    setMilestoneItemsMap(new Map([[DEMO_MILESTONE.number, DEMO_ITEMS]]));
+    setLoadingNums(new Set());
   };
 
   const canLoad = !!token && !!owner && !!repo;
+  const isLoading = loadingNums.size > 0;
+
+  const allItems = selectedMilestones.flatMap(ms => milestoneItemsMap.get(ms.number) ?? []);
+  const milestonesMeta = selectedMilestones.map(ms => ({
+    number: ms.number,
+    title:  ms.title,
+    color:  milestoneColorFor(ms.number),
+  }));
+
+  const unselectedMilestones = milestones.filter(
+    m => !selectedMilestones.find(s => s.number === m.number),
+  );
 
   return (
     <div className="app">
@@ -155,32 +196,66 @@ export default function App() {
 
         {milestones.length > 0 && (
           <div className="settings-row">
-            <label className="field">
-              <span className="field-label">Milestone</span>
-              <select
-                value={selectedMilestone?.number ?? ''}
-                onChange={handleMilestoneChange}
-                disabled={loadingItems}
-                className="input-wide"
-              >
-                <option value="">Select a milestone…</option>
-                {milestones.map((m) => (
-                  <option key={m.number} value={m.number}>
-                    {m.title} — {m.open_issues + m.closed_issues} issue
-                    {m.open_issues + m.closed_issues !== 1 ? 's' : ''} ({m.state})
-                  </option>
+            <div className="field">
+              <span className="field-label">Milestones</span>
+              <div className="ms-picker">
+                {selectedMilestones.map(ms => (
+                  <span
+                    key={ms.number}
+                    className="ms-chip"
+                    style={{ background: milestoneColorFor(ms.number) }}
+                  >
+                    {loadingNums.has(ms.number) ? '…' : ms.title}
+                    <button
+                      className="ms-chip__remove"
+                      onClick={() => removeMilestone(ms.number)}
+                      aria-label={`Remove ${ms.title}`}
+                    >×</button>
+                  </span>
                 ))}
-              </select>
-            </label>
+
+                {unselectedMilestones.length > 0 && (
+                  <div className="ms-add-menu" ref={msMenuRef}>
+                    <button
+                      className="btn-secondary ms-add-btn"
+                      onClick={() => setAddOpen(o => !o)}
+                      disabled={isLoading}
+                    >
+                      + {selectedMilestones.length === 0 ? 'Select milestone' : 'Add'}
+                    </button>
+                    {addOpen && (
+                      <div className="ms-dropdown">
+                        {unselectedMilestones.map(ms => (
+                          <button
+                            key={ms.number}
+                            className="ms-option"
+                            onClick={() => addMilestone(ms)}
+                          >
+                            <span
+                              className="ms-option-dot"
+                              style={{ background: milestoneColorFor(ms.number) }}
+                            />
+                            <span className="ms-option-title">{ms.title}</span>
+                            <span className="ms-option-meta">
+                              {ms.open_issues + ms.closed_issues} issue{ms.open_issues + ms.closed_issues !== 1 ? 's' : ''} ({ms.state})
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>
 
       {error && <div className="error-banner">{error}</div>}
-      {loadingItems && <div className="status-msg">Loading milestone data…</div>}
+      {isLoading && <div className="status-msg">Loading milestone data…</div>}
 
-      {items.length > 0 && selectedMilestone && (
-        <Timeline items={items} title={selectedMilestone.title} />
+      {allItems.length > 0 && milestonesMeta.length > 0 && (
+        <Timeline items={allItems} milestones={milestonesMeta} />
       )}
     </div>
   );
