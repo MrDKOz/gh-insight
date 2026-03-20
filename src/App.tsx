@@ -49,7 +49,7 @@ type Action =
   | { type: 'FETCH_ITEMS_ERROR';   milestoneNumber: number; error: string }
   | { type: 'REMOVE_MILESTONE';      milestoneNumber: number }
   | { type: 'REFRESH_ITEMS_ERROR';   milestoneNumber: number; error: string }
-  | { type: 'LOAD_DEMO';             milestones: Milestone[]; itemsCache: Record<number, TimelineItem[]> };
+  | { type: 'LOAD_DEMO';             milestones: Milestone[]; selected: Milestone[]; itemsCache: Record<number, TimelineItem[]> };
 
 const initialState: MilestoneState = {
   milestones:  [],
@@ -116,7 +116,7 @@ function milestoneReducer(state: MilestoneState, action: Action): MilestoneState
     case 'LOAD_DEMO':
       return {
         milestones:  action.milestones,
-        selected:    action.milestones,
+        selected:    action.selected,
         itemsCache:  action.itemsCache,
         loadingNums: [],
         loadingList: false,
@@ -202,6 +202,7 @@ export default function App() {
   const loadDemo = () => dispatch({
     type:       'LOAD_DEMO',
     milestones: [DEMO_MILESTONE, DEMO_MILESTONE_2, DEMO_MILESTONE_3],
+    selected:   [DEMO_MILESTONE],
     itemsCache: { [DEMO_MILESTONE.number]: DEMO_ITEMS },
   });
 
