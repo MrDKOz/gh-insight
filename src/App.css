@@ -516,13 +516,22 @@ select:focus {
   bottom: 0;
   width: 5px;
   cursor: col-resize;
-  background: transparent;
   flex-shrink: 0;
   z-index: 1;
+  /* Subtle grip: two dotted vertical lines */
+  background-image:
+    radial-gradient(circle, var(--border) 1px, transparent 1px),
+    radial-gradient(circle, var(--border) 1px, transparent 1px);
+  background-size: 2px 4px;
+  background-position: 1px 2px, 3px 4px;
+  background-repeat: repeat-y;
+  transition: background-image 0.1s;
 }
 
 .tl-resize-handle:hover {
-  background: #0969da;
+  background-image:
+    radial-gradient(circle, #0969da 1px, transparent 1px),
+    radial-gradient(circle, #0969da 1px, transparent 1px);
 }
 
 /* ── Track ── */
