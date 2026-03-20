@@ -46,8 +46,9 @@ type Action =
   | { type: 'FETCH_ITEMS_START';   milestoneNumber: number }
   | { type: 'FETCH_ITEMS_SUCCESS'; milestoneNumber: number; items: TimelineItem[] }
   | { type: 'FETCH_ITEMS_ERROR';   milestoneNumber: number; error: string }
-  | { type: 'REMOVE_MILESTONE';    milestoneNumber: number }
-  | { type: 'LOAD_DEMO';           milestones: Milestone[]; itemsCache: Record<number, TimelineItem[]> };
+  | { type: 'REMOVE_MILESTONE';      milestoneNumber: number }
+  | { type: 'REFRESH_ITEMS_ERROR';   milestoneNumber: number; error: string }
+  | { type: 'LOAD_DEMO';             milestones: Milestone[]; itemsCache: Record<number, TimelineItem[]> };
 
 const initialState: MilestoneState = {
   milestones:  [],
@@ -101,6 +102,14 @@ function milestoneReducer(state: MilestoneState, action: Action): MilestoneState
 
     case 'REMOVE_MILESTONE':
       return { ...state, selected: state.selected.filter(m => m.number !== action.milestoneNumber) };
+
+    case 'REFRESH_ITEMS_ERROR':
+      // Keep the milestone selected (stale data stays visible); just surface the error.
+      return {
+        ...state,
+        loadingNums: state.loadingNums.filter(n => n !== action.milestoneNumber),
+        error: action.error,
+      };
 
     case 'LOAD_DEMO':
       return {
@@ -171,6 +180,21 @@ export default function App() {
   const removeMilestone = useCallback((num: number) => {
     dispatch({ type: 'REMOVE_MILESTONE', milestoneNumber: num });
   }, []);
+
+  const refreshMilestones = useCallback(async () => {
+    if (state.selected.length === 0) return;
+    state.selected.forEach(ms =>
+      dispatch({ type: 'FETCH_ITEMS_START', milestoneNumber: ms.number }),
+    );
+    await Promise.all(state.selected.map(async ms => {
+      try {
+        const items = await fetchMilestoneItems(owner, repo, token, ms.number);
+        dispatch({ type: 'FETCH_ITEMS_SUCCESS', milestoneNumber: ms.number, items });
+      } catch (e) {
+        dispatch({ type: 'REFRESH_ITEMS_ERROR', milestoneNumber: ms.number, error: e instanceof Error ? e.message : String(e) });
+      }
+    }));
+  }, [state.selected, owner, repo, token]);
 
   const loadDemo = () => dispatch({
     type:       'LOAD_DEMO',
@@ -278,6 +302,16 @@ export default function App() {
               onAdd={addMilestone}
               onRemove={removeMilestone}
             />
+            {state.selected.length > 0 && (
+              <button
+                className="btn-secondary"
+                onClick={refreshMilestones}
+                disabled={state.loadingNums.length > 0}
+                title="Refetch data for selected milestones"
+              >
+                ↻ Refresh
+              </button>
+            )}
           </div>
         )}
       </div>
