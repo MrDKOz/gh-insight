@@ -735,12 +735,20 @@ body.dark .stat-value--fast   { color: #3fb950; }
   font-family: inherit;
 }
 
-.bd-label--y      { text-anchor: end; }
-.bd-label--x      { text-anchor: middle; }
-
 .bd-label--callout {
-  text-anchor: end;
   fill: var(--text-primary);
   font-weight: 700;
   font-size: 12px;
+}
+
+/* Hover dots */
+.bd-dot {
+  fill: #0969da;
+  opacity: 0;
+  cursor: crosshair;
+  transition: opacity 0.1s;
+}
+
+.bd-dot:hover {
+  opacity: 1;
 }

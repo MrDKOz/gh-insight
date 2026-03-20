@@ -10,7 +10,7 @@ function formatDate(iso: string): string {
 
 const L = 48;   // chart left padding (for y-axis labels)
 const R = 12;   // chart right padding
-const T = 12;   // chart top padding
+const T = 20;   // chart top padding
 const B = 36;   // chart bottom padding (for x-axis labels)
 const W = 800;  // SVG viewBox width
 const H = 280;  // SVG viewBox height
@@ -27,12 +27,16 @@ export default function Burndown({ items }: Props) {
   const MS = 86_400_000;
   const todayMs = Date.now();
 
-  const allTs = issues.flatMap(i => [
-    new Date(i.createdAt).getTime(),
-    i.closedAt ? new Date(i.closedAt).getTime() : todayMs,
-  ]);
-  const minTime = Math.min(...allTs);
-  const maxTime = Math.max(Math.max(...allTs), todayMs);
+  const hasOpenIssues = issues.some(i => !i.closedAt);
+
+  // X-axis range: end at the last close date when all issues are resolved,
+  // or today when issues are still open. Avoids squashing closed-milestone data.
+  const createdTs = issues.map(i => new Date(i.createdAt).getTime());
+  const closedTs = issues.filter(i => i.closedAt).map(i => new Date(i.closedAt!).getTime());
+  const minTime = Math.min(...createdTs);
+  const maxTime = hasOpenIssues
+    ? Math.max(...[...createdTs, ...closedTs], todayMs)
+    : Math.max(...[...createdTs, ...closedTs]);
   const totalDays = Math.max(Math.ceil((maxTime - minTime) / MS), 1);
 
   // Daily open issue count
@@ -48,7 +52,7 @@ export default function Burndown({ items }: Props) {
 
   const maxCount = Math.max(...points.map(p => p.count), 1);
 
-  const px = (i: number) => L + (i / (points.length - 1)) * CW;
+  const px = (i: number) => L + (points.length > 1 ? (i / (points.length - 1)) * CW : CW / 2);
   const py = (count: number) => T + (1 - count / maxCount) * CH;
 
   // Line + area paths
@@ -60,18 +64,21 @@ export default function Burndown({ items }: Props) {
   // X axis: up to 8 evenly-spaced labels
   const numXLabels = Math.min(8, points.length);
   const xLabelIndices = Array.from({ length: numXLabels }, (_, i) =>
-    Math.round((i / (numXLabels - 1)) * (points.length - 1)),
+    Math.round((i / Math.max(numXLabels - 1, 1)) * (points.length - 1)),
   );
 
   // Y axis: 5 labels from 0 to maxCount
   const yLabels = Array.from({ length: 5 }, (_, i) => Math.round((maxCount * i) / 4));
 
-  // Today marker
-  const todayFrac = Math.min((todayMs - minTime) / (maxTime - minTime), 1);
-  const todayX = (L + todayFrac * CW).toFixed(1);
-  const showToday = todayMs >= minTime;
+  // Today marker (only shown if today is within the chart range)
+  const showToday = todayMs >= minTime && todayMs <= maxTime;
+  const todayFrac = (todayMs - minTime) / (maxTime - minTime);
+  const todayXNum = L + todayFrac * CW;
+  const todayX = todayXNum.toFixed(1);
+  // Flip "Today" label to left of line when near the right edge
+  const todayLabelRight = todayFrac > 0.85;
 
-  // Current open count annotation
+  // Current open count annotation — anchor to left edge so it never clips
   const currentOpen = points[points.length - 1].count;
 
   return (
@@ -97,6 +104,19 @@ export default function Burndown({ items }: Props) {
         {/* Line */}
         <path d={linePath} className="bd-line" />
 
+        {/* Hover dots — one per day, invisible until hovered */}
+        {points.map(({ t, count }, i) => (
+          <circle
+            key={`dot-${i}`}
+            cx={px(i).toFixed(1)}
+            cy={py(count).toFixed(1)}
+            r={6}
+            className="bd-dot"
+          >
+            <title>{formatDate(new Date(t).toISOString())}: {count} open issue{count !== 1 ? 's' : ''}</title>
+          </circle>
+        ))}
+
         {/* Today marker */}
         {showToday && (
           <g>
@@ -105,7 +125,12 @@ export default function Burndown({ items }: Props) {
               x2={todayX} y2={T + CH}
               className="bd-today"
             />
-            <text x={parseFloat(todayX) + 4} y={T + 11} className="bd-today-label">
+            <text
+              x={todayLabelRight ? todayXNum - 4 : todayXNum + 4}
+              y={T + 11}
+              textAnchor={todayLabelRight ? 'end' : 'start'}
+              className="bd-today-label"
+            >
               Today
             </text>
           </g>
@@ -119,7 +144,7 @@ export default function Burndown({ items }: Props) {
 
         {/* Y axis labels */}
         {yLabels.map(count => (
-          <text key={count} x={L - 6} y={py(count) + 4} className="bd-label bd-label--y">
+          <text key={count} x={L - 6} y={py(count) + 4} textAnchor="end" className="bd-label">
             {count}
           </text>
         ))}
@@ -130,14 +155,20 @@ export default function Burndown({ items }: Props) {
             key={i}
             x={px(i)}
             y={T + CH + 22}
-            className="bd-label bd-label--x"
+            textAnchor="middle"
+            className="bd-label"
           >
             {formatDate(new Date(points[i].t).toISOString())}
           </text>
         ))}
 
-        {/* Current open count callout */}
-        <text x={L + CW} y={T - 2} className="bd-label bd-label--callout">
+        {/* Current open count callout — anchored left of right edge so it never clips */}
+        <text
+          x={L + CW - 4}
+          y={T - 6}
+          textAnchor="end"
+          className="bd-label bd-label--callout"
+        >
           {currentOpen} open
         </text>
       </svg>
