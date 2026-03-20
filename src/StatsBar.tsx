@@ -4,7 +4,7 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import type { TimelineItem } from './types';
-import { MS } from './utils';
+import { MS, COLORS } from './utils';
 
 interface StatProps {
   value: string;
@@ -62,9 +62,9 @@ export default function StatsBar({ items }: Props) {
       {openIssues.length > 0 && (
         <Stat value={String(openIssues.length)} lightColor="#d97706" darkColor="#f59e0b" label="Issues open" title="Number of issues still open" />
       )}
-      <Stat value={String(mergedPRs.length)} lightColor="#8250df" label="PRs merged" title="Number of pull requests that have been merged" />
+      <Stat value={String(mergedPRs.length)} lightColor={COLORS.prMerged} label="PRs merged" title="Number of pull requests that have been merged" />
       {closedPRs.length > 0 && (
-        <Stat value={String(closedPRs.length)} lightColor="#dc3545" label="PRs closed" title="Number of pull requests closed without being merged" />
+        <Stat value={String(closedPRs.length)} lightColor={COLORS.prClosed} label="PRs closed" title="Number of pull requests closed without being merged" />
       )}
       {avgCycle !== null && (
         <>

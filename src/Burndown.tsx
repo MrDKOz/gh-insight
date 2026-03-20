@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import type { TimelineItem } from './types';
-import { MS, fmtDate } from './utils';
+import { MS, fmtDate, COLORS, hoverCardPos } from './utils';
 
 interface Props {
   items: TimelineItem[];
@@ -21,14 +21,14 @@ const CH = H - T - B;
 // resolve inside the cloned document it creates).
 const C = {
   area:       'rgba(9,105,218,0.12)',
-  line:       '#0969da',
-  grid:       '#d0d7de',
-  axis:       '#57606a',
+  line:       COLORS.issue,
+  grid:       COLORS.chartGrid,
+  axis:       COLORS.chartAxis,
   today:      'rgba(248,81,73,0.7)',
   todayLabel: 'rgba(248,81,73,0.9)',
-  label:      '#57606a',
+  label:      COLORS.chartAxis,
   callout:    '#24292f',
-  dot:        '#0969da',
+  dot:        COLORS.issue,
 };
 
 interface HoverInfo {
@@ -110,19 +110,9 @@ export default function Burndown({ items }: Props) {
     setHover({ x: e.clientX - rect.left, y: e.clientY - rect.top, date: fmtDate(new Date(t).toISOString()), count });
   };
 
-  // Compute hover card position, keeping it inside the wrapper
-  const hoverCardStyle = (() => {
-    if (!hover) return {};
-    const wrapW = wrapRef.current?.offsetWidth ?? 800;
-    const nearRight = hover.x > wrapW - 180;
-    const nearTop   = hover.y < 60;
-    return {
-      top:  nearTop ? hover.y + 14 : hover.y - 52,
-      ...(nearRight
-        ? { right: wrapW - hover.x + 14 }
-        : { left: hover.x + 14 }),
-    };
-  })();
+  const hoverCardStyle = hover
+    ? hoverCardPos(hover.x, hover.y, wrapRef.current?.offsetWidth ?? 800, 180, 52)
+    : {};
 
   return (
     <div className="burndown-wrap" ref={wrapRef} style={{ position: 'relative' }}>

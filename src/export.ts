@@ -9,6 +9,7 @@
  */
 
 import type { TimelineItem } from './types';
+import { itemEndDate } from './utils';
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
@@ -57,8 +58,7 @@ function buildRows(items: TimelineItem[]): Row[] {
     )
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
     .map(item => {
-      const endDate =
-        item.type === 'issue' ? item.closedAt : (item.mergedAt ?? item.closedAt);
+      const endDate = itemEndDate(item);
       const status =
         item.type === 'pr' ? (item.mergedAt ? 'Merged' : 'Closed') : 'Closed';
       const days =

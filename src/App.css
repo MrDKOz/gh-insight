@@ -284,6 +284,14 @@ body.dark {
   z-index: 5;
 }
 
+/* ── Chart / Gantt empty state ── */
+
+.tl-empty {
+  font-size: 14px;
+  color: var(--text-secondary);
+  padding: 20px 0;
+}
+
 /* ── Legend open-item swatches ── */
 
 .tl-swatch--issue-open {

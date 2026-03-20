@@ -5,6 +5,7 @@ import TextField from '@mui/material/TextField';
 import Chip from '@mui/material/Chip';
 import IconButton from '@mui/material/IconButton';
 import type { TimelineItem } from './types';
+import { itemEndDate, COLORS } from './utils';
 
 export interface Filters {
   createdStart:     string;
@@ -35,7 +36,7 @@ export function applyFilters(items: TimelineItem[], filters: Filters): TimelineI
     if (filters.createdStart && item.createdAt.slice(0, 10) < filters.createdStart) return false;
     if (filters.createdEnd   && item.createdAt.slice(0, 10) > filters.createdEnd)   return false;
 
-    const end = item.type === 'issue' ? item.closedAt : (item.mergedAt ?? item.closedAt);
+    const end = itemEndDate(item);
     if (filters.closedStart || filters.closedEnd) {
       if (!end) return false; // open items have no close date — exclude when filtering by closed
       if (filters.closedStart && end.slice(0, 10) < filters.closedStart) return false;
@@ -121,11 +122,11 @@ export default function FilterBar({ filters, counts, onChange }: Props) {
 
   const toggles: Array<{ key: keyof Filters; label: string; count: number; color: string }> = (
     [
-      { key: 'showOpenIssues',   label: 'Open issues',   count: counts.openIssues,   color: '#0969da' },
-      { key: 'showClosedIssues', label: 'Closed issues', count: counts.closedIssues, color: '#0969da' },
-      { key: 'showOpenPRs',      label: 'Open PRs',      count: counts.openPRs,      color: '#8250df' },
-      { key: 'showMergedPRs',    label: 'Merged PRs',    count: counts.mergedPRs,    color: '#8250df' },
-      { key: 'showClosedPRs',    label: 'Closed PRs',    count: counts.closedPRs,    color: '#dc3545' },
+      { key: 'showOpenIssues',   label: 'Open issues',   count: counts.openIssues,   color: COLORS.issue },
+      { key: 'showClosedIssues', label: 'Closed issues', count: counts.closedIssues, color: COLORS.issue },
+      { key: 'showOpenPRs',      label: 'Open PRs',      count: counts.openPRs,      color: COLORS.prMerged },
+      { key: 'showMergedPRs',    label: 'Merged PRs',    count: counts.mergedPRs,    color: COLORS.prMerged },
+      { key: 'showClosedPRs',    label: 'Closed PRs',    count: counts.closedPRs,    color: COLORS.prClosed },
     ] as Array<{ key: keyof Filters; label: string; count: number; color: string }>
   ).filter(t => t.count > 0);
 

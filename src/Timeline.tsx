@@ -7,8 +7,8 @@ import Button from '@mui/material/Button';
 import Badge from '@mui/material/Badge';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
-import type { TimelineItem } from './types';
-import { MS, fmtDate } from './utils';
+import type { TimelineItem, MilestoneMeta } from './types';
+import { MS, fmtDate, itemEndDate } from './utils';
 import { exportCSV, exportMarkdown, exportPNG, exportPDF, exportXLSX } from './export';
 import StatsBar from './StatsBar';
 import FilterBar, { DEFAULT_FILTERS, applyFilters } from './FilterBar';
@@ -18,12 +18,6 @@ import CycleTime from './CycleTime';
 import Velocity from './Velocity';
 import CumulativeFlow from './CumulativeFlow';
 import ItemList from './ItemList';
-
-interface MilestoneMeta {
-  number: number;
-  title: string;
-  color: string;
-}
 
 interface Props {
   items: TimelineItem[];
@@ -389,9 +383,7 @@ export default function Timeline({ items, milestones }: Props) {
               {sortedItems.map(item => {
                 const isOpen  = item.type === 'issue' ? !item.closedAt : !(item.mergedAt || item.closedAt);
                 const startMs = new Date(item.createdAt).getTime();
-                const endDate = isOpen ? null
-                  : item.type === 'issue' ? item.closedAt
-                  : (item.mergedAt ?? item.closedAt);
+                const endDate = isOpen ? null : itemEndDate(item);
                 const endMs   = isOpen ? todayMs : new Date(endDate!).getTime();
 
                 const leftPct  = ((startMs - minTime) / totalMs) * 100;

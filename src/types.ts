@@ -30,3 +30,9 @@ export interface IssueItem {
 }
 
 export type TimelineItem = IssueItem | PRItem;
+
+export interface MilestoneMeta {
+  number: number;
+  title:  string;
+  color:  string;
+}

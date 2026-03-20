@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import type { TimelineItem } from './types';
-import { fmtDate } from './utils';
+import { fmtDate, itemEndDate, COLORS, hoverCardPos } from './utils';
 
 interface Props {
   items: TimelineItem[];
@@ -18,12 +18,12 @@ const CW = W - L - R;
 const CH = H - T - B;
 
 const COL = {
-  issue:    '#0969da',
-  prMerged: '#8250df',
-  prClosed: '#dc3545',
-  axis:     '#57606a',
-  grid:     '#d0d7de',
-  label:    '#57606a',
+  issue:    COLORS.issue,
+  prMerged: COLORS.prMerged,
+  prClosed: COLORS.prClosed,
+  axis:     COLORS.chartAxis,
+  grid:     COLORS.chartGrid,
+  label:    COLORS.chartAxis,
 };
 
 interface Week {
@@ -46,8 +46,7 @@ export default function Velocity({ items }: Props) {
   // Bucket completed items by calendar week
   const buckets = new Map<number, Week>();
   for (const item of items) {
-    const endDate =
-      item.type === 'issue' ? item.closedAt : (item.mergedAt ?? item.closedAt);
+    const endDate = itemEndDate(item);
     if (!endDate) continue;
     const ws = weekStart(new Date(endDate).getTime());
     if (!buckets.has(ws)) {
@@ -89,14 +88,9 @@ export default function Velocity({ items }: Props) {
     setHover({ x: e.clientX - rect.left, y: e.clientY - rect.top, week });
   };
 
-  const cardStyle = (() => {
-    if (!hover) return {};
-    const w = wrapRef.current?.offsetWidth ?? 800;
-    return {
-      top:  hover.y < 100 ? hover.y + 14 : hover.y - 94,
-      ...(hover.x > w - 200 ? { right: w - hover.x + 14 } : { left: hover.x + 14 }),
-    };
-  })();
+  const cardStyle = hover
+    ? hoverCardPos(hover.x, hover.y, wrapRef.current?.offsetWidth ?? 800, 200, 94)
+    : {};
 
   return (
     <div className="chart-wrap" ref={wrapRef} style={{ position: 'relative' }}>

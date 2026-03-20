@@ -10,14 +10,8 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import TableSortLabel from '@mui/material/TableSortLabel';
 import Typography from '@mui/material/Typography';
-import type { TimelineItem } from './types';
-import { MS, fmtDate } from './utils';
-
-interface MilestoneMeta {
-  number: number;
-  title:  string;
-  color:  string;
-}
+import type { TimelineItem, MilestoneMeta } from './types';
+import { MS, fmtDate, itemEndDate, COLORS } from './utils';
 
 interface Props {
   items:      TimelineItem[];
@@ -26,10 +20,6 @@ interface Props {
 
 type SortCol = 'type' | 'number' | 'title' | 'status' | 'milestone' | 'created' | 'closed' | 'days';
 type SortDir = 'asc' | 'desc';
-
-function itemEndDate(item: TimelineItem): string | null {
-  return item.type === 'issue' ? item.closedAt : (item.mergedAt ?? item.closedAt);
-}
 
 function itemStatus(item: TimelineItem): 'Open' | 'Closed' | 'Merged' {
   if (item.type === 'issue') return item.closedAt ? 'Closed' : 'Open';
@@ -103,9 +93,9 @@ export default function ItemList({ items, milestones }: Props) {
   }, [items, sortCol, sortDir, milestoneMap]);
 
   const typeBadgeSx: Record<string, object> = {
-    issue:     { bgcolor: '#0969da', color: '#fff' },
-    pr:        { bgcolor: '#8250df', color: '#fff' },
-    'pr-closed': { bgcolor: '#dc3545', color: '#fff' },
+    issue:     { bgcolor: COLORS.issue,    color: '#fff' },
+    pr:        { bgcolor: COLORS.prMerged, color: '#fff' },
+    'pr-closed': { bgcolor: COLORS.prClosed, color: '#fff' },
   };
 
   const statusChipSx: Record<string, object> = {
@@ -174,7 +164,7 @@ export default function ItemList({ items, milestones }: Props) {
                     target="_blank"
                     rel="noreferrer"
                     underline="hover"
-                    sx={{ color: item.type === 'issue' ? '#0969da' : '#8250df', fontWeight: 700, fontSize: '0.75rem' }}
+                    sx={{ color: item.type === 'issue' ? COLORS.issue : COLORS.prMerged, fontWeight: 700, fontSize: '0.75rem' }}
                   >
                     #{item.number}
                   </Link>

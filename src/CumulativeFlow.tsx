@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import type { TimelineItem } from './types';
-import { MS, fmtDate } from './utils';
+import { MS, fmtDate, itemEndDate, COLORS, hoverCardPos } from './utils';
 
 interface Props {
   items: TimelineItem[];
@@ -13,11 +13,11 @@ const CH = H - T - B;
 const COL = {
   closedFill:  'rgba(9,105,218,0.22)',
   openFill:    'rgba(209,213,218,0.35)',
-  closedLine:  '#0969da',
-  openedLine:  '#57606a',
-  axis:        '#57606a',
-  grid:        '#d0d7de',
-  label:       '#57606a',
+  closedLine:  COLORS.issue,
+  openedLine:  COLORS.chartAxis,
+  axis:        COLORS.chartAxis,
+  grid:        COLORS.chartGrid,
+  label:       COLORS.chartAxis,
   cursor:      'rgba(248,81,73,0.55)',
 };
 
@@ -42,7 +42,7 @@ export default function CumulativeFlow({ items }: Props) {
   }
 
   const allTs = items.flatMap(item => {
-    const end = item.type === 'issue' ? item.closedAt : (item.mergedAt ?? item.closedAt);
+    const end = itemEndDate(item);
     return [new Date(item.createdAt).getTime(), ...(end ? [new Date(end).getTime()] : [])];
   });
   const minTime   = Math.min(...allTs);
@@ -53,7 +53,7 @@ export default function CumulativeFlow({ items }: Props) {
     const t = minTime + i * MS;
     const opened = items.filter(item => new Date(item.createdAt).getTime() <= t).length;
     const closed = items.filter(item => {
-      const end = item.type === 'issue' ? item.closedAt : (item.mergedAt ?? item.closedAt);
+      const end = itemEndDate(item);
       return end != null && new Date(end).getTime() <= t;
     }).length;
     return { t, opened, closed };
@@ -106,14 +106,9 @@ export default function CumulativeFlow({ items }: Props) {
   const hovered = hover !== null ? pts[hover.dayIdx] : null;
   const hoverSvgX = hover !== null ? pxFn(hover.dayIdx) : 0;
 
-  const cardStyle = (() => {
-    if (!hover) return {};
-    const w = wrapRef.current?.offsetWidth ?? 800;
-    return {
-      top:  hover.wrapY < 120 ? hover.wrapY + 14 : hover.wrapY - 90,
-      ...(hover.wrapX > w - 200 ? { right: w - hover.wrapX + 14 } : { left: hover.wrapX + 14 }),
-    };
-  })();
+  const cardStyle = hover
+    ? hoverCardPos(hover.wrapX, hover.wrapY, wrapRef.current?.offsetWidth ?? 800, 200, 90)
+    : {};
 
   return (
     <div
