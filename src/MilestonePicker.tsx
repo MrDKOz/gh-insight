@@ -50,7 +50,7 @@ export default function MilestonePicker({
               onClick={() => setOpen(o => !o)}
               disabled={loadingNums.length > 0}
             >
-              + {selected.length === 0 ? 'Select milestone' : 'Add'}
+              {selected.length === 0 ? `Select milestone (${unselected.length})` : `+ Add (${unselected.length})`}
             </button>
             {open && (
               <div className="ms-dropdown">
