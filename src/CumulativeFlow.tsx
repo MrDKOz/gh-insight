@@ -1,18 +1,14 @@
 import { useState, useRef } from 'react';
 import type { TimelineItem } from './types';
+import { MS, fmtDate } from './utils';
 
 interface Props {
   items: TimelineItem[];
 }
 
-function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-}
-
 const L = 48, R = 16, T = 20, B = 44, W = 800, H = 280;
 const CW = W - L - R;
 const CH = H - T - B;
-const MS = 86_400_000;
 
 const COL = {
   closedFill:  'rgba(9,105,218,0.22)',

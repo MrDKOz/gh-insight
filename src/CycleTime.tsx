@@ -1,12 +1,9 @@
 import { useState, useRef } from 'react';
 import type { TimelineItem } from './types';
+import { MS, fmtDate } from './utils';
 
 interface Props {
   items: TimelineItem[];
-}
-
-function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
 const L = 52, R = 16, T = 28, B = 44, W = 800, H = 280;
@@ -48,7 +45,7 @@ export default function CycleTime({ items }: Props) {
       item.type === 'issue' ? item.closedAt : (item.mergedAt ?? item.closedAt);
     if (!endDate) return [];
     const days = Math.round(
-      (new Date(endDate).getTime() - new Date(item.createdAt).getTime()) / 86_400_000,
+      (new Date(endDate).getTime() - new Date(item.createdAt).getTime()) / MS,
     );
     const col =
       item.type === 'issue' ? COL.issue

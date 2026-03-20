@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { fetchMilestones, fetchMilestoneItems } from './github';
 import type { Milestone, TimelineItem } from './types';
 import Timeline from './Timeline';
+import MilestonePicker from './MilestonePicker';
 import { DEMO_MILESTONE, DEMO_ITEMS, DEMO_MILESTONE_2, DEMO_ITEMS_2, DEMO_MILESTONE_3, DEMO_ITEMS_3 } from './demo';
 
 const LS_TOKEN = 'gmt_token';
@@ -22,10 +23,7 @@ export default function App() {
   const [milestoneItemsMap, setMilestoneItemsMap]   = useState<Map<number, TimelineItem[]>>(new Map());
   const [loadingNums, setLoadingNums]               = useState<Set<number>>(new Set());
   const [loadingMilestones, setLoadingMilestones]   = useState(false);
-  const [addOpen, setAddOpen]                       = useState(false);
   const [error, setError]                           = useState<string | null>(null);
-
-  const msMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     localStorage.setItem(LS_DARK, String(dark));
@@ -41,22 +39,10 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Close add-milestone dropdown on outside click
-  useEffect(() => {
-    if (!addOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (msMenuRef.current && !msMenuRef.current.contains(e.target as Node)) {
-        setAddOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [addOpen]);
-
-  const milestoneColorFor = (num: number) => {
+  const milestoneColorFor = useCallback((num: number) => {
     const idx = milestones.findIndex(m => m.number === num);
     return MILESTONE_COLORS[Math.max(0, idx) % MILESTONE_COLORS.length];
-  };
+  }, [milestones]);
 
   const loadMilestones = async () => {
     if (!token || !owner || !repo) return;
@@ -80,7 +66,6 @@ export default function App() {
   const addMilestone = async (ms: Milestone) => {
     if (selectedMilestones.find(m => m.number === ms.number)) return;
     setSelectedMilestones(prev => [...prev, ms]);
-    setAddOpen(false);
     setError(null);
 
     if (!milestoneItemsMap.has(ms.number)) {
@@ -117,15 +102,18 @@ export default function App() {
   const canLoad = !!token && !!owner && !!repo;
   const isLoading = loadingNums.size > 0;
 
-  const allItems = selectedMilestones.flatMap(ms => milestoneItemsMap.get(ms.number) ?? []);
-  const milestonesMeta = selectedMilestones.map(ms => ({
-    number: ms.number,
-    title:  ms.title,
-    color:  milestoneColorFor(ms.number),
-  }));
+  const allItems = useMemo(
+    () => selectedMilestones.flatMap(ms => milestoneItemsMap.get(ms.number) ?? []),
+    [selectedMilestones, milestoneItemsMap],
+  );
 
-  const unselectedMilestones = milestones.filter(
-    m => !selectedMilestones.find(s => s.number === m.number),
+  const milestonesMeta = useMemo(
+    () => selectedMilestones.map(ms => ({
+      number: ms.number,
+      title:  ms.title,
+      color:  milestoneColorFor(ms.number),
+    })),
+    [selectedMilestones, milestoneColorFor],
   );
 
   return (
@@ -200,57 +188,14 @@ export default function App() {
 
         {milestones.length > 0 && (
           <div className="settings-row">
-            <div className="field">
-              <span className="field-label">Milestones</span>
-              <div className="ms-picker">
-                {selectedMilestones.map(ms => (
-                  <span
-                    key={ms.number}
-                    className="ms-chip"
-                    style={{ background: milestoneColorFor(ms.number) }}
-                  >
-                    {loadingNums.has(ms.number) ? '…' : ms.title}
-                    <button
-                      className="ms-chip__remove"
-                      onClick={() => removeMilestone(ms.number)}
-                      aria-label={`Remove ${ms.title}`}
-                    >×</button>
-                  </span>
-                ))}
-
-                {unselectedMilestones.length > 0 && (
-                  <div className="ms-add-menu" ref={msMenuRef}>
-                    <button
-                      className="btn-secondary ms-add-btn"
-                      onClick={() => setAddOpen(o => !o)}
-                      disabled={isLoading}
-                    >
-                      + {selectedMilestones.length === 0 ? 'Select milestone' : 'Add'}
-                    </button>
-                    {addOpen && (
-                      <div className="ms-dropdown">
-                        {unselectedMilestones.map(ms => (
-                          <button
-                            key={ms.number}
-                            className="ms-option"
-                            onClick={() => addMilestone(ms)}
-                          >
-                            <span
-                              className="ms-option-dot"
-                              style={{ background: milestoneColorFor(ms.number) }}
-                            />
-                            <span className="ms-option-title">{ms.title}</span>
-                            <span className="ms-option-meta">
-                              {ms.open_issues + ms.closed_issues} issue{ms.open_issues + ms.closed_issues !== 1 ? 's' : ''} ({ms.state})
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
+            <MilestonePicker
+              milestones={milestones}
+              selected={selectedMilestones}
+              loadingNums={loadingNums}
+              colorFor={milestoneColorFor}
+              onAdd={addMilestone}
+              onRemove={removeMilestone}
+            />
           </div>
         )}
       </div>

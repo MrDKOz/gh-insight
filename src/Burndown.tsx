@@ -1,12 +1,9 @@
 import { useState, useRef } from 'react';
 import type { TimelineItem } from './types';
+import { MS, fmtDate } from './utils';
 
 interface Props {
   items: TimelineItem[];
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
 // SVG chart dimensions
@@ -50,7 +47,6 @@ export default function Burndown({ items }: Props) {
     return <p className="tl-empty">No issues to plot a burndown for.</p>;
   }
 
-  const MS = 86_400_000;
   const todayMs = Date.now();
   const hasOpenIssues = issues.some(i => !i.closedAt);
 
@@ -111,7 +107,7 @@ export default function Burndown({ items }: Props) {
   const handleDotEnter = (e: React.MouseEvent, t: number, count: number) => {
     const rect = wrapRef.current?.getBoundingClientRect();
     if (!rect) return;
-    setHover({ x: e.clientX - rect.left, y: e.clientY - rect.top, date: formatDate(new Date(t).toISOString()), count });
+    setHover({ x: e.clientX - rect.left, y: e.clientY - rect.top, date: fmtDate(new Date(t).toISOString()), count });
   };
 
   // Compute hover card position, keeping it inside the wrapper
@@ -215,7 +211,7 @@ export default function Burndown({ items }: Props) {
             textAnchor={labelIdx === 0 ? 'start' : labelIdx === numXLabels - 1 ? 'end' : 'middle'}
             fill={C.label} fontSize={11} fontFamily="inherit" className="chart-label"
           >
-            {formatDate(new Date(points[ptIdx].t).toISOString())}
+            {fmtDate(new Date(points[ptIdx].t).toISOString())}
           </text>
         ))}
 

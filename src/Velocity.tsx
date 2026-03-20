@@ -1,12 +1,9 @@
 import { useState, useRef } from 'react';
 import type { TimelineItem } from './types';
+import { fmtDate } from './utils';
 
 interface Props {
   items: TimelineItem[];
-}
-
-function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
 /** Returns the Monday of the ISO week containing `ms` (midnight UTC). */
