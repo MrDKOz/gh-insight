@@ -545,7 +545,8 @@ select:focus {
   color: #fff;
   font-size: 10px;
   font-weight: 600;
-  cursor: default;
+  cursor: pointer;
+  text-decoration: none;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   transition: transform 0.12s, box-shadow 0.12s;
   white-space: nowrap;
@@ -736,7 +737,7 @@ body.dark .stat-value--fast   { color: #3fb950; }
 /* ── Cycle time dots ── */
 
 .ct-dot {
-  cursor: crosshair;
+  cursor: pointer;
   transform-box: fill-box;
   transform-origin: center;
   transition: transform 0.1s;
@@ -817,6 +818,17 @@ body.dark .stat-value--fast   { color: #3fb950; }
   border-radius: 50%;
   background: #0969da;
   flex-shrink: 0;
+}
+
+.bd-hovercard--link {
+  pointer-events: auto;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.bd-hovercard--link:hover {
+  border-color: #0969da;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.22);
 }
 
 /* Callout text: CSS var overrides the hardcoded light-mode SVG

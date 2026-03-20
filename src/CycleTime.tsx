@@ -36,6 +36,7 @@ interface Pt {
 interface Hover {
   x: number; y: number;
   pt: Pt;
+  url: string;
 }
 
 export default function CycleTime({ items }: Props) {
@@ -89,7 +90,7 @@ export default function CycleTime({ items }: Props) {
   const onEnter = (e: React.MouseEvent, p: Pt) => {
     const rect = wrapRef.current?.getBoundingClientRect();
     if (!rect) return;
-    setHover({ x: e.clientX - rect.left, y: e.clientY - rect.top, pt: p });
+    setHover({ x: e.clientX - rect.left, y: e.clientY - rect.top, pt: p, url: p.item.url });
   };
 
   const cardStyle = (() => {
@@ -104,7 +105,13 @@ export default function CycleTime({ items }: Props) {
   return (
     <div className="chart-wrap" ref={wrapRef} style={{ position: 'relative' }}>
       {hover && (
-        <div className="bd-hovercard" style={cardStyle}>
+        <a
+          className="bd-hovercard bd-hovercard--link"
+          style={cardStyle}
+          href={hover.url}
+          target="_blank"
+          rel="noreferrer"
+        >
           <span className="bd-hovercard-date">
             <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: hover.pt.col, marginRight: 5, verticalAlign: 'middle' }} />
             {hover.pt.typeLabel} #{hover.pt.item.number}
@@ -116,7 +123,7 @@ export default function CycleTime({ items }: Props) {
           <span className="bd-hovercard-date">
             {fmtDate(hover.pt.item.createdAt)} → {fmtDate(hover.pt.endDate)}
           </span>
-        </div>
+        </a>
       )}
 
       <svg
@@ -160,7 +167,8 @@ export default function CycleTime({ items }: Props) {
             cx={pxFn(p.endMs).toFixed(1)} cy={pyFn(p.days).toFixed(1)}
             r={5} fill={p.col} opacity={0.82}
             className="ct-dot"
-            onMouseEnter={e => onEnter(e, p)} />
+            onMouseEnter={e => onEnter(e, p)}
+            onClick={() => window.open(p.item.url, '_blank', 'noreferrer')} />
         ))}
 
         {/* Axes */}

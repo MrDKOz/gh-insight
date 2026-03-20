@@ -501,13 +501,16 @@ export default function Timeline({ items, title }: Props) {
                           style={{ left: `${todayLeftPct}%` }}
                         />
                       )}
-                      <div
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noreferrer"
                         className={barClass}
                         style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
                         title={tooltip}
                       >
                         {barLabel}
-                      </div>
+                      </a>
                     </div>
                   </div>
                 );
