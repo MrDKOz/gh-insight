@@ -1,7 +1,11 @@
 import { useState, useRef, useCallback } from "react";
 import type { FunctionComponent } from "react";
+import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
 import type { TimelineItem } from "../types";
 import { MS, fmtDate, itemEndDate, COLORS, hoverCardPos } from "../utils/utils";
+import { AuthorTag } from "../components/AuthorTag";
 
 type Props = {
   items: TimelineItem[];
@@ -61,7 +65,7 @@ const CycleTime: FunctionComponent<Props> = ({ items }) => {
   });
 
   if (pts.length === 0) {
-    return <p className="tl-empty">No completed items to plot cycle times for.</p>;
+    return <Typography sx={{ fontSize: "0.875rem", color: "text.secondary", py: 2.5 }}>No completed items to plot cycle times for.</Typography>;
   }
 
   const endTimes = pts.map((p) => p.endMs);
@@ -115,31 +119,49 @@ const CycleTime: FunctionComponent<Props> = ({ items }) => {
   }, []);
 
   const cardStyle = hover
-    ? hoverCardPos(hover.x, hover.y, wrapRef.current?.offsetWidth ?? 800, 230, 96)
+    ? hoverCardPos(hover.x, hover.y, wrapRef.current?.offsetWidth ?? 800, 230, 120)
     : {};
 
   return (
     <div className="chart-wrap" ref={wrapRef} style={{ position: "relative" }}>
       {hover && (
-        <a
-          className="bd-hovercard bd-hovercard--link"
-          style={cardStyle}
+        <Paper
+          component="a"
+          elevation={2}
           href={hover.url}
           target="_blank"
           rel="noreferrer"
+          sx={{
+            position: "absolute",
+            display: "flex",
+            flexDirection: "column",
+            gap: "5px",
+            minWidth: 148,
+            px: 1.5,
+            py: 1,
+            zIndex: 50,
+            cursor: "pointer",
+            textDecoration: "none",
+            color: "inherit",
+            "&:hover": { borderColor: "primary.main", boxShadow: "0 4px 20px rgba(0,0,0,0.22)" },
+            ...cardStyle,
+          }}
         >
-          <span className="bd-hovercard-date">
-            <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: hover.pt.col, marginRight: 5, verticalAlign: "middle" }} />
+          <Box sx={{ display: "flex", alignItems: "center", fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>
+            <Box component="span" sx={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", bgcolor: hover.pt.col, mr: "5px", verticalAlign: "middle", flexShrink: 0 }} />
             {hover.pt.typeLabel} #{hover.pt.item.number}
-          </span>
-          <span className="ct-hovercard-title">{hover.pt.item.title}</span>
-          <span className="bd-hovercard-count">
+          </Box>
+          <Typography sx={{ fontSize: "0.75rem", color: "text.primary", maxWidth: 210, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {hover.pt.item.title}
+          </Typography>
+          <AuthorTag login={hover.pt.item.author} prefix="@" />
+          <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
             {hover.pt.days} day{hover.pt.days !== 1 ? "s" : ""}
-          </span>
-          <span className="bd-hovercard-date">
+          </Box>
+          <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>
             {fmtDate(hover.pt.item.createdAt)} → {fmtDate(hover.pt.endDate)}
-          </span>
-        </a>
+          </Box>
+        </Paper>
       )}
 
       <svg

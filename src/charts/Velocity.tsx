@@ -1,5 +1,8 @@
 import { useState, useRef } from "react";
 import type { FunctionComponent } from "react";
+import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
 import type { TimelineItem } from "../types";
 import { fmtDate, itemEndDate, COLORS, hoverCardPos } from "../utils/utils";
 
@@ -61,7 +64,7 @@ const Velocity: FunctionComponent<Props> = ({ items }) => {
   const weeks = [...buckets.values()].sort((a, b) => a.startMs - b.startMs);
 
   if (weeks.length === 0) {
-    return <p className="tl-empty">No completed items to plot velocity for.</p>;
+    return <Typography sx={{ fontSize: "0.875rem", color: "text.secondary", py: 2.5 }}>No completed items to plot velocity for.</Typography>;
   }
 
   const maxTotal = Math.max(...weeks.map((w) => w.issues + w.merged + w.closed), 1);
@@ -93,32 +96,32 @@ const Velocity: FunctionComponent<Props> = ({ items }) => {
   return (
     <div className="chart-wrap" ref={wrapRef} style={{ position: "relative" }}>
       {hover && (
-        <div className="bd-hovercard" style={cardStyle}>
-          <span className="bd-hovercard-date">
+        <Paper elevation={2} sx={{ position: "absolute", display: "flex", flexDirection: "column", gap: "5px", minWidth: 148, px: 1.5, py: 1, pointerEvents: "none", zIndex: 50, ...cardStyle }}>
+          <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>
             {fmtDate(new Date(hover.week.startMs).toISOString())} – {fmtDate(new Date(hover.week.endMs).toISOString())}
-          </span>
+          </Box>
           {hover.week.issues > 0 && (
-            <span className="bd-hovercard-count">
-              <span className="bd-hovercard-dot" style={{ background: COL.issue }} />
+            <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
+              <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: COL.issue, flexShrink: 0 }} />
               {hover.week.issues} issue{hover.week.issues !== 1 ? "s" : ""} closed
-            </span>
+            </Box>
           )}
           {hover.week.merged > 0 && (
-            <span className="bd-hovercard-count">
-              <span className="bd-hovercard-dot" style={{ background: COL.prMerged }} />
+            <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
+              <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: COL.prMerged, flexShrink: 0 }} />
               {hover.week.merged} PR{hover.week.merged !== 1 ? "s" : ""} merged
-            </span>
+            </Box>
           )}
           {hover.week.closed > 0 && (
-            <span className="bd-hovercard-count">
-              <span className="bd-hovercard-dot" style={{ background: COL.prClosed }} />
+            <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
+              <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: COL.prClosed, flexShrink: 0 }} />
               {hover.week.closed} PR{hover.week.closed !== 1 ? "s" : ""} closed
-            </span>
+            </Box>
           )}
-          <span className="bd-hovercard-date" style={{ borderTop: "1px solid var(--border)", paddingTop: 4, marginTop: 2 }}>
+          <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary", borderTop: 1, borderColor: "divider", pt: "4px", mt: "2px" }}>
             Total: {hover.week.issues + hover.week.merged + hover.week.closed}
-          </span>
-        </div>
+          </Box>
+        </Paper>
       )}
 
       <svg

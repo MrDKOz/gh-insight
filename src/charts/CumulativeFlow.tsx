@@ -1,5 +1,8 @@
 import { useState, useRef } from "react";
 import type { FunctionComponent } from "react";
+import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
 import type { TimelineItem } from "../types";
 import { MS, fmtDate, itemEndDate, COLORS, hoverCardPos } from "../utils/utils";
 
@@ -39,7 +42,7 @@ const CumulativeFlow: FunctionComponent<Props> = ({ items }) => {
   const [hover, setHover] = useState<HoverState | null>(null);
 
   if (items.length === 0) {
-    return <p className="tl-empty">No items to plot cumulative flow for.</p>;
+    return <Typography sx={{ fontSize: "0.875rem", color: "text.secondary", py: 2.5 }}>No items to plot cumulative flow for.</Typography>;
   }
 
   const allTs = items.flatMap((item) => {
@@ -117,20 +120,20 @@ const CumulativeFlow: FunctionComponent<Props> = ({ items }) => {
       onMouseLeave={() => setHover(null)}
     >
       {hovered && hover && (
-        <div className="bd-hovercard" style={cardStyle}>
-          <span className="bd-hovercard-date">{fmtDate(new Date(hovered.t).toISOString())}</span>
-          <span className="bd-hovercard-count">
-            <span className="bd-hovercard-dot" style={{ background: COL.openedLine }} />
+        <Paper elevation={2} sx={{ position: "absolute", display: "flex", flexDirection: "column", gap: "5px", minWidth: 148, px: 1.5, py: 1, pointerEvents: "none", zIndex: 50, ...cardStyle }}>
+          <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>{fmtDate(new Date(hovered.t).toISOString())}</Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
+            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: COL.openedLine, flexShrink: 0 }} />
             {hovered.opened} created
-          </span>
-          <span className="bd-hovercard-count">
-            <span className="bd-hovercard-dot" style={{ background: COL.closedLine }} />
+          </Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
+            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: COL.closedLine, flexShrink: 0 }} />
             {hovered.closed} completed
-          </span>
-          <span className="bd-hovercard-count" style={{ color: "var(--text-secondary)", fontSize: 12 }}>
+          </Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600, color: "text.secondary" }}>
             {hovered.opened - hovered.closed} open
-          </span>
-        </div>
+          </Box>
+        </Paper>
       )}
 
       <svg
