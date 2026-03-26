@@ -3,6 +3,7 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
+import InputAdornment from "@mui/material/InputAdornment";
 import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
 import type { TimelineItem } from "../types";
@@ -113,25 +114,25 @@ type DateFieldProps = {
 };
 
 const DateField: FunctionComponent<DateFieldProps> = ({ value, min, max, onChange, onClear }) => (
-  <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.5 }}>
-    <TextField
-      type="date"
-      size="small"
-      value={value}
-      slotProps={{ htmlInput: { min, max } }}
-      onChange={(e) => onChange(e.target.value)}
-      sx={{ "& .MuiInputBase-input": { fontSize: "0.8125rem", py: 0.625 } }}
-    />
-    <Box
-      sx={{ width: 28, height: 28, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
-    >
-      {value && (
-        <IconButton size="small" onClick={onClear} title="Clear date" sx={{ p: 0.25 }}>
-          <IconX />
-        </IconButton>
-      )}
-    </Box>
-  </Box>
+  <TextField
+    type="date"
+    size="small"
+    value={value}
+    slotProps={{
+      htmlInput: { min, max },
+      input: {
+        endAdornment: value ? (
+          <InputAdornment position="end">
+            <IconButton size="small" onClick={onClear} title="Clear date" sx={{ p: 0.25 }}>
+              <IconX />
+            </IconButton>
+          </InputAdornment>
+        ) : null,
+      },
+    }}
+    onChange={(e) => onChange(e.target.value)}
+    sx={{ "& .MuiInputBase-input": { fontSize: "0.8125rem", py: 0.625 } }}
+  />
 );
 
 const FilterBar: FunctionComponent<Props> = ({ filters, counts, onChange }) => {
@@ -173,46 +174,50 @@ const FilterBar: FunctionComponent<Props> = ({ filters, counts, onChange }) => {
         bgcolor: "background.paper",
       }}
     >
-      <Stack direction="row" alignItems="center" gap={0.75} flexWrap="wrap">
+      <Stack direction="row" alignItems="center" gap={0.75}>
         <Typography variant="caption" fontWeight={600} color="text.secondary">
           Created
         </Typography>
-        <DateField
-          value={filters.createdStart}
-          max={filters.createdEnd || undefined}
-          onChange={(v) => set({ createdStart: v })}
-          onClear={() => set({ createdStart: "" })}
-        />
-        <Typography variant="caption" color="text.secondary">
-          –
-        </Typography>
-        <DateField
-          value={filters.createdEnd}
-          min={filters.createdStart || undefined}
-          onChange={(v) => set({ createdEnd: v })}
-          onClear={() => set({ createdEnd: "" })}
-        />
+        <Stack direction="row" alignItems="center" gap={0.5}>
+          <DateField
+            value={filters.createdStart}
+            max={filters.createdEnd || undefined}
+            onChange={(v) => set({ createdStart: v })}
+            onClear={() => set({ createdStart: "" })}
+          />
+          <Typography variant="caption" color="text.secondary" sx={{ userSelect: "none" }}>
+            –
+          </Typography>
+          <DateField
+            value={filters.createdEnd}
+            min={filters.createdStart || undefined}
+            onChange={(v) => set({ createdEnd: v })}
+            onClear={() => set({ createdEnd: "" })}
+          />
+        </Stack>
       </Stack>
 
-      <Stack direction="row" alignItems="center" gap={0.75} flexWrap="wrap">
+      <Stack direction="row" alignItems="center" gap={0.75}>
         <Typography variant="caption" fontWeight={600} color="text.secondary">
           Closed
         </Typography>
-        <DateField
-          value={filters.closedStart}
-          max={filters.closedEnd || undefined}
-          onChange={(v) => set({ closedStart: v })}
-          onClear={() => set({ closedStart: "" })}
-        />
-        <Typography variant="caption" color="text.secondary">
-          –
-        </Typography>
-        <DateField
-          value={filters.closedEnd}
-          min={filters.closedStart || undefined}
-          onChange={(v) => set({ closedEnd: v })}
-          onClear={() => set({ closedEnd: "" })}
-        />
+        <Stack direction="row" alignItems="center" gap={0.5}>
+          <DateField
+            value={filters.closedStart}
+            max={filters.closedEnd || undefined}
+            onChange={(v) => set({ closedStart: v })}
+            onClear={() => set({ closedStart: "" })}
+          />
+          <Typography variant="caption" color="text.secondary" sx={{ userSelect: "none" }}>
+            –
+          </Typography>
+          <DateField
+            value={filters.closedEnd}
+            min={filters.closedStart || undefined}
+            onChange={(v) => set({ closedEnd: v })}
+            onClear={() => set({ closedEnd: "" })}
+          />
+        </Stack>
       </Stack>
 
       <Stack direction="row" alignItems="center" gap={0.75} flexWrap="wrap">
