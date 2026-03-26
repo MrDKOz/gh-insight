@@ -98,10 +98,17 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
   }, []);
 
   useEffect(() => {
-    if (!axisRef.current) return;
-    const { height } = axisRef.current.getBoundingClientRect();
-    const marginBottom = parseFloat(getComputedStyle(axisRef.current).marginBottom) || 0;
-    setAxisHeight(height + marginBottom);
+    const el = axisRef.current;
+    if (!el) return;
+    const measure = () => {
+      const { height } = el.getBoundingClientRect();
+      const marginBottom = parseFloat(getComputedStyle(el).marginBottom) || 0;
+      setAxisHeight(height + marginBottom);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
   }, [view]);
 
   useEffect(() => {

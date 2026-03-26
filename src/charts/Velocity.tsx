@@ -200,7 +200,7 @@ const Velocity: FunctionComponent<Props> = ({ items }) => {
           { col: COL.prMerged, label: "PRs merged" },
           { col: COL.prClosed, label: "PRs closed" },
         ].map(({ col, label }, i) => (
-          <g key={label} transform={`translate(${L + CW - 160 + i * 0}, ${T + i * 15})`}>
+          <g key={label} transform={`translate(${L + CW - 160}, ${T + i * 15})`}>
             <rect x={0} y={-8} width={10} height={10} fill={col} rx={2} />
             <text x={14} y={0} fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">{label}</text>
           </g>

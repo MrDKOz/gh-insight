@@ -54,14 +54,20 @@ const CumulativeFlow: FunctionComponent<Props> = ({ items, highlightWeekends }) 
   const maxTime   = Math.max(...allTs);
   const totalDays = Math.max(Math.ceil((maxTime - minTime) / MS), 1);
 
+  const sortedOpenedTs = items.map((item) => new Date(item.createdAt).getTime()).sort((a, b) => a - b);
+  const sortedClosedTs = items
+    .flatMap((item) => { const e = itemEndDate(item); return e ? [new Date(e).getTime()] : []; })
+    .sort((a, b) => a - b);
+
+  const upperBound = (sorted: number[], t: number): number => {
+    let lo = 0, hi = sorted.length;
+    while (lo < hi) { const mid = (lo + hi) >>> 1; sorted[mid] <= t ? (lo = mid + 1) : (hi = mid); }
+    return lo;
+  };
+
   const pts: DayPt[] = Array.from({ length: totalDays + 1 }, (_, i) => {
     const t = minTime + i * MS;
-    const opened = items.filter((item) => new Date(item.createdAt).getTime() <= t).length;
-    const closed = items.filter((item) => {
-      const end = itemEndDate(item);
-      return end != null && new Date(end).getTime() <= t;
-    }).length;
-    return { t, opened, closed };
+    return { t, opened: upperBound(sortedOpenedTs, t), closed: upperBound(sortedClosedTs, t) };
   });
 
   const maxOpened = Math.max(...pts.map((p) => p.opened), 1);

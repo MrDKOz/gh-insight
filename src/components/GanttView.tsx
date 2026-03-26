@@ -113,7 +113,7 @@ const BarHoverCard: FunctionComponent<{ barHover: BarHover }> = ({ barHover }) =
 
 function durationDays(start: string, end: string | null): number | null {
   if (!end) return null;
-  return Math.round((new Date(end).getTime() - new Date(start).getTime()) / 86_400_000);
+  return Math.round((new Date(end).getTime() - new Date(start).getTime()) / MS);
 }
 
 const GanttView: FunctionComponent<Props> = ({
@@ -156,14 +156,13 @@ const GanttView: FunctionComponent<Props> = ({
 
   const weekendBands = useMemo(() => {
     if (!highlightWeekends) return [];
-    const MS_PER_DAY = 86_400_000;
     const bands: { leftPct: number; widthPct: number }[] = [];
-    for (let d = minTime; d < minTime + totalMs; d += MS_PER_DAY) {
+    for (let d = minTime; d < minTime + totalMs; d += MS) {
       if (new Date(d).getUTCDay() === 6) { // Saturday
         const leftPct = ((d - minTime) / totalMs) * 100;
-        const widthPct = (MS_PER_DAY * 2) / totalMs * 100;
+        const widthPct = (MS * 2) / totalMs * 100;
         bands.push({ leftPct, widthPct });
-        d += MS_PER_DAY; // skip Sunday
+        d += MS; // skip Sunday
       }
     }
     return bands;
@@ -256,7 +255,7 @@ const GanttView: FunctionComponent<Props> = ({
             const leftPct = ((startMs - minTime) / totalMs) * 100;
             // Snap closed bar width to the rounded duration so same-label bars are
             // always the same width (raw timestamps vary within a rounding bucket).
-            const snapEndMs = isOpen ? endMs : startMs + (duration ?? 0) * 86_400_000;
+            const snapEndMs = isOpen ? endMs : startMs + (duration ?? 0) * MS;
             const widthPct = Math.max(((snapEndMs - startMs) / totalMs) * 100, 0.3);
             const durationText =
               duration === null ? "ongoing" : duration === 0 ? "Same day" : duration === 1 ? "1 day" : `${duration} days`;

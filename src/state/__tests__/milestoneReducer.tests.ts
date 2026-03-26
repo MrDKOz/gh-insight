@@ -21,6 +21,7 @@ describe("initialState", () => {
     expect(initialState.loadingList).toBe(false);
     expect(initialState.isDemo).toBe(false);
     expect(initialState.error).toBeNull();
+    expect(initialState.emptyMilestoneNums).toEqual([]);
   });
 });
 
@@ -97,16 +98,18 @@ describe("FETCH_ITEMS_SUCCESS", () => {
     expect(next.loadingNums).not.toContain(1);
   });
 
-  it("sets an error when items array is empty", () => {
+  it("adds milestone number to emptyMilestoneNums when items array is empty", () => {
     const state = { ...initialState, milestones: [ms1], loadingNums: [1] };
     const next = milestoneReducer(state, { type: "FETCH_ITEMS_SUCCESS", milestoneNumber: 1, items: [] });
-    expect(next.error).toMatch(/no items/i);
+    expect(next.emptyMilestoneNums).toContain(1);
+    expect(next.error).toBeNull();
   });
 
-  it("uses the milestone number as fallback title when milestone not in list", () => {
+  it("adds milestone number to emptyMilestoneNums even when not in milestone list", () => {
     const state = { ...initialState, milestones: [], loadingNums: [99] };
     const next = milestoneReducer(state, { type: "FETCH_ITEMS_SUCCESS", milestoneNumber: 99, items: [] });
-    expect(next.error).toContain("99");
+    expect(next.emptyMilestoneNums).toContain(99);
+    expect(next.error).toBeNull();
   });
 });
 

@@ -1,5 +1,5 @@
 import type { TimelineItem } from "../types";
-import { itemEndDate, fmtDate } from "./utils";
+import { itemEndDate, fmtDate, MS } from "./utils";
 
 function safeFilename(s: string): string {
   return s
@@ -39,7 +39,7 @@ function buildRows(items: TimelineItem[]): Row[] {
       const status = item.type === "pr" ? (item.mergedAt ? "Merged" : "Closed") : "Closed";
       const days =
         endDate != null
-          ? Math.round((new Date(endDate).getTime() - new Date(item.createdAt).getTime()) / 86_400_000)
+          ? Math.round((new Date(endDate).getTime() - new Date(item.createdAt).getTime()) / MS)
           : null;
       const linked =
         item.type === "pr"

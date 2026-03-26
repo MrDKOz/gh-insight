@@ -8,6 +8,7 @@ type MilestoneState = {
   loadingList: boolean;
   isDemo: boolean;
   error: string | null;
+  emptyMilestoneNums: number[];
 };
 
 type Action =
@@ -30,6 +31,7 @@ const initialState: MilestoneState = {
   loadingList: false,
   isDemo: false,
   error: null,
+  emptyMilestoneNums: [],
 };
 
 function milestoneReducer(state: MilestoneState, action: Action): MilestoneState {
@@ -55,12 +57,14 @@ function milestoneReducer(state: MilestoneState, action: Action): MilestoneState
       return { ...state, loadingNums: [...state.loadingNums, action.milestoneNumber] };
 
     case "FETCH_ITEMS_SUCCESS": {
-      const title = state.milestones.find((m) => m.number === action.milestoneNumber)?.title ?? String(action.milestoneNumber);
+      const isEmpty = action.items.length === 0;
       return {
         ...state,
         itemsCache: { ...state.itemsCache, [action.milestoneNumber]: action.items },
         loadingNums: state.loadingNums.filter((n) => n !== action.milestoneNumber),
-        error: action.items.length === 0 ? `No items found in milestone "${title}".` : state.error,
+        emptyMilestoneNums: isEmpty
+          ? [...state.emptyMilestoneNums.filter((n) => n !== action.milestoneNumber), action.milestoneNumber]
+          : state.emptyMilestoneNums.filter((n) => n !== action.milestoneNumber),
       };
     }
 
@@ -73,7 +77,11 @@ function milestoneReducer(state: MilestoneState, action: Action): MilestoneState
       };
 
     case "REMOVE_MILESTONE":
-      return { ...state, selected: state.selected.filter((m) => m.number !== action.milestoneNumber) };
+      return {
+        ...state,
+        selected: state.selected.filter((m) => m.number !== action.milestoneNumber),
+        emptyMilestoneNums: state.emptyMilestoneNums.filter((n) => n !== action.milestoneNumber),
+      };
 
     case "REFRESH_ITEMS_ERROR":
       return {
@@ -91,6 +99,7 @@ function milestoneReducer(state: MilestoneState, action: Action): MilestoneState
         loadingList: false,
         isDemo: true,
         error: null,
+        emptyMilestoneNums: [],
       };
 
     default:

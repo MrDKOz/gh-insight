@@ -49,10 +49,12 @@ function applyFilters(items: TimelineItem[], filters: Filters): TimelineItem[] {
       if (!item.closedAt && !filters.showOpenIssues) return false;
       if (item.closedAt && !filters.showClosedIssues) return false;
     } else {
-      const isOpen = !item.mergedAt && !item.closedAt;
-      if (isOpen && !filters.showOpenPRs) return false;
-      if (item.mergedAt && !filters.showMergedPRs) return false;
-      if (!item.mergedAt && !!item.closedAt && !filters.showClosedPRs) return false;
+      const isMerged = !!item.mergedAt;
+      const isClosed = !item.mergedAt && !!item.closedAt;
+      const isOpen   = !item.mergedAt && !item.closedAt;
+      if (isOpen   && !filters.showOpenPRs)   return false;
+      if (isMerged && !filters.showMergedPRs) return false;
+      if (isClosed && !filters.showClosedPRs) return false;
     }
     return true;
   });

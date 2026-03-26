@@ -3,7 +3,9 @@ import type { Milestone, TimelineItem } from "../types";
 // All dates are relative to today so open bars never stretch absurdly far
 // and the demo always looks like live, recent work.
 function d(daysAgo: number, hour = 10): string {
-  return new Date(Date.now() - daysAgo * 86_400_000 + hour * 3_600_000).toISOString();
+  const midnight = new Date(Date.now() - daysAgo * 86_400_000);
+  midnight.setUTCHours(hour, 0, 0, 0);
+  return midnight.toISOString();
 }
 
 const DEMO_MILESTONE: Milestone = {

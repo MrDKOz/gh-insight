@@ -56,7 +56,10 @@ const App: FunctionComponent = () => {
   useEffect(() => {
     const stored = localStorage.getItem(LS_TOKEN);
     if (stored) {
-      decryptToken(stored).then(setToken).catch(() => localStorage.removeItem(LS_TOKEN));
+      decryptToken(stored).then(setToken).catch((err) => {
+        console.error("Failed to decrypt stored token:", err);
+        localStorage.removeItem(LS_TOKEN);
+      });
     }
     return () => {
       loadAbortRef.current?.abort();
@@ -257,6 +260,13 @@ const App: FunctionComponent = () => {
         />
 
         {state.error && <Alert severity="error">{state.error}</Alert>}
+        {state.emptyMilestoneNums.length > 0 && (
+          <Alert severity="warning">
+            {state.emptyMilestoneNums.length === 1
+              ? `Milestone #${state.emptyMilestoneNums[0]} has no items.`
+              : `${state.emptyMilestoneNums.length} milestones have no items.`}
+          </Alert>
+        )}
         {state.loadingNums.length > 0 && <Alert severity="info">Loading milestone data…</Alert>}
 
         {allItems.length > 0 && milestonesMeta.length > 0 && (
