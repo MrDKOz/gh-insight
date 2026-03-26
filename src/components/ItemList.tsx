@@ -13,13 +13,14 @@ import TableSortLabel from "@mui/material/TableSortLabel";
 import Typography from "@mui/material/Typography";
 import type { TimelineItem, MilestoneMeta } from "../types";
 import { MS, fmtDate, itemEndDate, COLORS } from "../utils/utils";
+import { AuthorTag } from "./AuthorTag";
 
 type Props = {
   items: TimelineItem[];
   milestones: MilestoneMeta[];
 };
 
-type SortCol = "type" | "number" | "title" | "status" | "milestone" | "created" | "closed" | "days";
+type SortCol = "type" | "number" | "title" | "author" | "status" | "milestone" | "created" | "closed" | "days";
 type SortDir = "asc" | "desc";
 
 function itemStatus(item: TimelineItem): "Open" | "Closed" | "Merged" {
@@ -58,6 +59,9 @@ const ItemList: FunctionComponent<Props> = ({ items, milestones }) => {
           break;
         case "title":
           cmp = a.title.localeCompare(b.title);
+          break;
+        case "author":
+          cmp = a.author.localeCompare(b.author);
           break;
         case "status":
           cmp = itemStatus(a).localeCompare(itemStatus(b));
@@ -127,6 +131,7 @@ const ItemList: FunctionComponent<Props> = ({ items, milestones }) => {
             <Th col="type" label="Type" />
             <Th col="number" label="#" />
             <Th col="title" label="Title" />
+            <Th col="author" label="Author" />
             <Th col="status" label="Status" />
             {isMulti && <Th col="milestone" label="Milestone" />}
             <Th col="created" label="Created" />
@@ -197,6 +202,9 @@ const ItemList: FunctionComponent<Props> = ({ items, milestones }) => {
                   >
                     {item.title}
                   </Link>
+                </TableCell>
+                <TableCell sx={{ whiteSpace: "nowrap", color: "text.secondary", fontSize: "0.75rem" }}>
+                  <AuthorTag login={item.author} size={18} />
                 </TableCell>
                 <TableCell>
                   <Chip
