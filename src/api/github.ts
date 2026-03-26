@@ -86,6 +86,7 @@ const MILESTONE_QUERY = `
             number
             title
             url
+            author { login }
             createdAt
             closedAt
             closedByPullRequestsReferences(first: 20, includeClosedPrs: true) {
@@ -93,6 +94,7 @@ const MILESTONE_QUERY = `
                 number
                 title
                 url
+                author { login }
                 createdAt
                 mergedAt
                 closedAt
@@ -109,6 +111,7 @@ type GQLIssueNode = {
   number: number;
   title: string;
   url: string;
+  author: { login: string } | null;
   createdAt: string;
   closedAt: string | null;
   closedByPullRequestsReferences: {
@@ -116,6 +119,7 @@ type GQLIssueNode = {
       number: number;
       title: string;
       url: string;
+      author: { login: string } | null;
       createdAt: string;
       mergedAt: string | null;
       closedAt: string | null;
@@ -193,6 +197,7 @@ async function fetchMilestoneItems(
           number: pr.number,
           title: pr.title,
           url: pr.url,
+          author: pr.author?.login ?? "ghost",
           createdAt: pr.createdAt,
           mergedAt: pr.mergedAt,
           closedAt: pr.closedAt,
@@ -207,6 +212,7 @@ async function fetchMilestoneItems(
       number: issue.number,
       title: issue.title,
       url: issue.url,
+      author: issue.author?.login ?? "ghost",
       createdAt: issue.createdAt,
       closedAt: issue.closedAt,
       linkedPRs: linkedPRNums,

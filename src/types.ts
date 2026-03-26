@@ -11,6 +11,7 @@ type PRItem = {
   number: number;
   title: string;
   url: string;
+  author: string;
   createdAt: string;
   mergedAt: string | null;
   closedAt: string | null;
@@ -23,6 +24,7 @@ type IssueItem = {
   number: number;
   title: string;
   url: string;
+  author: string;
   createdAt: string;
   closedAt: string | null;
   linkedPRs: number[];

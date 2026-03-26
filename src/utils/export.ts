@@ -31,6 +31,7 @@ type Row = {
   type: string;
   num: string;
   title: string;
+  author: string;
   status: string;
   opened: string;
   closed: string;
@@ -60,6 +61,7 @@ function buildRows(items: TimelineItem[]): Row[] {
         type: item.type === "issue" ? "Issue" : "PR",
         num: `#${item.number}`,
         title: item.title,
+        author: item.author,
         status,
         opened: fmtDate(item.createdAt),
         closed: fmtDate(endDate),
@@ -70,7 +72,7 @@ function buildRows(items: TimelineItem[]): Row[] {
     });
 }
 
-const COLS = ["Type", "Number", "Title", "Status", "Opened", "Closed/Merged", "Duration (days)", "Linked to", "URL"] as const;
+const COLS = ["Type", "Number", "Title", "Author", "Status", "Opened", "Closed/Merged", "Duration (days)", "Linked to", "URL"] as const;
 
 function exportCSV(items: TimelineItem[], title: string): void {
   const rows = buildRows(items);
@@ -78,7 +80,7 @@ function exportCSV(items: TimelineItem[], title: string): void {
   const lines = [
     COLS.map(esc).join(","),
     ...rows.map((r) =>
-      [r.type, r.num, r.title, r.status, r.opened, r.closed, r.duration, r.linked, r.url].map(esc).join(","),
+      [r.type, r.num, r.title, r.author, r.status, r.opened, r.closed, r.duration, r.linked, r.url].map(esc).join(","),
     ),
   ];
   triggerBlobDownload(lines.join("\r\n"), `${safeFilename(title)}.csv`, "text/csv;charset=utf-8;");
@@ -90,11 +92,11 @@ function exportMarkdown(items: TimelineItem[], title: string): void {
   const lines = [
     `# ${title}`,
     "",
-    "| Type | # | Title | Status | Opened | Closed/Merged | Duration | Linked to |",
-    "|------|---|-------|--------|--------|---------------|----------|-----------|",
+    "| Type | # | Title | Author | Status | Opened | Closed/Merged | Duration | Linked to |",
+    "|------|---|-------|--------|--------|--------|---------------|----------|-----------|",
     ...rows.map(
       (r) =>
-        `| ${r.type} | [${r.num}](${r.url}) | ${pipe(r.title)} | ${r.status} | ${r.opened} | ${r.closed} | ${r.duration === "—" ? "—" : `${r.duration} days`} | ${r.linked} |`,
+        `| ${r.type} | [${r.num}](${r.url}) | ${pipe(r.title)} | ${r.author} | ${r.status} | ${r.opened} | ${r.closed} | ${r.duration === "—" ? "—" : `${r.duration} days`} | ${r.linked} |`,
     ),
   ];
   triggerBlobDownload(lines.join("\n"), `${safeFilename(title)}.md`, "text/markdown;charset=utf-8;");
@@ -168,8 +170,8 @@ async function exportPDF(items: TimelineItem[], title: string): Promise<void> {
 
   autoTable(doc, {
     startY: 30,
-    head: [["Type", "#", "Title", "Status", "Opened", "Closed/Merged", "Days", "Linked to"]],
-    body: rows.map((r) => [r.type, r.num, r.title, r.status, r.opened, r.closed, r.duration, r.linked]),
+    head: [["Type", "#", "Title", "Author", "Status", "Opened", "Closed/Merged", "Days", "Linked to"]],
+    body: rows.map((r) => [r.type, r.num, r.title, r.author, r.status, r.opened, r.closed, r.duration, r.linked]),
     styles: { fontSize: 8, cellPadding: 2.5 },
     headStyles: { fillColor: [9, 105, 218], textColor: 255, fontStyle: "bold" },
     alternateRowStyles: { fillColor: [248, 249, 250] },
@@ -177,11 +179,12 @@ async function exportPDF(items: TimelineItem[], title: string): Promise<void> {
       0: { cellWidth: 13 },
       1: { cellWidth: 14 },
       2: { cellWidth: "auto" },
-      3: { cellWidth: 17 },
-      4: { cellWidth: 24 },
+      3: { cellWidth: 22 },
+      4: { cellWidth: 17 },
       5: { cellWidth: 24 },
-      6: { cellWidth: 12 },
-      7: { cellWidth: 26 },
+      6: { cellWidth: 24 },
+      7: { cellWidth: 12 },
+      8: { cellWidth: 26 },
     },
     didDrawCell: (data) => {
       if (data.section === "body" && data.column.index === 1) {
@@ -213,6 +216,7 @@ async function exportXLSX(items: TimelineItem[], title: string): Promise<void> {
     { value: r.type },
     { value: r.num },
     { value: r.title },
+    { value: r.author },
     { value: r.status },
     { value: r.opened },
     { value: r.closed },
@@ -226,6 +230,7 @@ async function exportXLSX(items: TimelineItem[], title: string): Promise<void> {
       { width: 8 },
       { width: 10 },
       { width: 52 },
+      { width: 18 },
       { width: 10 },
       { width: 16 },
       { width: 16 },

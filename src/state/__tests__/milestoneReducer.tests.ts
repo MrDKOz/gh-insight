@@ -7,8 +7,8 @@ const ms2: Milestone = { number: 2, title: "Sprint 2", state: "open", openIssues
 
 const item: TimelineItem = {
   type: "issue", number: 42, title: "Fix bug",
+  url: "https://github.com/o/r/issues/42", author: "jsmith",
   createdAt: "2025-01-10T00:00:00Z", closedAt: "2025-01-20T00:00:00Z",
-  url: "https://github.com/o/r/issues/42",
   linkedPRs: [], milestoneNumber: 1,
 };
 

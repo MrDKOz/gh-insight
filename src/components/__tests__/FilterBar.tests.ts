@@ -5,15 +5,17 @@ import type { TimelineItem } from "../../types";
 
 const issue = (overrides: Partial<{ createdAt: string; closedAt: string | null; number: number }> = {}): TimelineItem => ({
   type: "issue", number: 1, title: "Bug",
+  url: "https://github.com/o/r/issues/1", author: "jsmith",
   createdAt: "2025-01-10T00:00:00Z", closedAt: null,
-  url: "https://github.com/o/r/issues/1", linkedPRs: [], milestoneNumber: 1,
+  linkedPRs: [], milestoneNumber: 1,
   ...overrides,
 });
 
 const pr = (overrides: Partial<{ createdAt: string; mergedAt: string | null; closedAt: string | null; number: number }> = {}): TimelineItem => ({
   type: "pr", number: 2, title: "Feature",
+  url: "https://github.com/o/r/pull/2", author: "a-jones",
   createdAt: "2025-01-10T00:00:00Z", mergedAt: null, closedAt: null,
-  url: "https://github.com/o/r/pull/2", linkedIssue: 0, milestoneNumber: 1,
+  linkedIssue: 0, milestoneNumber: 1,
   ...overrides,
 });
 
