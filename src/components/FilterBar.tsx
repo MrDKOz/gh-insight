@@ -107,7 +107,7 @@ const DateField: FunctionComponent<DateFieldProps> = ({ value, minDate, maxDate,
       textField: {
         size: "small",
         sx: {
-          width: "fit-content",
+          width: 155,
           "& .MuiInputBase-root": { height: 32, pr: 0.5 },
           "& .MuiPickersInputBase-sectionsContainer": { flexGrow: 0, p: "2px 8px", fontSize: "0.8125rem" },
         },
