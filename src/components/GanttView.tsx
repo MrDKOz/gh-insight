@@ -229,11 +229,10 @@ const GanttView: FunctionComponent<Props> = ({
           onMouseMove={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             const x = e.clientX - rect.left + e.currentTarget.scrollLeft;
-            setCursorInfo({
-              pct: Math.max(0, Math.min(100, (x / trackWidth) * 100)),
-              clientX: e.clientX,
-              clientY: e.clientY,
-            });
+            const rawMs = minTime + (x / trackWidth) * totalMs;
+            const snappedMs = Math.round(rawMs / MS) * MS;
+            const pct = Math.max(0, Math.min(100, ((snappedMs - minTime) / totalMs) * 100));
+            setCursorInfo({ pct, clientX: e.clientX, clientY: e.clientY });
           }}
           onMouseLeave={() => setCursorInfo(null)}
         >
@@ -329,7 +328,7 @@ const GanttView: FunctionComponent<Props> = ({
       {cursorInfo !== null && barHover === null && (
         <Paper elevation={2} sx={{ position: "fixed", top: cursorInfo.clientY - 34, left: cursorInfo.clientX, transform: "translateX(-50%)", px: 1, py: 0.5, pointerEvents: "none", zIndex: 150, userSelect: "none", whiteSpace: "nowrap" }}>
           <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>
-            {fmtDate(new Date(Math.round((minTime + (cursorInfo.pct / 100) * totalMs) / MS) * MS).toISOString())}
+            {fmtDate(new Date(minTime + (cursorInfo.pct / 100) * totalMs).toISOString())}
           </Box>
         </Paper>
       )}
