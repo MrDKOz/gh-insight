@@ -25,12 +25,13 @@ describe("initialState", () => {
 });
 
 describe("FETCH_LIST_START", () => {
-  it("sets loadingList and resets all other state", () => {
-    const state = { ...initialState, milestones: [ms1], selected: [ms1], error: "prev error" };
+  it("sets loadingList and clears milestones/error but preserves selected and cache", () => {
+    const state = { ...initialState, milestones: [ms1], selected: [ms1], itemsCache: { 1: [item] }, error: "prev error" };
     const next = milestoneReducer(state, { type: "FETCH_LIST_START" });
     expect(next.loadingList).toBe(true);
     expect(next.milestones).toEqual([]);
-    expect(next.selected).toEqual([]);
+    expect(next.selected).toEqual([ms1]);
+    expect(next.itemsCache).toEqual({ 1: [item] });
     expect(next.error).toBeNull();
   });
 });

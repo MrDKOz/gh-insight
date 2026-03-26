@@ -35,7 +35,7 @@ const initialState: MilestoneState = {
 function milestoneReducer(state: MilestoneState, action: Action): MilestoneState {
   switch (action.type) {
     case "FETCH_LIST_START":
-      return { ...initialState, loadingList: true };
+      return { ...state, milestones: [], loadingList: true, error: null };
 
     case "FETCH_LIST_SUCCESS":
       return {
