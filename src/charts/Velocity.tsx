@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo, useCallback } from "react";
 import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
@@ -47,21 +47,22 @@ const Velocity: FunctionComponent<Props> = ({ items }) => {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<Hover | null>(null);
 
-  const buckets = new Map<number, Week>();
-  for (const item of items) {
-    const endDate = itemEndDate(item);
-    if (!endDate) continue;
-    const ws = weekStart(new Date(endDate).getTime());
-    if (!buckets.has(ws)) {
-      buckets.set(ws, { startMs: ws, endMs: ws + 6 * 86_400_000, issues: 0, merged: 0, closed: 0 });
+  const weeks = useMemo(() => {
+    const buckets = new Map<number, Week>();
+    for (const item of items) {
+      const endDate = itemEndDate(item);
+      if (!endDate) continue;
+      const ws = weekStart(new Date(endDate).getTime());
+      if (!buckets.has(ws)) {
+        buckets.set(ws, { startMs: ws, endMs: ws + 6 * 86_400_000, issues: 0, merged: 0, closed: 0 });
+      }
+      const w = buckets.get(ws)!;
+      if (item.type === "issue")      w.issues++;
+      else if (item.mergedAt)         w.merged++;
+      else                            w.closed++;
     }
-    const w = buckets.get(ws)!;
-    if (item.type === "issue")      w.issues++;
-    else if (item.mergedAt)         w.merged++;
-    else                            w.closed++;
-  }
-
-  const weeks = [...buckets.values()].sort((a, b) => a.startMs - b.startMs);
+    return [...buckets.values()].sort((a, b) => a.startMs - b.startMs);
+  }, [items]);
 
   if (weeks.length === 0) {
     return <Typography sx={{ fontSize: "0.875rem", color: "text.secondary", py: 2.5 }}>No completed items to plot velocity for.</Typography>;
@@ -83,11 +84,11 @@ const Velocity: FunctionComponent<Props> = ({ items }) => {
     Math.round((i / Math.max(numX - 1, 1)) * (weeks.length - 1)),
   );
 
-  const onEnter = (e: React.MouseEvent, week: Week) => {
+  const onEnter = useCallback((e: React.MouseEvent, week: Week) => {
     const rect = wrapRef.current?.getBoundingClientRect();
     if (!rect) return;
     setHover({ x: e.clientX - rect.left, y: e.clientY - rect.top, week });
-  };
+  }, []);
 
   const cardStyle = hover
     ? hoverCardPos(hover.x, hover.y, wrapRef.current?.offsetWidth ?? 800, 200, 94)
@@ -147,7 +148,7 @@ const Velocity: FunctionComponent<Props> = ({ items }) => {
           const yClosed = yMerged - hClosed;
 
           return (
-            <g key={i}>
+            <g key={week.startMs}>
               {week.issues > 0 && (
                 <rect x={bx.toFixed(1)} y={yIssue.toFixed(1)}
                   width={barW.toFixed(1)} height={hIssue.toFixed(1)}
@@ -199,7 +200,7 @@ const Velocity: FunctionComponent<Props> = ({ items }) => {
           { col: COL.prMerged, label: "PRs merged" },
           { col: COL.prClosed, label: "PRs closed" },
         ].map(({ col, label }, i) => (
-          <g key={i} transform={`translate(${L + CW - 160 + i * 0}, ${T + i * 15})`}>
+          <g key={label} transform={`translate(${L + CW - 160 + i * 0}, ${T + i * 15})`}>
             <rect x={0} y={-8} width={10} height={10} fill={col} rx={2} />
             <text x={14} y={0} fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">{label}</text>
           </g>

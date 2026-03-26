@@ -184,7 +184,7 @@ const CumulativeFlow: FunctionComponent<Props> = ({ items }) => {
           { col: COL.closedLine, label: "Completed (cumulative)" },
           { col: COL.openedLine, label: "Created (cumulative)" },
         ].map(({ col, label }, i) => (
-          <g key={i} transform={`translate(${L + 4}, ${T + i * 15})`}>
+          <g key={label} transform={`translate(${L + 4}, ${T + i * 15})`}>
             <line x1={0} y1={-3} x2={16} y2={-3} stroke={col} strokeWidth={i === 0 ? 2 : 1.5} />
             <text x={20} y={0} fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">{label}</text>
           </g>

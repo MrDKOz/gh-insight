@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
@@ -47,7 +47,7 @@ const CycleTime: FunctionComponent<Props> = ({ items }) => {
   const [hover, setHover] = useState<Hover | null>(null);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
-  const pts: Pt[] = items.flatMap((item) => {
+  const pts: Pt[] = useMemo(() => items.flatMap((item) => {
     const endDate = itemEndDate(item);
     if (!endDate) return [];
     const days = Math.round(
@@ -62,7 +62,7 @@ const CycleTime: FunctionComponent<Props> = ({ items }) => {
         : item.mergedAt      ? "PR (merged)"
                              : "PR (closed)";
     return [{ item, endDate, endMs: new Date(endDate).getTime(), days, col, typeLabel }];
-  });
+  }), [items]);
 
   if (pts.length === 0) {
     return <Typography sx={{ fontSize: "0.875rem", color: "text.secondary", py: 2.5 }}>No completed items to plot cycle times for.</Typography>;
@@ -81,7 +81,10 @@ const CycleTime: FunctionComponent<Props> = ({ items }) => {
   const pyFn = (days: number) => T + (1 - days / maxDays) * CH;
 
   const sorted = [...pts.map((p) => p.days)].sort((a, b) => a - b);
-  const median = sorted[Math.floor(sorted.length / 2)];
+  const mid    = Math.floor(sorted.length / 2);
+  const median = sorted.length % 2 === 1
+    ? sorted[mid]
+    : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
   const mean   = Math.round(sorted.reduce((s, d) => s + d, 0) / sorted.length);
   const showMean = mean !== median && Math.abs(pyFn(mean) - pyFn(median)) > 16;
 
@@ -197,7 +200,7 @@ const CycleTime: FunctionComponent<Props> = ({ items }) => {
         )}
 
         {pts.map((p, i) => (
-          <g key={i}
+          <g key={`${p.item.type}-${p.item.number}`}
             style={{ transition: "transform 0.15s ease" }}
             transform={`translate(0, ${spreadOffsets[i].dy})`}
           >
@@ -221,7 +224,7 @@ const CycleTime: FunctionComponent<Props> = ({ items }) => {
         ))}
 
         {xTimes.map((t, i) => (
-          <text key={i} x={pxFn(t)} y={T + CH + 20}
+          <text key={t} x={pxFn(t)} y={T + CH + 20}
             textAnchor={i === 0 ? "start" : i === numX - 1 ? "end" : "middle"}
             fill={COL.label} fontSize={11} fontFamily="inherit" className="chart-label">
             {fmtDate(new Date(t).toISOString())}
