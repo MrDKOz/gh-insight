@@ -91,7 +91,7 @@ const GanttLegend: FunctionComponent<GanttLegendProps> = ({ hasOpenIssues, isMul
 );
 
 const BarHoverCard: FunctionComponent<{ barHover: BarHover }> = ({ barHover }) => (
-  <Paper elevation={3} sx={{ display: "flex", flexDirection: "column", gap: "6px", minWidth: 200, maxWidth: 260, px: 1.5, py: 1.25, pointerEvents: "none", ...barCardStyle(barHover.clientX, barHover.clientY) }}>
+  <Paper elevation={2} sx={{ display: "flex", flexDirection: "column", gap: "6px", minWidth: 200, maxWidth: 260, px: 1.5, py: 1.25, pointerEvents: "none", ...barCardStyle(barHover.clientX, barHover.clientY) }}>
     <Box sx={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>
       <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: barHover.dotColor, flexShrink: 0, opacity: barHover.isOpen ? 0.55 : 1 }} />
       {barHover.item.type === "pr" ? "PR" : "Issue"} #{barHover.item.number}
@@ -327,25 +327,11 @@ const GanttView: FunctionComponent<Props> = ({
       )}
 
       {cursorInfo !== null && barHover === null && (
-        <Box
-          sx={{
-            position: "fixed",
-            top: cursorInfo.clientY - 30,
-            left: cursorInfo.clientX + 10,
-            bgcolor: "text.secondary",
-            color: "background.paper",
-            px: 0.75,
-            py: 0.25,
-            borderRadius: "4px",
-            fontSize: "0.6875rem",
-            fontWeight: 700,
-            pointerEvents: "none",
-            zIndex: 150,
-            userSelect: "none",
-          }}
-        >
-          {fmtDate(new Date(minTime + (cursorInfo.pct / 100) * totalMs).toISOString())}
-        </Box>
+        <Paper elevation={2} sx={{ position: "fixed", top: cursorInfo.clientY - 14, left: cursorInfo.clientX + 12, px: 1, py: 0.5, pointerEvents: "none", zIndex: 150, userSelect: "none", whiteSpace: "nowrap" }}>
+          <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>
+            {fmtDate(new Date(minTime + (cursorInfo.pct / 100) * totalMs).toISOString())}
+          </Box>
+        </Paper>
       )}
 
       {barHover && <BarHoverCard barHover={barHover} />}

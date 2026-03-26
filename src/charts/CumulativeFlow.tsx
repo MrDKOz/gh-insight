@@ -23,7 +23,7 @@ const COL = {
   axis:        COLORS.chartAxis,
   grid:        COLORS.chartGrid,
   label:       COLORS.chartAxis,
-  cursor:      "rgba(248,81,73,0.55)",
+  cursor:      "rgba(87, 96, 106, 0.5)",
 };
 
 type DayPt = {
@@ -162,13 +162,17 @@ const CumulativeFlow: FunctionComponent<Props> = ({ items, highlightWeekends }) 
         <path d={openedLinePts} fill="none" stroke={COL.openedLine} strokeWidth={1.5} strokeLinejoin="round" />
         <path d={closedLinePts} fill="none" stroke={COL.closedLine} strokeWidth={2}   strokeLinejoin="round" />
 
-        {hover !== null && (
-          <line
-            x1={hoverSvgX.toFixed(1)} y1={T}
-            x2={hoverSvgX.toFixed(1)} y2={T + CH}
-            stroke={COL.cursor} strokeWidth={1.5} strokeDasharray="4 3"
-            style={{ pointerEvents: "none" }}
-          />
+        {hover !== null && hovered !== null && (
+          <>
+            <line
+              x1={hoverSvgX.toFixed(1)} y1={T}
+              x2={hoverSvgX.toFixed(1)} y2={T + CH}
+              stroke={COL.cursor} strokeWidth={1.5} strokeDasharray="4 3"
+              style={{ pointerEvents: "none" }}
+            />
+            <circle cx={hoverSvgX.toFixed(1)} cy={pyFn(hovered.closed).toFixed(1)} r={4} fill={COL.closedLine} style={{ pointerEvents: "none" }} />
+            <circle cx={hoverSvgX.toFixed(1)} cy={pyFn(hovered.opened).toFixed(1)} r={4} fill={COL.openedLine} style={{ pointerEvents: "none" }} />
+          </>
         )}
 
         <line x1={L} y1={T + CH} x2={L + CW} y2={T + CH} stroke={COL.axis} strokeWidth={1} className="chart-axis" />
