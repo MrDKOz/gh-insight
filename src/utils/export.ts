@@ -1,14 +1,5 @@
 import type { TimelineItem } from "../types";
-import { itemEndDate } from "./utils";
-
-function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
+import { itemEndDate, fmtDate } from "./utils";
 
 function safeFilename(s: string): string {
   return s
@@ -41,8 +32,7 @@ type Row = {
 };
 
 function buildRows(items: TimelineItem[]): Row[] {
-  return items
-    .filter((item) => (item.type === "issue" ? !!item.closedAt : !!(item.mergedAt || item.closedAt)))
+  return [...items]
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
     .map((item) => {
       const endDate = itemEndDate(item);
@@ -53,7 +43,7 @@ function buildRows(items: TimelineItem[]): Row[] {
           : null;
       const linked =
         item.type === "pr"
-          ? `Issue #${item.linkedIssue}`
+          ? item.linkedIssue != null ? `Issue #${item.linkedIssue}` : "—"
           : item.linkedPRs.length > 0
             ? item.linkedPRs.map((n) => `PR #${n}`).join(", ")
             : "—";
@@ -63,8 +53,8 @@ function buildRows(items: TimelineItem[]): Row[] {
         title: item.title,
         author: item.author,
         status,
-        opened: fmtDate(item.createdAt),
-        closed: fmtDate(endDate),
+        opened: fmtDate(item.createdAt, true),
+        closed: fmtDate(endDate, true),
         duration: days != null ? String(days) : "—",
         linked,
         url: item.url,
@@ -163,7 +153,7 @@ async function exportPDF(items: TimelineItem[], title: string): Promise<void> {
   doc.setFontSize(9);
   doc.setTextColor(87, 96, 106);
   doc.text(
-    `Generated ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}  ·  ${rows.length} item${rows.length !== 1 ? "s" : ""}`,
+    `Generated ${fmtDate(new Date().toISOString(), true)}  ·  ${rows.length} item${rows.length !== 1 ? "s" : ""}`,
     14,
     25,
   );

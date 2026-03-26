@@ -2,9 +2,13 @@ import type { TimelineItem } from "../types";
 
 const MS = 86_400_000;
 
-function fmtDate(iso: string | null | undefined): string {
+function fmtDate(iso: string | null | undefined, includeYear = false): string {
   if (!iso) return "N/A";
-  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    ...(includeYear ? { year: "numeric" } : {}),
+  });
 }
 
 function itemEndDate(item: TimelineItem): string | null {
