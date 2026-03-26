@@ -104,7 +104,14 @@ const DateField: FunctionComponent<DateFieldProps> = ({ value, minDate, maxDate,
     maxDate={maxDate ? dayjs(maxDate) : undefined}
     onChange={(d: Dayjs | null) => onChange(d ? d.format("YYYY-MM-DD") : "")}
     slotProps={{
-      textField: { size: "small", sx: { width: 150, "& .MuiInputBase-input": { fontSize: "0.8125rem", py: 0.625 } } },
+      textField: {
+        size: "small",
+        sx: {
+          width: 168,
+          "& .MuiInputBase-root": { height: 32 },
+          "& .MuiInputBase-input": { fontSize: "0.8125rem", py: 0, px: 1 },
+        },
+      },
       field: { clearable: true },
       openPickerButton: { size: "small", sx: { color: "text.disabled", p: 0.25 } },
       openPickerIcon: { sx: { fontSize: "1rem" } },
