@@ -1,4 +1,4 @@
-import { useReducer, useState, useMemo, useCallback, useEffect } from "react";
+import { useReducer, useState, useRef, useMemo, useCallback, useEffect } from "react";
 import type { FunctionComponent } from "react";
 import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -8,7 +8,7 @@ import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import Alert from "@mui/material/Alert";
 import { fetchMilestones, fetchMilestoneItems } from "./api/github";
-import type { Milestone, TimelineItem } from "./types";
+import type { Milestone } from "./types";
 import { milestoneReducer, initialState } from "./state/milestoneReducer";
 import { Timeline } from "./components/Timeline";
 import { SettingsPanel } from "./components/SettingsPanel";
@@ -43,32 +43,44 @@ const App: FunctionComponent = () => {
 
   const [state, dispatch] = useReducer(milestoneReducer, initialState);
 
+  const loadAbortRef = useRef<AbortController | null>(null);
+  const itemAbortRefs = useRef<Map<number, AbortController>>(new Map());
+
   useEffect(() => {
     const stored = localStorage.getItem(LS_TOKEN);
     if (stored) {
       decryptToken(stored).then(setToken).catch(() => localStorage.removeItem(LS_TOKEN));
     }
+    return () => {
+      loadAbortRef.current?.abort();
+      itemAbortRefs.current.forEach((ac) => ac.abort());
+    };
   }, []);
 
-  const toggleDark = () => {
+  const toggleDark = useCallback(() => {
     const next = !dark;
     setDark(next);
     localStorage.setItem(LS_DARK, String(next));
     document.body.classList.toggle("dark", next);
-  };
+  }, [dark]);
 
+  // Color is derived from the milestone number so it is stable across re-loads
+  // and repo changes — the same milestone always gets the same colour.
   const milestoneColorFor = useCallback((num: number) => {
-    const idx = state.milestones.findIndex((m) => m.number === num);
-    return MILESTONE_COLORS[Math.max(0, idx) % MILESTONE_COLORS.length];
-  }, [state.milestones]);
+    return MILESTONE_COLORS[num % MILESTONE_COLORS.length];
+  }, []);
 
   const loadMilestones = useCallback(async () => {
     if (!token || !owner || !repo) return;
+    loadAbortRef.current?.abort();
+    const ac = new AbortController();
+    loadAbortRef.current = ac;
     dispatch({ type: "FETCH_LIST_START" });
     try {
-      const milestones = await fetchMilestones(owner, repo, token);
+      const milestones = await fetchMilestones(owner, repo, token, ac.signal);
       dispatch({ type: "FETCH_LIST_SUCCESS", milestones });
     } catch (e) {
+      if ((e as DOMException).name === "AbortError") return;
       dispatch({ type: "FETCH_LIST_ERROR", error: e instanceof Error ? e.message : String(e) });
     }
   }, [token, owner, repo]);
@@ -77,12 +89,17 @@ const App: FunctionComponent = () => {
     if (state.selected.some((m) => m.number === ms.number)) return;
     dispatch({ type: "SELECT_MILESTONE", milestone: ms });
     if (!(ms.number in state.itemsCache)) {
+      const ac = new AbortController();
+      itemAbortRefs.current.set(ms.number, ac);
       dispatch({ type: "FETCH_ITEMS_START", milestoneNumber: ms.number });
       try {
-        const items = await fetchMilestoneItems(owner, repo, token, ms.number);
+        const items = await fetchMilestoneItems(owner, repo, token, ms.number, ac.signal);
         dispatch({ type: "FETCH_ITEMS_SUCCESS", milestoneNumber: ms.number, items });
       } catch (e) {
+        if ((e as DOMException).name === "AbortError") return;
         dispatch({ type: "FETCH_ITEMS_ERROR", milestoneNumber: ms.number, error: e instanceof Error ? e.message : String(e) });
+      } finally {
+        itemAbortRefs.current.delete(ms.number);
       }
     }
   }, [state.selected, state.itemsCache, owner, repo, token]);
@@ -135,6 +152,9 @@ const App: FunctionComponent = () => {
 
   const handleTokenChange = useCallback((v: string) => {
     setToken(v);
+  }, []);
+
+  const handleTokenBlur = useCallback((v: string) => {
     if (v) encryptToken(v).then((ct) => localStorage.setItem(LS_TOKEN, ct)).catch(console.error);
     else   localStorage.removeItem(LS_TOKEN);
   }, []);
@@ -180,6 +200,7 @@ const App: FunctionComponent = () => {
         <SettingsPanel
           token={token}
           onTokenChange={handleTokenChange}
+          onTokenBlur={handleTokenBlur}
           owner={owner}
           onOwnerChange={handleOwnerChange}
           repo={repo}

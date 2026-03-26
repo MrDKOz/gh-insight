@@ -11,6 +11,7 @@ import { MilestonePicker } from "./MilestonePicker";
 type Props = {
   token: string;
   onTokenChange: (v: string) => void;
+  onTokenBlur: (v: string) => void;
   owner: string;
   onOwnerChange: (v: string) => void;
   repo: string;
@@ -30,7 +31,7 @@ type Props = {
 };
 
 const SettingsPanel = memo<Props>(
-  ({ token, onTokenChange, owner, onOwnerChange, repo, onRepoChange, canLoad, loadingList, onLoad, onDemo, milestones, selected, loadingNums, isDemo, colorFor, onAdd, onRemove, onRefresh }) => {
+  ({ token, onTokenChange, onTokenBlur, owner, onOwnerChange, repo, onRepoChange, canLoad, loadingList, onLoad, onDemo, milestones, selected, loadingNums, isDemo, colorFor, onAdd, onRemove, onRefresh }) => {
     return (
       <Paper sx={{ p: 2.5, display: "flex", flexDirection: "column", gap: 1.75 }}>
         <Stack direction="row" alignItems="flex-end" gap={2} flexWrap="wrap">
@@ -42,6 +43,7 @@ const SettingsPanel = memo<Props>(
               type="password"
               value={token}
               onChange={(e) => onTokenChange(e.target.value)}
+              onBlur={(e) => onTokenBlur(e.target.value)}
               placeholder="ghp_... or fine-grained token"
               size="small"
               sx={{ width: 280 }}
