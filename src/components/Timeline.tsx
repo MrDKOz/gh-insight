@@ -182,8 +182,11 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones }) => {
     if (allTimestamps.length === 0) {
       return { todayMs: now, minTime: now, totalMs: 1, totalDays: 1, trackWidth: 500 };
     }
-    const min = Math.min(...allTimestamps);
-    const max = Math.max(...allTimestamps, now);
+    const min = new Date(new Date(Math.min(...allTimestamps)).toISOString().slice(0, 10)).getTime();
+    const hasOpenItems = filteredItems.some((item) => !itemEndDate(item));
+    const max = hasOpenItems
+      ? Math.max(...allTimestamps, now)
+      : Math.max(...allTimestamps) + 3 * MS;
     const totalMs = max - min || 1;
     const totalDays = totalMs / MS;
     return {
@@ -193,7 +196,7 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones }) => {
       totalDays,
       trackWidth: Math.max(500, Math.round(totalDays * pixelsPerDay)),
     };
-  }, [allTimestamps, pixelsPerDay]);
+  }, [allTimestamps, filteredItems, pixelsPerDay]);
 
   // Keep ref values current for the wheel-zoom handler without adding them to its deps
   useLayoutEffect(() => {
