@@ -35,6 +35,8 @@ type DayPt = {
 type HoverState = {
   wrapX: number;
   wrapY: number;
+  clientX: number;
+  clientY: number;
   dayIdx: number;
 };
 
@@ -99,7 +101,7 @@ const CumulativeFlow: FunctionComponent<Props> = ({ items, highlightWeekends }) 
     if (svgX >= L && svgX <= L + CW) {
       const frac   = (svgX - L) / CW;
       const dayIdx = Math.max(0, Math.min(pts.length - 1, Math.round(frac * (pts.length - 1))));
-      setHover({ wrapX, wrapY: e.clientY - rect.top, dayIdx });
+      setHover({ wrapX, wrapY: e.clientY - rect.top, clientX: e.clientX, clientY: e.clientY, dayIdx });
     } else {
       setHover(null);
     }
@@ -121,20 +123,24 @@ const CumulativeFlow: FunctionComponent<Props> = ({ items, highlightWeekends }) 
       onMouseLeave={() => setHover(null)}
     >
       {hovered && hover && (
-        <Paper elevation={2} sx={{ position: "absolute", display: "flex", flexDirection: "column", gap: "5px", minWidth: 148, px: 1.5, py: 1, pointerEvents: "none", zIndex: 50, ...cardStyle }}>
-          <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>{fmtDate(new Date(hovered.t).toISOString())}</Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: COL.openedLine, flexShrink: 0 }} />
-            {hovered.opened} created
-          </Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: COL.closedLine, flexShrink: 0 }} />
-            {hovered.closed} completed
-          </Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600, color: "text.secondary" }}>
-            {hovered.opened - hovered.closed} open
-          </Box>
-        </Paper>
+        <>
+          <Paper elevation={2} sx={{ position: "fixed", top: hover.clientY - 14, left: hover.clientX + 12, px: 1, py: 0.5, pointerEvents: "none", zIndex: 150, userSelect: "none", whiteSpace: "nowrap" }}>
+            <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>{fmtDate(new Date(hovered.t).toISOString())}</Box>
+          </Paper>
+          <Paper elevation={2} sx={{ position: "absolute", display: "flex", flexDirection: "column", gap: "5px", minWidth: 148, px: 1.5, py: 1, pointerEvents: "none", zIndex: 50, ...cardStyle }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
+              <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: COL.openedLine, flexShrink: 0 }} />
+              {hovered.opened} created
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
+              <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: COL.closedLine, flexShrink: 0 }} />
+              {hovered.closed} completed
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600, color: "text.secondary" }}>
+              {hovered.opened - hovered.closed} open
+            </Box>
+          </Paper>
+        </>
       )}
 
       <svg

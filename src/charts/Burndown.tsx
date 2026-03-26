@@ -38,6 +38,8 @@ const C = {
 type HoverInfo = {
   x: number;
   y: number;
+  clientX: number;
+  clientY: number;
   date: string;
   count: number;
   svgX: number;
@@ -110,7 +112,7 @@ const Burndown: FunctionComponent<Props> = ({ items, highlightWeekends }) => {
       const frac = (svgX - L) / CW;
       const ptIdx = Math.max(0, Math.min(points.length - 1, Math.round(frac * (points.length - 1))));
       const { t, count } = points[ptIdx];
-      setHover({ x: wrapX, y: e.clientY - rect.top, date: fmtDate(new Date(t).toISOString()), count, svgX: pxFn(ptIdx) });
+      setHover({ x: wrapX, y: e.clientY - rect.top, clientX: e.clientX, clientY: e.clientY, date: fmtDate(new Date(t).toISOString()), count, svgX: pxFn(ptIdx) });
     } else {
       setHover(null);
     }
@@ -121,13 +123,17 @@ const Burndown: FunctionComponent<Props> = ({ items, highlightWeekends }) => {
   return (
     <div className="burndown-wrap" ref={wrapRef} style={{ position: "relative" }} onMouseMove={handleMouseMove} onMouseLeave={() => setHover(null)}>
       {hover && (
-        <Paper elevation={2} sx={{ position: "absolute", display: "flex", flexDirection: "column", gap: "5px", minWidth: 148, px: 1.5, py: 1, pointerEvents: "none", zIndex: 50, ...hoverCardStyle }}>
-          <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>{hover.date}</Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#0969da", flexShrink: 0 }} />
-            {hover.count} open issue{hover.count !== 1 ? "s" : ""}
-          </Box>
-        </Paper>
+        <>
+          <Paper elevation={2} sx={{ position: "fixed", top: hover.clientY - 14, left: hover.clientX + 12, px: 1, py: 0.5, pointerEvents: "none", zIndex: 150, userSelect: "none", whiteSpace: "nowrap" }}>
+            <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>{hover.date}</Box>
+          </Paper>
+          <Paper elevation={2} sx={{ position: "absolute", display: "flex", flexDirection: "column", gap: "5px", minWidth: 148, px: 1.5, py: 1, pointerEvents: "none", zIndex: 50, ...hoverCardStyle }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
+              <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#0969da", flexShrink: 0 }} />
+              {hover.count} open issue{hover.count !== 1 ? "s" : ""}
+            </Box>
+          </Paper>
+        </>
       )}
 
       <svg
