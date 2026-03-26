@@ -232,6 +232,25 @@ body.dark {
   z-index: 4;
 }
 
+/* ── Gantt weekend bands ── */
+
+.tl-weekend-band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.04);
+  pointer-events: none;
+  z-index: 1;
+}
+
+body.dark .tl-weekend-band {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+body.dark .chart-weekend {
+  fill: rgba(255, 255, 255, 0.04);
+}
+
 /* ── Gantt today marker ── */
 
 .tl-today-marker {

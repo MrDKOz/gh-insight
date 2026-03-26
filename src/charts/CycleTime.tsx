@@ -9,6 +9,7 @@ import { AuthorTag } from "../components/AuthorTag";
 
 type Props = {
   items: TimelineItem[];
+  highlightWeekends: boolean;
 };
 
 const L = 52, R = 16, T = 28, B = 44, W = 800, H = 280;
@@ -42,7 +43,7 @@ type Hover = {
   url: string;
 };
 
-const CycleTime: FunctionComponent<Props> = ({ items }) => {
+const CycleTime: FunctionComponent<Props> = ({ items, highlightWeekends }) => {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<Hover | null>(null);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
@@ -173,6 +174,14 @@ const CycleTime: FunctionComponent<Props> = ({ items }) => {
         aria-label="Cycle time scatter chart"
         onMouseLeave={() => { setHover(null); setHoveredIdx(null); }}
       >
+        {highlightWeekends && Array.from({ length: Math.ceil(totalMs / MS) + 1 }, (_, i) => {
+          const day = new Date(minTime + i * MS);
+          if (day.getUTCDay() !== 6) return null;
+          const x = L + (i * MS / totalMs) * CW;
+          const w = Math.min((2 * MS / totalMs) * CW, CW - (x - L));
+          return <rect key={i} x={x.toFixed(1)} y={T} width={w.toFixed(1)} height={CH} fill="rgba(0,0,0,0.04)" className="chart-weekend" />;
+        })}
+
         {yLabels.map((d) => (
           <line key={d}
             x1={L} y1={pyFn(d).toFixed(1)} x2={L + CW} y2={pyFn(d).toFixed(1)}

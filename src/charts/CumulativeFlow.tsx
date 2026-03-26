@@ -8,6 +8,7 @@ import { MS, fmtDate, itemEndDate, COLORS, hoverCardPos } from "../utils/utils";
 
 type Props = {
   items: TimelineItem[];
+  highlightWeekends: boolean;
 };
 
 const L = 48, R = 16, T = 20, B = 44, W = 800, H = 280;
@@ -37,7 +38,7 @@ type HoverState = {
   dayIdx: number;
 };
 
-const CumulativeFlow: FunctionComponent<Props> = ({ items }) => {
+const CumulativeFlow: FunctionComponent<Props> = ({ items, highlightWeekends }) => {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<HoverState | null>(null);
 
@@ -141,6 +142,14 @@ const CumulativeFlow: FunctionComponent<Props> = ({ items }) => {
         style={{ width: "100%", height: "auto", display: "block", cursor: "crosshair" }}
         aria-label="Cumulative flow diagram"
       >
+        {highlightWeekends && Array.from({ length: totalDays + 1 }, (_, i) => {
+          const day = new Date(minTime + i * MS);
+          if (day.getUTCDay() !== 6) return null;
+          const x = L + (i / totalDays) * CW;
+          const w = Math.min((2 / totalDays) * CW, CW - (x - L));
+          return <rect key={i} x={x.toFixed(1)} y={T} width={w.toFixed(1)} height={CH} fill="rgba(0,0,0,0.04)" className="chart-weekend" />;
+        })}
+
         {yLabels.map((c) => (
           <line key={c}
             x1={L} y1={pyFn(c).toFixed(1)} x2={L + CW} y2={pyFn(c).toFixed(1)}

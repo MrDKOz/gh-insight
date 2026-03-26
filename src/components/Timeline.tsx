@@ -24,6 +24,7 @@ import { GanttView } from "./GanttView";
 type Props = {
   items: TimelineItem[];
   milestones: MilestoneMeta[];
+  highlightWeekends: boolean;
 };
 
 type ExportFormat = "CSV" | "XLSX" | "Markdown" | "PNG — Current view" | "PNG — Full timeline" | "PDF";
@@ -32,7 +33,7 @@ const EXPORT_FORMATS: ExportFormat[] = ["CSV", "XLSX", "Markdown", "PNG — Curr
 type View = "Gantt" | "Burndown" | "Cycle Time" | "Velocity" | "Cumulative Flow" | "List";
 const VIEWS: View[] = ["Gantt", "Burndown", "Cycle Time", "Velocity", "Cumulative Flow", "List"];
 
-const Timeline: FunctionComponent<Props> = ({ items, milestones }) => {
+const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeekends }) => {
   const [labelWidth, setLabelWidth] = useState(400);
   const [pixelsPerDay, setPixelsPerDay] = useState(30);
   const [axisHeight, setAxisHeight] = useState(36);
@@ -309,10 +310,10 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones }) => {
           No items match the current filters.
         </Typography>
       )}
-      {!noFilteredItems && view === "Burndown" && <Burndown items={filteredItems} />}
-      {!noFilteredItems && view === "Cycle Time" && <CycleTime items={filteredItems} />}
+      {!noFilteredItems && view === "Burndown" && <Burndown items={filteredItems} highlightWeekends={highlightWeekends} />}
+      {!noFilteredItems && view === "Cycle Time" && <CycleTime items={filteredItems} highlightWeekends={highlightWeekends} />}
       {!noFilteredItems && view === "Velocity" && <Velocity items={filteredItems} />}
-      {!noFilteredItems && view === "Cumulative Flow" && <CumulativeFlow items={filteredItems} />}
+      {!noFilteredItems && view === "Cumulative Flow" && <CumulativeFlow items={filteredItems} highlightWeekends={highlightWeekends} />}
       {!noFilteredItems && view === "List" && <ItemList items={filteredItems} milestones={milestones} />}
 
       {!noFilteredItems && view === "Gantt" && (
@@ -331,6 +332,7 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones }) => {
           trackColRef={trackColRef}
           axisRef={axisRef}
           onResizeStart={handleResizeStart}
+          highlightWeekends={highlightWeekends}
         />
       )}
     </Paper>

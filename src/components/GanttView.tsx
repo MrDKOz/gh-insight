@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import type { FunctionComponent, MouseEvent, RefObject } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -23,6 +23,7 @@ type Props = {
   trackColRef: RefObject<HTMLDivElement>;
   axisRef: RefObject<HTMLDivElement>;
   onResizeStart: (e: MouseEvent<HTMLDivElement>) => void;
+  highlightWeekends: boolean;
 };
 
 const ROW_HEIGHT = 31;
@@ -130,6 +131,7 @@ const GanttView: FunctionComponent<Props> = ({
   trackColRef,
   axisRef,
   onResizeStart,
+  highlightWeekends,
 }) => {
   const [hoverItem, setHoverItem] = useState<TimelineItem | null>(null);
   const [cardPos, setCardPos] = useState({ top: 0, left: 0 });
@@ -151,6 +153,21 @@ const GanttView: FunctionComponent<Props> = ({
   const cancelHide = () => {
     if (hideTimer.current) clearTimeout(hideTimer.current);
   };
+
+  const weekendBands = useMemo(() => {
+    if (!highlightWeekends) return [];
+    const MS_PER_DAY = 86_400_000;
+    const bands: { leftPct: number; widthPct: number }[] = [];
+    for (let d = minTime; d < minTime + totalMs; d += MS_PER_DAY) {
+      if (new Date(d).getUTCDay() === 6) { // Saturday
+        const leftPct = ((d - minTime) / totalMs) * 100;
+        const widthPct = (MS_PER_DAY * 2) / totalMs * 100;
+        bands.push({ leftPct, widthPct });
+        d += MS_PER_DAY; // skip Sunday
+      }
+    }
+    return bands;
+  }, [highlightWeekends, minTime, totalMs]);
 
   const todayLeftPct = ((todayMs - minTime) / totalMs) * 100;
   const showToday = todayMs >= minTime && todayMs <= minTime + totalMs;
@@ -277,6 +294,9 @@ const GanttView: FunctionComponent<Props> = ({
             return (
               <div key={`trk-${item.type}-${item.number}`} className="tl-track-row" style={{ height: ROW_HEIGHT }}>
                 <div className="tl-track" style={{ width: trackWidth }}>
+                  {weekendBands.map((b) => (
+                    <div key={b.leftPct} className="tl-weekend-band" style={{ left: `${b.leftPct}%`, width: `${b.widthPct}%` }} />
+                  ))}
                   {showToday && <div className="tl-today-marker" style={{ left: `${todayLeftPct}%` }} />}
                   {cursorInfo !== null && <div className="tl-cursor-line" style={{ left: `${cursorInfo.pct}%` }} />}
                   <a

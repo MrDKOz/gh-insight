@@ -7,6 +7,10 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import Alert from "@mui/material/Alert";
+import Popover from "@mui/material/Popover";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Switch from "@mui/material/Switch";
+import Divider from "@mui/material/Divider";
 import { fetchMilestones, fetchMilestoneItems } from "./api/github";
 import type { Milestone } from "./types";
 import { milestoneReducer, initialState } from "./state/milestoneReducer";
@@ -14,6 +18,7 @@ import { Timeline } from "./components/Timeline";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { muiLightTheme, muiDarkTheme } from "./theme";
 import { encryptToken, decryptToken } from "./utils/tokenCrypto";
+import { useSettings } from "./hooks/useSettings";
 import {
   DEMO_MILESTONE,   DEMO_ITEMS,
   DEMO_MILESTONE_2, DEMO_ITEMS_2,
@@ -40,6 +45,8 @@ const App: FunctionComponent = () => {
   const [token, setToken] = useState("");
   const [owner, setOwner] = useState(() => localStorage.getItem(LS_OWNER) ?? "");
   const [repo, setRepo]   = useState(() => localStorage.getItem(LS_REPO)  ?? "");
+  const [settingsAnchor, setSettingsAnchor] = useState<HTMLElement | null>(null);
+  const { settings, updateSetting } = useSettings();
 
   const [state, dispatch] = useReducer(milestoneReducer, initialState);
 
@@ -176,6 +183,35 @@ const App: FunctionComponent = () => {
 
         <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Typography variant="h5" fontWeight={700}>GitHub Work Visualiser</Typography>
+          <Stack direction="row" gap={0.5} alignItems="center">
+          <IconButton onClick={(e) => setSettingsAnchor(e.currentTarget)} title="Settings" size="small">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </IconButton>
+          <Popover
+            open={Boolean(settingsAnchor)}
+            anchorEl={settingsAnchor}
+            onClose={() => setSettingsAnchor(null)}
+            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+            transformOrigin={{ vertical: "top", horizontal: "right" }}
+          >
+            <Box sx={{ p: 2, minWidth: 220 }}>
+              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Settings</Typography>
+              <Divider sx={{ mb: 1.5 }} />
+              <FormControlLabel
+                control={
+                  <Switch
+                    size="small"
+                    checked={settings.highlightWeekends}
+                    onChange={(e) => updateSetting("highlightWeekends", e.target.checked)}
+                  />
+                }
+                label={<Typography variant="body2">Highlight weekends</Typography>}
+              />
+            </Box>
+          </Popover>
           <IconButton onClick={toggleDark} title={dark ? "Switch to light mode" : "Switch to dark mode"} size="small">
             {dark ? (
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -195,6 +231,7 @@ const App: FunctionComponent = () => {
               </svg>
             )}
           </IconButton>
+          </Stack>
         </Stack>
 
         <SettingsPanel
@@ -223,7 +260,7 @@ const App: FunctionComponent = () => {
         {state.loadingNums.length > 0 && <Alert severity="info">Loading milestone data…</Alert>}
 
         {allItems.length > 0 && milestonesMeta.length > 0 && (
-          <Timeline items={allItems} milestones={milestonesMeta} />
+          <Timeline items={allItems} milestones={milestonesMeta} highlightWeekends={settings.highlightWeekends} />
         )}
 
       </Box>

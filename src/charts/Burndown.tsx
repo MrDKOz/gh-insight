@@ -8,6 +8,7 @@ import { MS, fmtDate, COLORS, hoverCardPos } from "../utils/utils";
 
 type Props = {
   items: TimelineItem[];
+  highlightWeekends: boolean;
 };
 
 const L = 48; // left padding (y-axis labels)
@@ -42,7 +43,7 @@ type HoverInfo = {
   svgX: number;
 };
 
-const Burndown: FunctionComponent<Props> = ({ items }) => {
+const Burndown: FunctionComponent<Props> = ({ items, highlightWeekends }) => {
   const issues = items.filter((i) => i.type === "issue");
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<HoverInfo | null>(null);
@@ -134,6 +135,14 @@ const Burndown: FunctionComponent<Props> = ({ items }) => {
         style={{ width: "100%", height: "auto", display: "block" }}
         aria-label="Burndown chart"
       >
+        {highlightWeekends && Array.from({ length: totalDays + 1 }, (_, i) => {
+          const day = new Date(minTime + i * MS);
+          if (day.getUTCDay() !== 6) return null;
+          const x = L + (i / totalDays) * CW;
+          const w = Math.min((2 / totalDays) * CW, CW - (x - L));
+          return <rect key={i} x={x.toFixed(1)} y={T} width={w.toFixed(1)} height={CH} fill="rgba(0,0,0,0.04)" className="chart-weekend" />;
+        })}
+
         {yLabels.map((count) => (
           <line
             key={count}
