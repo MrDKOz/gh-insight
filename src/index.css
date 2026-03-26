@@ -2,7 +2,7 @@
   box-sizing: border-box;
 }
 
-/* ── Colour tokens (used by Gantt and SVG charts) ── */
+/* ── Colour tokens (used by Gantt canvas and SVG charts) ── */
 
 :root {
   --bg-page:        #f5f5f5;
@@ -11,8 +11,6 @@
   --text-primary:   #24292f;
   --text-secondary: #57606a;
   --text-muted:     #333333;
-  --hint-bg:        #ddf4ff;
-  --hint-text:      #0969da;
   --date-label-bg:  #f0f0f0;
   --date-axis-line: #555555;
 }
@@ -24,50 +22,11 @@ body.dark {
   --text-primary:   #e6edf3;
   --text-secondary: #8b949e;
   --text-muted:     #c9d1d9;
-  --hint-bg:        #0c2039;
-  --hint-text:      #58a6ff;
   --date-label-bg:  #21262d;
   --date-axis-line: #8b949e;
 }
 
-/* ── Legend ── */
-
-.tl-legend {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-
-.tl-legend-item {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 13px;
-}
-
-.tl-swatch {
-  display: inline-block;
-  width: 20px;
-  height: 14px;
-  border-radius: 3px;
-  flex-shrink: 0;
-}
-
-.tl-swatch--issue       { background: linear-gradient(135deg, #0969da 0%, #0550ae 100%); }
-.tl-swatch--pr-merged   { background: linear-gradient(135deg, #8250df 0%, #6639ba 100%); }
-.tl-swatch--pr-closed   { background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); }
-
-/* ── Hint ── */
-
-.tl-hint {
-  font-size: 12px;
-  color: var(--hint-text);
-  background: var(--hint-bg);
-  padding: 7px 12px;
-  border-radius: 5px;
-}
-
-/* ── Split layout ── */
+/* ── Gantt split layout ── */
 
 .tl-body {
   display: flex;
@@ -114,7 +73,7 @@ body.dark {
   align-items: center;
 }
 
-/* ── Date axis ── */
+/* ── Gantt date axis ── */
 
 .tl-date-axis {
   display: flex;
@@ -133,16 +92,7 @@ body.dark {
   border-radius: 3px;
 }
 
-/* ── Row ── */
-
-.tl-row {
-  display: flex;
-  align-items: center;
-  margin-bottom: 5px;
-  min-height: 28px;
-}
-
-/* ── Label column ── */
+/* ── Gantt label column ── */
 
 .tl-label {
   flex-shrink: 0;
@@ -218,15 +168,13 @@ body.dark {
     radial-gradient(circle, #0969da 1px, transparent 1px);
 }
 
-/* ── Track ── */
+/* ── Gantt track and bars ── */
 
 .tl-track {
   position: relative;
   height: 26px;
   flex-shrink: 0;
 }
-
-/* ── Bars ── */
 
 .tl-bar {
   position: absolute;
@@ -272,7 +220,19 @@ body.dark {
   text-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
 }
 
-/* ── Today marker ── */
+/* ── Gantt cursor crosshair ── */
+
+.tl-cursor-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(87, 96, 106, 0.35);
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* ── Gantt today marker ── */
 
 .tl-today-marker {
   position: absolute;
@@ -284,24 +244,13 @@ body.dark {
   z-index: 5;
 }
 
-/* ── Chart / Gantt empty state ── */
-
-.tl-empty {
-  font-size: 14px;
-  color: var(--text-secondary);
-  padding: 20px 0;
-}
-
-/* ── Legend open-item swatches ── */
-
-.tl-swatch--issue-open {
-  background: linear-gradient(135deg, rgba(9, 105, 218, 0.45) 0%, rgba(5, 80, 174, 0.45) 100%);
-  border: 1.5px dashed #0969da;
-}
-
-/* ── Shared chart wrapper ── */
+/* ── SVG chart wrappers ── */
 
 .chart-wrap {
+  padding: 8px 0;
+}
+
+.burndown-wrap {
   padding: 8px 0;
 }
 
@@ -325,7 +274,7 @@ body.dark {
   stroke: var(--border);
 }
 
-/* ── Cycle time dots ── */
+/* ── Cycle time scatter dots ── */
 
 .ct-dot {
   cursor: pointer;
@@ -338,88 +287,10 @@ body.dark {
   transform: scale(1.6);
 }
 
-.ct-hovercard-title {
-  font-size: 12px;
-  color: var(--text-primary);
-  max-width: 210px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 /* ── Velocity hover target ── */
 
 .vel-hover-area {
   cursor: crosshair;
-}
-
-/* ── Burndown chart ── */
-
-.burndown-wrap {
-  padding: 8px 0;
-}
-
-/* Hover dots — SVG presentation attributes set colours for export;
-   CSS handles the visibility toggle for interactive use. */
-.bd-dot {
-  opacity: 0;
-  cursor: crosshair;
-  transition: opacity 0.1s;
-}
-
-.bd-dot:hover {
-  opacity: 1;
-}
-
-/* ── Burndown hover card ── */
-
-.bd-hovercard {
-  position: absolute;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  padding: 8px 12px;
-  pointer-events: none;
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  min-width: 148px;
-}
-
-.bd-hovercard-date {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.bd-hovercard-count {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.bd-hovercard-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #0969da;
-  flex-shrink: 0;
-}
-
-.bd-hovercard--link {
-  pointer-events: auto;
-  cursor: pointer;
-  text-decoration: none;
-}
-
-.bd-hovercard--link:hover {
-  border-color: #0969da;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.22);
 }
 
 /* Callout text: CSS var overrides the hardcoded light-mode SVG
@@ -427,30 +298,3 @@ body.dark {
 .bd-callout-text {
   fill: var(--text-primary);
 }
-
-/* ── Multi-milestone Gantt legend ── */
-
-.tl-milestone-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 16px;
-  padding: 6px 0 2px;
-  border-top: 1px solid var(--border);
-  margin-top: 4px;
-}
-
-.tl-milestone-legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.tl-milestone-swatch {
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
-  flex-shrink: 0;
-}
-

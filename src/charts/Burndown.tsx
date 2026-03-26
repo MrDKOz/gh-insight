@@ -1,5 +1,8 @@
 import { useState, useRef } from "react";
 import type { FunctionComponent } from "react";
+import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
 import type { TimelineItem } from "../types";
 import { MS, fmtDate, COLORS, hoverCardPos } from "../utils/utils";
 
@@ -28,7 +31,7 @@ const C = {
   todayLabel: "rgba(248,81,73,0.9)",
   label: COLORS.chartAxis,
   callout: "#24292f",
-  dot: COLORS.issue,
+  cursor: "rgba(87, 96, 106, 0.5)",
 };
 
 type HoverInfo = {
@@ -36,6 +39,7 @@ type HoverInfo = {
   y: number;
   date: string;
   count: number;
+  svgX: number;
 };
 
 const Burndown: FunctionComponent<Props> = ({ items }) => {
@@ -44,7 +48,7 @@ const Burndown: FunctionComponent<Props> = ({ items }) => {
   const [hover, setHover] = useState<HoverInfo | null>(null);
 
   if (issues.length === 0) {
-    return <p className="tl-empty">No issues to plot a burndown for.</p>;
+    return <Typography sx={{ fontSize: "0.875rem", color: "text.secondary", py: 2.5 }}>No issues to plot a burndown for.</Typography>;
   }
 
   const todayMs = Date.now();
@@ -97,31 +101,38 @@ const Burndown: FunctionComponent<Props> = ({ items }) => {
 
   const currentOpen = points[points.length - 1].count;
 
-  const handleDotEnter = (e: React.MouseEvent, t: number, count: number) => {
-    const rect = wrapRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    setHover({ x: e.clientX - rect.left, y: e.clientY - rect.top, date: fmtDate(new Date(t).toISOString()), count });
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const wrapX = e.clientX - rect.left;
+    const svgX = (wrapX / rect.width) * W;
+    if (svgX >= L && svgX <= L + CW) {
+      const frac = (svgX - L) / CW;
+      const ptIdx = Math.max(0, Math.min(points.length - 1, Math.round(frac * (points.length - 1))));
+      const { t, count } = points[ptIdx];
+      setHover({ x: wrapX, y: e.clientY - rect.top, date: fmtDate(new Date(t).toISOString()), count, svgX: pxFn(ptIdx) });
+    } else {
+      setHover(null);
+    }
   };
 
   const hoverCardStyle = hover ? hoverCardPos(hover.x, hover.y, wrapRef.current?.offsetWidth ?? 800, 180, 52) : {};
 
   return (
-    <div className="burndown-wrap" ref={wrapRef} style={{ position: "relative" }}>
+    <div className="burndown-wrap" ref={wrapRef} style={{ position: "relative" }} onMouseMove={handleMouseMove} onMouseLeave={() => setHover(null)}>
       {hover && (
-        <div className="bd-hovercard" style={hoverCardStyle}>
-          <span className="bd-hovercard-date">{hover.date}</span>
-          <span className="bd-hovercard-count">
-            <span className="bd-hovercard-dot" />
+        <Paper elevation={2} sx={{ position: "absolute", display: "flex", flexDirection: "column", gap: "5px", minWidth: 148, px: 1.5, py: 1, pointerEvents: "none", zIndex: 50, ...hoverCardStyle }}>
+          <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>{hover.date}</Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
+            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#0969da", flexShrink: 0 }} />
             {hover.count} open issue{hover.count !== 1 ? "s" : ""}
-          </span>
-        </div>
+          </Box>
+        </Paper>
       )}
 
       <svg
         viewBox={`0 0 ${W} ${H}`}
         style={{ width: "100%", height: "auto", display: "block" }}
         aria-label="Burndown chart"
-        onMouseLeave={() => setHover(null)}
       >
         {yLabels.map((count) => (
           <line
@@ -141,17 +152,20 @@ const Burndown: FunctionComponent<Props> = ({ items }) => {
 
         <path d={linePath} fill="none" stroke={C.line} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
 
-        {points.map(({ t, count }, i) => (
-          <circle
-            key={`dot-${i}`}
-            cx={pxFn(i).toFixed(1)}
-            cy={pyFn(count).toFixed(1)}
-            r={6}
-            fill={C.dot}
-            className="bd-dot"
-            onMouseEnter={(e) => handleDotEnter(e, t, count)}
-          />
-        ))}
+        {hover && (
+          <>
+            <line
+              x1={hover.svgX.toFixed(1)} y1={T}
+              x2={hover.svgX.toFixed(1)} y2={T + CH}
+              stroke={C.cursor} strokeWidth={1.5} strokeDasharray="4 3"
+              style={{ pointerEvents: "none" }}
+            />
+            <circle
+              cx={hover.svgX.toFixed(1)} cy={pyFn(hover.count).toFixed(1)}
+              r={4} fill={C.line} style={{ pointerEvents: "none" }}
+            />
+          </>
+        )}
 
         {showToday && (
           <g>
