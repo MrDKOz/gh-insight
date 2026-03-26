@@ -54,14 +54,14 @@ async function checkResponse(res: Response): Promise<void> {
   }
 }
 
-async function fetchMilestones(owner: string, repo: string, token: string): Promise<Milestone[]> {
+async function fetchMilestones(owner: string, repo: string, token: string, signal?: AbortSignal): Promise<Milestone[]> {
   const results: Milestone[] = [];
   let page = 1;
 
   while (true) {
     const res = await fetch(
       `${GH_API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/milestones?state=all&per_page=100&page=${page}`,
-      { headers: authHeaders(token) },
+      { headers: authHeaders(token), signal },
     );
     await checkResponse(res);
     const data = (await res.json()) as RawMilestone[];
@@ -146,6 +146,7 @@ async function fetchMilestoneItems(
   repo: string,
   token: string,
   milestoneNumber: number,
+  signal?: AbortSignal,
 ): Promise<TimelineItem[]> {
   const allIssues: GQLIssueNode[] = [];
   let after: string | null = null;
@@ -161,6 +162,7 @@ async function fetchMilestoneItems(
         query: MILESTONE_QUERY,
         variables: { owner, repo, milestoneNumber, after },
       }),
+      signal,
     });
 
     await checkResponse(res);
@@ -201,7 +203,7 @@ async function fetchMilestoneItems(
           createdAt: pr.createdAt,
           mergedAt: pr.mergedAt,
           closedAt: pr.closedAt,
-          linkedIssue: issue.number,
+          linkedIssue: issue.number > 0 ? issue.number : null,
           milestoneNumber,
         });
       }

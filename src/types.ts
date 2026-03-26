@@ -15,7 +15,7 @@ type PRItem = {
   createdAt: string;
   mergedAt: string | null;
   closedAt: string | null;
-  linkedIssue: number;
+  linkedIssue: number | null;
   milestoneNumber: number;
 };
 
