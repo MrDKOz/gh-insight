@@ -106,6 +106,8 @@ const DateField: FunctionComponent<DateFieldProps> = ({ value, minDate, maxDate,
     slotProps={{
       textField: { size: "small", sx: { width: 150, "& .MuiInputBase-input": { fontSize: "0.8125rem", py: 0.625 } } },
       field: { clearable: true },
+      openPickerButton: { size: "small", sx: { color: "text.disabled", p: 0.25 } },
+      openPickerIcon: { sx: { fontSize: "1rem" } },
     }}
   />
 );
