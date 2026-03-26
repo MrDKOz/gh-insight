@@ -124,7 +124,7 @@ const CumulativeFlow: FunctionComponent<Props> = ({ items, highlightWeekends }) 
     >
       {hovered && hover && (
         <>
-          <Paper elevation={2} sx={{ position: "fixed", top: hover.clientY - 14, left: hover.clientX + 12, px: 1, py: 0.5, pointerEvents: "none", zIndex: 150, userSelect: "none", whiteSpace: "nowrap" }}>
+          <Paper elevation={2} sx={{ position: "fixed", top: hover.clientY - 34, left: hover.clientX, transform: "translateX(-50%)", px: 1, py: 0.5, pointerEvents: "none", zIndex: 150, userSelect: "none", whiteSpace: "nowrap" }}>
             <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>{fmtDate(new Date(hovered.t).toISOString())}</Box>
           </Paper>
           <Paper elevation={2} sx={{ position: "absolute", display: "flex", flexDirection: "column", gap: "5px", minWidth: 148, px: 1.5, py: 1, pointerEvents: "none", zIndex: 50, ...cardStyle }}>

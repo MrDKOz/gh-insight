@@ -5,7 +5,7 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import type { TimelineItem, MilestoneMeta } from "../types";
-import { fmtDate, itemEndDate, COLORS } from "../utils/utils";
+import { fmtDate, itemEndDate, COLORS, MS } from "../utils/utils";
 import { AuthorTag, AuthorCard } from "./AuthorTag";
 
 type Props = {
@@ -327,9 +327,9 @@ const GanttView: FunctionComponent<Props> = ({
       )}
 
       {cursorInfo !== null && barHover === null && (
-        <Paper elevation={2} sx={{ position: "fixed", top: cursorInfo.clientY - 14, left: cursorInfo.clientX + 12, px: 1, py: 0.5, pointerEvents: "none", zIndex: 150, userSelect: "none", whiteSpace: "nowrap" }}>
+        <Paper elevation={2} sx={{ position: "fixed", top: cursorInfo.clientY - 34, left: cursorInfo.clientX, transform: "translateX(-50%)", px: 1, py: 0.5, pointerEvents: "none", zIndex: 150, userSelect: "none", whiteSpace: "nowrap" }}>
           <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>
-            {fmtDate(new Date(minTime + (cursorInfo.pct / 100) * totalMs).toISOString())}
+            {fmtDate(new Date(Math.round((minTime + (cursorInfo.pct / 100) * totalMs) / MS) * MS).toISOString())}
           </Box>
         </Paper>
       )}
