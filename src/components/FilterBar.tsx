@@ -2,10 +2,11 @@ import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import TextField from "@mui/material/TextField";
-import InputAdornment from "@mui/material/InputAdornment";
 import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import dayjs from "dayjs";
+import type { Dayjs } from "dayjs";
 import type { TimelineItem } from "../types";
 import { itemEndDate, COLORS } from "../utils/utils";
 
@@ -72,22 +73,6 @@ type Props = {
   onChange: (f: Filters) => void;
 };
 
-const IconX = () => (
-  <svg
-    width="8"
-    height="8"
-    viewBox="0 0 8 8"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.8"
-    strokeLinecap="round"
-    aria-hidden="true"
-  >
-    <line x1="1.5" y1="1.5" x2="6.5" y2="6.5" />
-    <line x1="6.5" y1="1.5" x2="1.5" y2="6.5" />
-  </svg>
-);
-
 const IconReset = () => (
   <svg
     width="13"
@@ -107,31 +92,21 @@ const IconReset = () => (
 
 type DateFieldProps = {
   value: string;
-  min?: string;
-  max?: string;
+  minDate?: string;
+  maxDate?: string;
   onChange: (v: string) => void;
-  onClear: () => void;
 };
 
-const DateField: FunctionComponent<DateFieldProps> = ({ value, min, max, onChange, onClear }) => (
-  <TextField
-    type="date"
-    size="small"
-    value={value}
+const DateField: FunctionComponent<DateFieldProps> = ({ value, minDate, maxDate, onChange }) => (
+  <DatePicker
+    value={value ? dayjs(value) : null}
+    minDate={minDate ? dayjs(minDate) : undefined}
+    maxDate={maxDate ? dayjs(maxDate) : undefined}
+    onChange={(d: Dayjs | null) => onChange(d ? d.format("YYYY-MM-DD") : "")}
     slotProps={{
-      htmlInput: { min, max },
-      input: {
-        endAdornment: value ? (
-          <InputAdornment position="end">
-            <IconButton size="small" onClick={onClear} title="Clear date" sx={{ p: 0.25 }}>
-              <IconX />
-            </IconButton>
-          </InputAdornment>
-        ) : null,
-      },
+      textField: { size: "small", sx: { width: 150, "& .MuiInputBase-input": { fontSize: "0.8125rem", py: 0.625 } } },
+      field: { clearable: true },
     }}
-    onChange={(e) => onChange(e.target.value)}
-    sx={{ "& .MuiInputBase-input": { fontSize: "0.8125rem", py: 0.625 } }}
   />
 );
 
@@ -181,18 +156,16 @@ const FilterBar: FunctionComponent<Props> = ({ filters, counts, onChange }) => {
         <Stack direction="row" alignItems="center" gap={0.5}>
           <DateField
             value={filters.createdStart}
-            max={filters.createdEnd || undefined}
+            maxDate={filters.createdEnd || undefined}
             onChange={(v) => set({ createdStart: v })}
-            onClear={() => set({ createdStart: "" })}
           />
           <Typography variant="caption" color="text.secondary" sx={{ userSelect: "none" }}>
             –
           </Typography>
           <DateField
             value={filters.createdEnd}
-            min={filters.createdStart || undefined}
+            minDate={filters.createdStart || undefined}
             onChange={(v) => set({ createdEnd: v })}
-            onClear={() => set({ createdEnd: "" })}
           />
         </Stack>
       </Stack>
@@ -204,18 +177,16 @@ const FilterBar: FunctionComponent<Props> = ({ filters, counts, onChange }) => {
         <Stack direction="row" alignItems="center" gap={0.5}>
           <DateField
             value={filters.closedStart}
-            max={filters.closedEnd || undefined}
+            maxDate={filters.closedEnd || undefined}
             onChange={(v) => set({ closedStart: v })}
-            onClear={() => set({ closedStart: "" })}
           />
           <Typography variant="caption" color="text.secondary" sx={{ userSelect: "none" }}>
             –
           </Typography>
           <DateField
             value={filters.closedEnd}
-            min={filters.closedStart || undefined}
+            minDate={filters.closedStart || undefined}
             onChange={(v) => set({ closedEnd: v })}
-            onClear={() => set({ closedEnd: "" })}
           />
         </Stack>
       </Stack>

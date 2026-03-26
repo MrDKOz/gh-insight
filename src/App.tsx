@@ -2,6 +2,8 @@ import { useReducer, useState, useMemo, useCallback, useEffect } from "react";
 import type { FunctionComponent } from "react";
 import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -151,6 +153,7 @@ const App: FunctionComponent = () => {
 
   return (
     <ThemeProvider theme={dark ? muiDarkTheme : muiLightTheme}>
+      <LocalizationProvider dateAdapter={AdapterDayjs}>
       <CssBaseline />
       <Box sx={{ maxWidth: 1400, mx: "auto", px: 3, py: 3, display: "flex", flexDirection: "column", gap: 2 }}>
 
@@ -206,6 +209,7 @@ const App: FunctionComponent = () => {
         )}
 
       </Box>
+      </LocalizationProvider>
     </ThemeProvider>
   );
 };
