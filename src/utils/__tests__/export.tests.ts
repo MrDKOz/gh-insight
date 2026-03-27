@@ -218,6 +218,21 @@ describe("buildRows — open items", () => {
   });
 });
 
+describe("buildRows — assignees", () => {
+  it("joins multiple assignees with ', '", () => {
+    const item: TimelineItem = { ...closedIssue, assignees: ["alice", "bob"] };
+    const row = buildRows([item])[0]!;
+
+    expect(row.assignees).toBe("alice, bob");
+  });
+
+  it("shows '—' when there are no assignees", () => {
+    const row = buildRows([closedIssue])[0]!; // assignees: []
+
+    expect(row.assignees).toBe("—");
+  });
+});
+
 describe("buildRows — closed date", () => {
   it("shows the closed date for a closed issue", () => {
     const row = buildRows([closedIssue])[0]!;

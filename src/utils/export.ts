@@ -27,6 +27,7 @@ type Row = {
   num: string;
   title: string;
   author: string;
+  assignees: string;
   status: string;
   opened: string;
   closed: string;
@@ -59,6 +60,7 @@ const buildRows = (items: TimelineItem[]): Row[] =>
         num: `#${item.number}`,
         title: item.title,
         author: item.author,
+        assignees: item.assignees.join(", ") || "—",
         status,
         opened: fmtDate(item.createdAt, true),
         closed: fmtDate(endDate, true),
@@ -68,7 +70,7 @@ const buildRows = (items: TimelineItem[]): Row[] =>
       };
     });
 
-const COLS = ["Type", "Number", "Title", "Author", "Status", "Opened", "Closed/Merged", "Duration (days)", "Linked to", "URL"] as const;
+const COLS = ["Type", "Number", "Title", "Author", "Assignees", "Status", "Opened", "Closed/Merged", "Duration (days)", "Linked to", "URL"] as const;
 
 const exportCSV = (items: TimelineItem[], title: string): void => {
   const rows = buildRows(items);
@@ -76,7 +78,7 @@ const exportCSV = (items: TimelineItem[], title: string): void => {
   const lines = [
     COLS.map(esc).join(","),
     ...rows.map((r) =>
-      [r.type, r.num, r.title, r.author, r.status, r.opened, r.closed, r.duration, r.linked, r.url].map(esc).join(","),
+      [r.type, r.num, r.title, r.author, r.assignees, r.status, r.opened, r.closed, r.duration, r.linked, r.url].map(esc).join(","),
     ),
   ];
   triggerBlobDownload(lines.join("\r\n"), `${safeFilename(title)}.csv`, "text/csv;charset=utf-8;");
@@ -88,11 +90,11 @@ const exportMarkdown = (items: TimelineItem[], title: string): void => {
   const lines = [
     `# ${title}`,
     "",
-    "| Type | # | Title | Author | Status | Opened | Closed/Merged | Duration | Linked to |",
-    "|------|---|-------|--------|--------|--------|---------------|----------|-----------|",
+    "| Type | # | Title | Author | Assignees | Status | Opened | Closed/Merged | Duration | Linked to |",
+    "|------|---|-------|--------|-----------|--------|--------|---------------|----------|-----------|",
     ...rows.map(
       (r) =>
-        `| ${r.type} | [${r.num}](${r.url}) | ${pipe(r.title)} | ${r.author} | ${r.status} | ${r.opened} | ${r.closed} | ${r.duration === "—" ? "—" : `${r.duration} days`} | ${r.linked} |`,
+        `| ${r.type} | [${r.num}](${r.url}) | ${pipe(r.title)} | ${r.author} | ${r.assignees} | ${r.status} | ${r.opened} | ${r.closed} | ${r.duration === "—" ? "—" : `${r.duration} days`} | ${r.linked} |`,
     ),
   ];
   triggerBlobDownload(lines.join("\n"), `${safeFilename(title)}.md`, "text/markdown;charset=utf-8;");
@@ -393,15 +395,16 @@ const exportPDF = async (items: TimelineItem[], title: string): Promise<void> =>
     [
       { label: "Type",          width: 13  },
       { label: "#",             width: 14  },
-      { label: "Title",         width: 117 },
+      { label: "Title",         width: 97  },
       { label: "Author",        width: 22  },
+      { label: "Assignees",     width: 20  },
       { label: "Status",        width: 17  },
       { label: "Opened",        width: 24  },
       { label: "Closed/Merged", width: 24  },
       { label: "Days",          width: 12  },
       { label: "Linked to",     width: 26  },
     ],
-    rows.map((r) => [r.type, r.num, r.title, r.author, r.status, r.opened, r.closed, r.duration, r.linked]),
+    rows.map((r) => [r.type, r.num, r.title, r.author, r.assignees, r.status, r.opened, r.closed, r.duration, r.linked]),
     (i) => rows[i]?.url,
     1, // "#" column carries the hyperlink
   );
@@ -427,6 +430,7 @@ const exportXLSX = async (items: TimelineItem[], title: string): Promise<void> =
     { value: r.num },
     { value: r.title },
     { value: r.author },
+    { value: r.assignees },
     { value: r.status },
     { value: r.opened },
     { value: r.closed },
@@ -441,6 +445,7 @@ const exportXLSX = async (items: TimelineItem[], title: string): Promise<void> =
       { width: 10 },
       { width: 52 },
       { width: 18 },
+      { width: 20 },
       { width: 10 },
       { width: 16 },
       { width: 16 },
@@ -460,6 +465,7 @@ type ReviewWaitRow = {
   num: string;
   title: string;
   author: string;
+  assignees: string;
   status: string;
   created: string;
   firstReview: string;
@@ -468,7 +474,7 @@ type ReviewWaitRow = {
   url: string;
 };
 
-const RW_COLS = ["#", "Title", "Author", "Status", "Created", "First Review", "Wait (days)", "Total (days)", "URL"] as const;
+const RW_COLS = ["#", "Title", "Author", "Assignees", "Status", "Created", "First Review", "Wait (days)", "Total (days)", "URL"] as const;
 
 const buildReviewWaitRows = (items: TimelineItem[]): ReviewWaitRow[] =>
   items
@@ -486,6 +492,7 @@ const buildReviewWaitRows = (items: TimelineItem[]): ReviewWaitRow[] =>
         num: `#${pr.number}`,
         title: pr.title,
         author: pr.author,
+        assignees: pr.assignees.join(", ") || "—",
         status,
         created: fmtDate(pr.createdAt, true),
         firstReview: pr.firstReviewAt ? fmtDate(pr.firstReviewAt, true) : "—",
@@ -506,7 +513,7 @@ const exportReviewWaitCSV = (items: TimelineItem[], title: string): void => {
   const lines = [
     RW_COLS.map(esc).join(","),
     ...rows.map((r) =>
-      [r.num, r.title, r.author, r.status, r.created, r.firstReview, r.waitDays, r.totalDays, r.url].map(esc).join(","),
+      [r.num, r.title, r.author, r.assignees, r.status, r.created, r.firstReview, r.waitDays, r.totalDays, r.url].map(esc).join(","),
     ),
   ];
   triggerBlobDownload(lines.join("\r\n"), `${safeFilename(title)}_review_wait.csv`, "text/csv;charset=utf-8;");
@@ -518,10 +525,10 @@ const exportReviewWaitMarkdown = (items: TimelineItem[], title: string): void =>
   const lines = [
     `# ${title} — Review Wait`,
     "",
-    "| # | Title | Author | Status | Created | First Review | Wait (days) | Total (days) |",
-    "|---|-------|--------|--------|---------|--------------|-------------|--------------|",
+    "| # | Title | Author | Assignees | Status | Created | First Review | Wait (days) | Total (days) |",
+    "|---|-------|--------|-----------|--------|---------|--------------|-------------|--------------|",
     ...rows.map(
-      (r) => `| [${r.num}](${r.url}) | ${pipe(r.title)} | ${r.author} | ${r.status} | ${r.created} | ${r.firstReview} | ${r.waitDays} | ${r.totalDays} |`,
+      (r) => `| [${r.num}](${r.url}) | ${pipe(r.title)} | ${r.author} | ${r.assignees} | ${r.status} | ${r.created} | ${r.firstReview} | ${r.waitDays} | ${r.totalDays} |`,
     ),
   ];
   triggerBlobDownload(lines.join("\n"), `${safeFilename(title)}_review_wait.md`, "text/markdown;charset=utf-8;");
@@ -536,6 +543,7 @@ const exportReviewWaitXLSX = async (items: TimelineItem[], title: string): Promi
     { value: r.num },
     { value: r.title },
     { value: r.author },
+    { value: r.assignees },
     { value: r.status },
     { value: r.created },
     { value: r.firstReview },
@@ -544,7 +552,7 @@ const exportReviewWaitXLSX = async (items: TimelineItem[], title: string): Promi
     { value: r.url },
   ]);
   await writeXlsxFile([headerRow, ...dataRows], {
-    columns: [{ width: 8 }, { width: 52 }, { width: 18 }, { width: 10 }, { width: 16 }, { width: 16 }, { width: 14 }, { width: 14 }, { width: 44 }],
+    columns: [{ width: 8 }, { width: 52 }, { width: 18 }, { width: 20 }, { width: 10 }, { width: 16 }, { width: 16 }, { width: 14 }, { width: 14 }, { width: 44 }],
     fileName: `${safeFilename(title)}_review_wait.xlsx`,
   });
 };
@@ -566,15 +574,16 @@ const exportReviewWaitPDF = async (items: TimelineItem[], title: string): Promis
     30,
     [
       { label: "#",            width: 14  },
-      { label: "Title",        width: 141 },
+      { label: "Title",        width: 121 },
       { label: "Author",       width: 22  },
+      { label: "Assignees",    width: 20  },
       { label: "Status",       width: 16  },
       { label: "Created",      width: 22  },
       { label: "First Review", width: 22  },
       { label: "Wait (d)",     width: 16  },
       { label: "Total (d)",    width: 16  },
     ],
-    rows.map((r) => [r.num, r.title, r.author, r.status, r.created, r.firstReview, r.waitDays, r.totalDays]),
+    rows.map((r) => [r.num, r.title, r.author, r.assignees, r.status, r.created, r.firstReview, r.waitDays, r.totalDays]),
     (i) => rows[i]?.url,
     0, // "#" column carries the hyperlink
   );
