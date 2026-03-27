@@ -31,6 +31,8 @@ type Props = {
   milestones: MilestoneMeta[];
   highlightWeekends: boolean;
   colorblindMode: boolean;
+  view: View;
+  onViewChange: (v: View) => void;
 };
 
 type ExportFormat = "CSV" | "XLSX" | "Markdown" | "PNG — Current view" | "PNG — Full timeline" | "PDF" | "SVG";
@@ -56,8 +58,8 @@ const VIEWS: View[] = ["Gantt", "Burndown", "Cycle Time", "Velocity", "Cumulativ
 const DEFAULT_VIEW: View = "Gantt";
 
 // ---------------------------------------------------------------------------
-// URL state — view + filters are serialised into search params so the full
-// app state (owner/repo/milestones come from App) is captured in one URL.
+// URL state — view is managed by App; filters are managed here.
+// Both write to the same URLSearchParams so they don't clobber each other.
 // ---------------------------------------------------------------------------
 
 const readViewFiltersFromUrl = (): { view: View; filters: Filters } => {
@@ -86,11 +88,9 @@ const readViewFiltersFromUrl = (): { view: View; filters: Filters } => {
   return { view, filters };
 };
 
-const syncViewFiltersToUrl = (view: View, filters: Filters): void => {
-  // Read the current params so App-owned keys (owner/repo/milestones/demo) are preserved
+const syncFiltersToUrl = (filters: Filters): void => {
+  // Read the current params so App-owned keys (owner/repo/milestones/demo/v) are preserved
   const p = new URLSearchParams(window.location.search);
-
-  if (view !== DEFAULT_VIEW) {p.set("v", view);} else {p.delete("v");}
 
   if (filters.createdStart) {p.set("cs", filters.createdStart);} else {p.delete("cs");}
   if (filters.createdEnd)   {p.set("ce", filters.createdEnd);}   else {p.delete("ce");}
@@ -115,14 +115,12 @@ const syncViewFiltersToUrl = (view: View, filters: Filters): void => {
   window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
 };
 
-const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, colorblindMode }) => {
+const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, colorblindMode, view }) => {
   const [labelWidth, setLabelWidth] = useState(400);
   const [pixelsPerDay, setPixelsPerDay] = useState(30);
   const [axisHeight, setAxisHeight] = useState(36);
   const [exportAnchor, setExportAnchor] = useState<HTMLElement | null>(null);
   const [exporting, setExporting] = useState<ExportFormat | null>(null);
-  const [view, setView] = useState<View>(() => readViewFiltersFromUrl().view);
-  const [viewAnchor, setViewAnchor] = useState<HTMLElement | null>(null);
   const [filters, setFilters] = useState<Filters>(() => readViewFiltersFromUrl().filters);
   const [exportError, setExportError] = useState<string | null>(null);
   const [copyTooltip, setCopyTooltip] = useState<"idle" | "copied">("idle");
@@ -172,10 +170,10 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
     [filteredItems],
   );
 
-  // Keep URL in sync with view + filter state
+  // Keep filter params in URL in sync (view param is owned by App)
   useEffect(() => {
-    syncViewFiltersToUrl(view, filters);
-  }, [view, filters]);
+    syncFiltersToUrl(filters);
+  }, [filters]);
 
   useEffect(() => () => {
     dragCleanupRef.current?.();
@@ -342,17 +340,6 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
 
   const toolbar = (
     <Stack direction="row" gap={1} alignItems="center" data-export-exclude>
-      <Button variant="outlined" size="small" onClick={(e) => setViewAnchor(e.currentTarget)}>
-        {view} ▾
-      </Button>
-      <Menu anchorEl={viewAnchor} open={Boolean(viewAnchor)} onClose={() => setViewAnchor(null)}>
-        {VIEWS.map((v) => (
-          <MenuItem key={v} selected={v === view} dense onClick={() => { setView(v); setViewAnchor(null); }}>
-            {v}
-          </MenuItem>
-        ))}
-      </Menu>
-
       <Button
         variant="outlined"
         size="small"
@@ -459,4 +446,5 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
   );
 };
 
-export { Timeline };
+export { Timeline, VIEWS, DEFAULT_VIEW, readViewFiltersFromUrl };
+export type { View };

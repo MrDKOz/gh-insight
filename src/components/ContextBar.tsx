@@ -1,13 +1,17 @@
 import type { FunctionComponent } from "react";
 import type { Milestone, Repo } from "../types";
+import type { View } from "./Timeline";
 import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
+import Tab from "@mui/material/Tab";
+import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { memo } from "react";
+import { VIEWS } from "./Timeline";
 import { MilestonePicker } from "./MilestonePicker";
 
 type Props = {
@@ -23,6 +27,9 @@ type Props = {
   onAdd: (ms: Milestone) => void;
   onRemove: (num: number) => void;
   onRefresh: () => void;
+  view: View;
+  onViewChange: (v: View) => void;
+  hasItems: boolean;
 };
 
 const LockIcon: FunctionComponent = () => (
@@ -38,83 +45,86 @@ const ContextBar: FunctionComponent<Props> = memo(({
   repos, activeRepo, onRepoChange, isDemo,
   milestones, selected, loadingList, loadingNums,
   colorFor, onAdd, onRemove, onRefresh,
+  view, onViewChange, hasItems,
 }) => (
-  <Box
-    sx={{
-      borderBottom: 1,
-      borderColor: "divider",
-      px: 3,
-      py: 1.25,
-      display: "flex",
-      alignItems: "center",
-      gap: 2,
-      flexWrap: "wrap",
-      bgcolor: "background.paper",
-    }}
-  >
-    <Autocomplete<Repo>
-      options={repos}
-      value={activeRepo}
-      onChange={(_, v) => onRepoChange(v)}
-      getOptionLabel={(r) => r.fullName}
-      isOptionEqualToValue={(a, b) => a.fullName === b.fullName}
-      renderOption={(props, option) => (
-        <Box component="li" {...props}>
-          <Stack direction="row" alignItems="center" gap={0.75}>
-            {option.private && <LockIcon />}
-            <Typography variant="body2">{option.fullName}</Typography>
-            {option.description && (
-              <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
-                — {option.description}
-              </Typography>
-            )}
-          </Stack>
-        </Box>
+  <Box sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "background.paper" }}>
+
+    {/* Row 1: repo selector, milestone picker, actions */}
+    <Box sx={{ px: 3, py: 1.25, display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
+      <Autocomplete<Repo>
+        options={repos}
+        value={activeRepo}
+        onChange={(_, v) => onRepoChange(v)}
+        getOptionLabel={(r) => r.fullName}
+        isOptionEqualToValue={(a, b) => a.fullName === b.fullName}
+        renderOption={(props, option) => (
+          <Box component="li" {...props}>
+            <Stack direction="row" alignItems="center" gap={0.75}>
+              {option.private && <LockIcon />}
+              <Typography variant="body2">{option.fullName}</Typography>
+              {option.description && (
+                <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
+                  — {option.description}
+                </Typography>
+              )}
+            </Stack>
+          </Box>
+        )}
+        renderInput={(params) => (
+          <TextField {...params} label="Repository" size="small" placeholder="Search repos…" />
+        )}
+        sx={{ width: 300 }}
+        noOptionsText={isDemo ? "No demo repos" : "No repositories found"}
+      />
+
+      {loadingList && (
+        <Stack direction="row" alignItems="center" gap={1}>
+          <CircularProgress size={16} />
+          <Typography variant="caption" color="text.secondary">Loading milestones…</Typography>
+        </Stack>
       )}
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          label="Repository"
-          size="small"
-          placeholder="Search repos…"
+
+      {milestones.length > 0 && (
+        <MilestonePicker
+          milestones={milestones}
+          selected={selected}
+          loadingNums={loadingNums}
+          colorFor={colorFor}
+          onAdd={onAdd}
+          onRemove={onRemove}
         />
       )}
-      sx={{ width: 300 }}
-      noOptionsText={isDemo ? "No demo repos" : "No repositories found"}
-    />
 
-    {loadingList && (
-      <Stack direction="row" alignItems="center" gap={1}>
-        <CircularProgress size={16} />
-        <Typography variant="caption" color="text.secondary">Loading milestones…</Typography>
-      </Stack>
-    )}
+      {/* Portal target — Timeline renders Export + Share buttons here */}
+      <Box id="timeline-toolbar" sx={{ ml: "auto", display: "flex", alignItems: "center", gap: 1 }} />
 
-    {milestones.length > 0 && (
-      <MilestonePicker
-        milestones={milestones}
-        selected={selected}
-        loadingNums={loadingNums}
-        colorFor={colorFor}
-        onAdd={onAdd}
-        onRemove={onRemove}
-      />
-    )}
+      {selected.length > 0 && !isDemo && (
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={onRefresh}
+          disabled={loadingNums.length > 0}
+          title="Refetch data for selected milestones"
+          aria-label="Refresh milestone data"
+        >
+          ↻ Refresh
+        </Button>
+      )}
+    </Box>
 
-    {/* Portal target — Timeline renders view/export/share buttons here */}
-    <Box id="timeline-toolbar" sx={{ ml: "auto", display: "flex", alignItems: "center", gap: 1 }} />
-
-    {selected.length > 0 && !isDemo && (
-      <Button
-        variant="outlined"
-        size="small"
-        onClick={onRefresh}
-        disabled={loadingNums.length > 0}
-        title="Refetch data for selected milestones"
-        aria-label="Refresh milestone data"
+    {/* Row 2: view tabs — only shown when data is loaded */}
+    {hasItems && (
+      <Tabs
+        value={view}
+        onChange={(_, v: View) => onViewChange(v)}
+        variant="scrollable"
+        scrollButtons="auto"
+        sx={{ px: 2, minHeight: 38, "& .MuiTab-root": { minHeight: 38, py: 0.5, fontSize: "0.8125rem" } }}
       >
-        ↻ Refresh
-      </Button>
+        {VIEWS.map((v) => (
+          <Tab key={v} label={v} value={v} />
+        ))}
+      </Tabs>
     )}
   </Box>
 ));

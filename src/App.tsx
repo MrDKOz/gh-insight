@@ -17,7 +17,8 @@ import { fetchMilestoneItems, fetchMilestones, fetchUserProfile, fetchUserRepos 
 import { AppHeader } from "./components/AppHeader";
 import { ContextBar } from "./components/ContextBar";
 import { SplashScreen } from "./components/SplashScreen";
-import { Timeline } from "./components/Timeline";
+import { DEFAULT_VIEW, Timeline, readViewFiltersFromUrl } from "./components/Timeline";
+import type { View } from "./components/Timeline";
 import { DEMO_DATA_BY_REPO, DEMO_REPOS, DEMO_USER } from "./data/demo";
 import { useNewVersionAvailable } from "./hooks/useNewVersionAvailable";
 import { useSettings } from "./hooks/useSettings";
@@ -83,6 +84,7 @@ const App: FunctionComponent = () => {
   const { settings, updateSetting } = useSettings();
   const newVersionAvailable = useNewVersionAvailable();
 
+  const [view, setView] = useState<View>(() => readViewFiltersFromUrl().view);
   const [configError, setConfigError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -198,6 +200,13 @@ const App: FunctionComponent = () => {
   useEffect(() => {
     syncUrlParams(activeRepo, state.selected.map((m) => m.number), isDemo);
   }, [activeRepo, state.selected, isDemo]);
+
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    if (view !== DEFAULT_VIEW) { p.set("v", view); } else { p.delete("v"); }
+    const qs = p.toString();
+    window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
+  }, [view]);
 
   const handleConnect = useCallback(async (inputToken: string) => {
     setAuthError(null);
@@ -474,6 +483,9 @@ const App: FunctionComponent = () => {
             onAdd={addMilestone}
             onRemove={removeMilestone}
             onRefresh={refreshMilestones}
+            view={view}
+            onViewChange={setView}
+            hasItems={allItems.length > 0}
           />
 
           <Box sx={{ flex: 1, px: 3, py: 2, display: "flex", flexDirection: "column", gap: 2 }}>
@@ -513,6 +525,8 @@ const App: FunctionComponent = () => {
                 milestones={milestonesMeta}
                 highlightWeekends={settings.highlightWeekends}
                 colorblindMode={settings.colorblindMode}
+                view={view}
+                onViewChange={setView}
               />
             )}
           </Box>
