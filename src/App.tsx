@@ -69,7 +69,7 @@ const INITIAL_URL_PARAMS = readUrlParams();
 
 const App: FunctionComponent = () => {
   const [phase, setPhase]           = useState<AppPhase>(() =>
-    INITIAL_URL_PARAMS.demo ? "dashboard" : (localStorage.getItem(LS_TOKEN) ? "authenticating" : "splash"),
+    localStorage.getItem(LS_TOKEN) || INITIAL_URL_PARAMS.demo ? "authenticating" : "splash",
   );
   const [dark, setDark]             = useState(INITIAL_DARK);
   const [token, setToken]           = useState("");
