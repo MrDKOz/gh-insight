@@ -166,11 +166,6 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
     [openIssues, closedIssues, prItems, mergedPRs],
   );
 
-  const filteredCompletedItems = useMemo(
-    () => filteredItems.filter((i) => (i.type === "issue" ? !!i.closedAt : !!(i.mergedAt || i.closedAt))),
-    [filteredItems],
-  );
-
   const sortedItems = useMemo(
     () => [...filteredItems].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
     [filteredItems],
@@ -244,15 +239,15 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
           else if (fmt === "PDF")                {await exportReviewWaitPDF(filteredItems, title);}
           else if (fmt === "PNG — Current view") {await exportPNG(wrapperRef.current!, trackColRef.current, title, "current");}
         } else if (fmt === "SVG")                {exportSVG(wrapperRef.current!, title);}
-        else if (fmt === "CSV")                  {exportCSV(filteredCompletedItems, title);}
-        else if (fmt === "Markdown")             {exportMarkdown(filteredCompletedItems, title);}
-        else if (fmt === "XLSX")                 {await exportXLSX(filteredCompletedItems, title);}
+        else if (fmt === "CSV")                  {exportCSV(filteredItems, title);}
+        else if (fmt === "Markdown")             {exportMarkdown(filteredItems, title);}
+        else if (fmt === "XLSX")                 {await exportXLSX(filteredItems, title);}
         else if (fmt === "PNG — Current view")   {await exportPNG(wrapperRef.current!, trackColRef.current, title, "current");}
         else if (fmt === "PNG — Full timeline")  {await exportPNG(wrapperRef.current!, trackColRef.current, title, "full");}
         else if (fmt === "PDF") {
           if (view === "Gantt")          {await exportGanttPDF(wrapperRef.current!, trackColRef.current, title);}
           else if (CHART_VIEWS.has(view)){await exportChartPDF(wrapperRef.current!, title);}
-          else                           {await exportPDF(filteredCompletedItems, title);}
+          else                           {await exportPDF(filteredItems, title);}
         }
       } catch (e) {
         console.error(`Export ${fmt} failed:`, e);
@@ -261,7 +256,7 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
         setExporting(null);
       }
     },
-    [filteredCompletedItems, title, view],
+    [filteredItems, title, view],
   );
 
   const allTimestamps = useMemo(
@@ -402,9 +397,12 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
               size="small"
               aria-label="Copy shareable link to clipboard"
               onClick={() => {
-                void navigator.clipboard.writeText(window.location.href).then(() => {
-                  setCopyTooltip("copied");
-                });
+                void navigator.clipboard
+                  .writeText(window.location.href)
+                  .then(() => { setCopyTooltip("copied"); })
+                  .catch(() => {
+                    setExportError("Could not copy link — please copy it from the address bar.");
+                  });
               }}
             >
               Share
