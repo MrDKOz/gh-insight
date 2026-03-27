@@ -50,6 +50,37 @@ const closedPR: TimelineItem = {
   firstReviewAt: null,
 };
 
+const openIssue: TimelineItem = {
+  type: "issue",
+  number: 50,
+  title: "Work in progress",
+  url: "https://github.com/owner/repo/issues/50",
+  author: "jdoe",
+  createdAt: "2025-03-01T00:00:00Z",
+  closedAt: null,
+  linkedPRs: [],
+  milestoneNumber: 1,
+  labels: [],
+  assignees: [],
+  reopenedCount: 0,
+};
+
+const openPR: TimelineItem = {
+  type: "pr",
+  number: 51,
+  title: "Open PR",
+  url: "https://github.com/owner/repo/pull/51",
+  author: "jdoe",
+  createdAt: "2025-03-01T00:00:00Z",
+  mergedAt: null,
+  closedAt: null,
+  linkedIssue: null,
+  milestoneNumber: 1,
+  labels: [],
+  assignees: [],
+  firstReviewAt: null,
+};
+
 const issueNoLinks: TimelineItem = {
   type: "issue",
   number: 99,
@@ -167,6 +198,23 @@ describe("buildRows — sort order", () => {
     expect(rows[0]!.num).toBe("#42");
     expect(rows[1]!.num).toBe("#7");
     expect(rows[2]!.num).toBe("#99");
+  });
+});
+
+describe("buildRows — open items", () => {
+  it("maps an open issue with status 'Open', no close date, and no duration", () => {
+    const row = buildRows([openIssue])[0]!;
+
+    expect(row.status).toBe("Open");
+    expect(row.closed).toBe("N/A");
+    expect(row.duration).toBe("—");
+  });
+
+  it("maps an open PR with status 'Open'", () => {
+    const row = buildRows([openPR])[0]!;
+
+    expect(row.status).toBe("Open");
+    expect(row.duration).toBe("—");
   });
 });
 

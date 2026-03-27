@@ -10,13 +10,16 @@ const safeFilename = (s: string): string =>
 const triggerBlobDownload = (content: string, filename: string, mime: string): void => {
   const blob = new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  try {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 };
 
 type Row = {
@@ -37,10 +40,13 @@ const buildRows = (items: TimelineItem[]): Row[] =>
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
     .map((item) => {
       const endDate = itemEndDate(item);
-      const status = item.type === "pr" ? (item.mergedAt ? "Merged" : "Closed") : "Closed";
+      const status =
+        item.type === "pr"
+          ? (item.mergedAt ? "Merged" : item.closedAt ? "Closed" : "Open")
+          : (item.closedAt ? "Closed" : "Open");
       const days =
         endDate != null
-          ? Math.round((new Date(endDate).getTime() - new Date(item.createdAt).getTime()) / MS)
+          ? Math.max(0, Math.round((new Date(endDate).getTime() - new Date(item.createdAt).getTime()) / MS))
           : null;
       const linked =
         item.type === "pr"
@@ -143,7 +149,7 @@ const captureElement = async (el: HTMLElement, overrides?: { width?: number; hei
   const opts = htmlToImageOpts(overrides);
   const restore = await inlineImages(el);
   try {
-    await toPng(el, opts).catch(() => {}); // warm-up
+    await toPng(el, opts).catch((err) => { console.warn("html-to-image warm-up pass failed:", err); }); // warm-up
     return await toPng(el, opts);
   } finally {
     restore();
