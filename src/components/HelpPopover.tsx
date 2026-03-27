@@ -96,13 +96,6 @@ const HelpPopover: FunctionComponent = () => {
           About GitHub Work Visualiser
         </Typography>
 
-        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
-          Made by{" "}
-          <Link href="https://github.com/MrDKOz" target="_blank" rel="noreferrer" variant="caption">
-            @MrDKOz
-          </Link>
-        </Typography>
-
         <Stack gap={1.5}>
           {SECTIONS.map((section, i) => (
             <Box key={section.heading}>
@@ -114,7 +107,7 @@ const HelpPopover: FunctionComponent = () => {
               <Stack gap={0.5}>
                 {section.points.map((point, j) =>
                   typeof point === "string" ? (
-                    <Typography key={j} variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
+                    <Typography key={j} variant="body2" color="text.primary" sx={{ lineHeight: 1.5 }}>
                       {point}
                     </Typography>
                   ) : (
@@ -128,6 +121,14 @@ const HelpPopover: FunctionComponent = () => {
             </Box>
           ))}
         </Stack>
+
+        <Divider sx={{ mt: 1.5 }} />
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1.5 }}>
+          Made by{" "}
+          <Link href="https://github.com/MrDKOz" target="_blank" rel="noreferrer" variant="caption">
+            @MrDKOz
+          </Link>
+        </Typography>
       </Popover>
     </>
   );
