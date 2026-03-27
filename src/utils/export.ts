@@ -410,7 +410,7 @@ const exportPDF = async (items: TimelineItem[], title: string): Promise<void> =>
 };
 
 const exportXLSX = async (items: TimelineItem[], title: string): Promise<void> => {
-  const { default: writeXlsxFile } = await import("write-excel-file");
+  const { default: writeXlsxFile } = await import("write-excel-file/browser");
 
   const rows = buildRows(items);
 
@@ -528,7 +528,7 @@ const exportReviewWaitMarkdown = (items: TimelineItem[], title: string): void =>
 };
 
 const exportReviewWaitXLSX = async (items: TimelineItem[], title: string): Promise<void> => {
-  const { default: writeXlsxFile } = await import("write-excel-file");
+  const { default: writeXlsxFile } = await import("write-excel-file/browser");
   const rows = buildReviewWaitRows(items);
   const HEADER = { fontWeight: "bold" as const, backgroundColor: "#0969DA", color: "#FFFFFF" };
   const headerRow = RW_COLS.map((value) => ({ value, ...HEADER }));

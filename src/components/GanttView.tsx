@@ -21,8 +21,8 @@ type Props = {
   minTime: number;
   totalMs: number;
   todayMs: number;
-  trackColRef: RefObject<HTMLDivElement>;
-  axisRef: RefObject<HTMLDivElement>;
+  trackColRef: RefObject<HTMLDivElement | null>;
+  axisRef: RefObject<HTMLDivElement | null>;
   onResizeStart: (e: MouseEvent<HTMLDivElement>) => void;
   onResizeKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void;
   highlightWeekends: boolean;
