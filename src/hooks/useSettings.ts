@@ -18,7 +18,17 @@ const useSettings = (): { settings: Settings; updateSetting: <K extends keyof Se
   const [settings, setSettings] = useState<Settings>(() => {
     try {
       const stored = localStorage.getItem(LS_KEY);
-      return stored ? { ...DEFAULT_SETTINGS, ...JSON.parse(stored) } : DEFAULT_SETTINGS;
+      if (!stored) {return DEFAULT_SETTINGS;}
+      const parsed: unknown = JSON.parse(stored);
+      if (typeof parsed !== "object" || parsed === null) {return DEFAULT_SETTINGS;}
+      const p = parsed as Record<string, unknown>;
+      // Validate each field individually so a corrupted or partially-migrated
+      // localStorage entry falls back to the default for that field only.
+      return {
+        highlightWeekends: typeof p.highlightWeekends === "boolean" ? p.highlightWeekends : DEFAULT_SETTINGS.highlightWeekends,
+        colorblindMode:    typeof p.colorblindMode    === "boolean" ? p.colorblindMode    : DEFAULT_SETTINGS.colorblindMode,
+        fullWidth:         typeof p.fullWidth         === "boolean" ? p.fullWidth         : DEFAULT_SETTINGS.fullWidth,
+      };
     } catch {
       return DEFAULT_SETTINGS;
     }
