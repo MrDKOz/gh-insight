@@ -4,7 +4,7 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useMemo, useRef, useState } from "react";
-import { CHART_EMPTY_STATE_SX, HOVER_CARD_BASE_SX, MS, fmtDate, hoverCardPos, makeChartColors, pluralize, upperBound } from "../utils/utils";
+import { CHART_EMPTY_STATE_SX, HOVER_CARD_BASE_SX, MS, fmtDate, forecastCompletion, hoverCardPos, makeChartColors, pluralize, upperBound } from "../utils/utils";
 import { ChartLegend } from "./ChartLegend";
 
 type Props = {
@@ -122,53 +122,19 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
   type Forecast = { lastX: number; lastY: number; forecastX: number; forecastLabel: string; clipped: boolean };
   const forecast = useMemo((): Forecast | null => {
     if (isMulti || !hasOpenIssues || !singleSeries || singleSeries.points.length < 2) {return null;}
-    const pts = singleSeries.points;
+    const result = forecastCompletion(items, singleSeries.ms.number);
+    if (!result) {return null;}
+    const pts       = singleSeries.points;
     const lastPtIdx = pts.length - 1;
-    const lastCount = pts[lastPtIdx]!.count;
     const lastX     = pxFn(lastPtIdx, pts.length);
-    const lastY     = pyFn(lastCount);
-
-    // Primary: linear regression over up to the last 30 data points
-    const window = pts.slice(-30);
-    const n = window.length;
-    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
-    for (let i = 0; i < n; i++) {
-      sumX  += i; sumY  += window[i]!.count;
-      sumXY += i * window[i]!.count; sumX2 += i * i;
-    }
-    const denom = n * sumX2 - sumX * sumX;
-    let projectedT: number | null = null;
-    if (denom !== 0) {
-      const slope     = (n * sumXY - sumX * sumY) / denom;
-      const intercept = (sumY - slope * sumX) / n;
-      if (slope < 0) {
-        const zeroDayIdx  = -intercept / slope;
-        const candidate   = window[0]!.t + zeroDayIdx * MS;
-        if (candidate > todayMs && candidate <= todayMs + 365 * MS) {
-          projectedT = candidate;
-        }
-      }
-    }
-
-    // Fallback: average close-rate over the full milestone lifetime
-    if (projectedT === null) {
-      const closedCount = issues.filter((i) => i.milestoneNumber === singleSeries.ms.number && i.closedAt !== null).length;
-      if (closedCount > 0 && totalDays > 0) {
-        const daysPerClose = totalDays / closedCount;
-        const candidate   = todayMs + lastCount * daysPerClose * MS;
-        if (candidate > todayMs && candidate <= todayMs + 365 * MS) {
-          projectedT = candidate;
-        }
-      }
-    }
-
-    if (projectedT === null) {return null;}
+    const lastY     = pyFn(pts[lastPtIdx]!.count);
+    const projectedT    = result.projectedDate.getTime();
     const rawForecastX  = L + ((projectedT - minTime) / (maxTime - minTime)) * CW;
     const clipped       = rawForecastX > L + CW;
     const forecastX     = Math.min(rawForecastX, L + CW);
-    const forecastLabel = `~${fmtDate(new Date(projectedT).toISOString())}`;
+    const forecastLabel = `~${fmtDate(result.projectedDate.toISOString())}`;
     return { lastX, lastY, forecastX, forecastLabel, clipped };
-  }, [isMulti, hasOpenIssues, singleSeries, issues, totalDays, minTime, maxTime, maxCount, todayMs]);
+  }, [isMulti, hasOpenIssues, singleSeries, items, minTime, maxTime, maxCount]);
 
   // X-axis labels (from full time range, not per-series)
   const numXLabels  = Math.min(8, totalDays + 1);
