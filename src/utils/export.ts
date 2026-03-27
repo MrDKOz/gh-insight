@@ -105,12 +105,49 @@ const htmlToImageOpts = (overrides?: { width?: number; height?: number }) => ({
   filter: (node: Node) => !(node instanceof Element && node.hasAttribute("data-export-exclude")),
 });
 
+// Pre-fetch all <img> tags in el and swap their src to data URLs so html-to-image
+// can inline them. GitHub avatars support CORS (Access-Control-Allow-Origin: *) but
+// html-to-image's cloned document can't re-fetch cross-origin images, causing the
+// MUI Avatar fallback (coloured circle) to render instead of the actual avatar.
+// Returns a restore function that puts the original src values back.
+const inlineImages = async (el: HTMLElement): Promise<() => void> => {
+  const imgs = Array.from(el.querySelectorAll<HTMLImageElement>("img[src]"));
+  const originals = new Map<HTMLImageElement, string>();
+
+  await Promise.allSettled(imgs.map(async (img) => {
+    const src = img.getAttribute("src");
+    if (!src || src.startsWith("data:")) {return;}
+    try {
+      const res = await fetch(src, { mode: "cors" });
+      if (!res.ok) {return;}
+      const blob = await res.blob();
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(blob);
+      });
+      originals.set(img, src);
+      img.src = dataUrl;
+    } catch {
+      // CORS fetch failed — leave as-is; html-to-image will use imagePlaceholder
+    }
+  }));
+
+  return () => { originals.forEach((src, img) => { img.src = src; }); };
+};
+
 // Capture an element as a PNG data URL. Two-pass to force Emotion styles to inline.
 const captureElement = async (el: HTMLElement, overrides?: { width?: number; height?: number }): Promise<string> => {
   const { toPng } = await import("html-to-image");
   const opts = htmlToImageOpts(overrides);
-  await toPng(el, opts).catch(() => {}); // warm-up
-  return toPng(el, opts);
+  const restore = await inlineImages(el);
+  try {
+    await toPng(el, opts).catch(() => {}); // warm-up
+    return await toPng(el, opts);
+  } finally {
+    restore();
+  }
 };
 
 const exportPNG = async (
