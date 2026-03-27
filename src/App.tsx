@@ -356,7 +356,6 @@ const App: FunctionComponent = () => {
           const s = c.settings as Record<string, unknown>;
           if (typeof s.highlightWeekends === "boolean") { updateSetting("highlightWeekends", s.highlightWeekends); }
           if (typeof s.colorblindMode    === "boolean") { updateSetting("colorblindMode",    s.colorblindMode); }
-          if (typeof s.fullWidth         === "boolean") { updateSetting("fullWidth",         s.fullWidth); }
         }
         setSettingsAnchor(null);
       } catch (err) {
@@ -434,10 +433,6 @@ const App: FunctionComponent = () => {
                   control={<Switch size="small" checked={settings.colorblindMode} onChange={(e) => updateSetting("colorblindMode", e.target.checked)} />}
                   label={<Typography variant="body2">Colorblind-friendly palette</Typography>}
                 />
-                <FormControlLabel
-                  control={<Switch size="small" checked={settings.fullWidth} onChange={(e) => updateSetting("fullWidth", e.target.checked)} />}
-                  label={<Typography variant="body2">Full width layout</Typography>}
-                />
               </Stack>
               <Divider sx={{ my: 1.5 }} />
               <Typography variant="caption" fontWeight={700} color="text.secondary"
@@ -481,17 +476,7 @@ const App: FunctionComponent = () => {
             onRefresh={refreshMilestones}
           />
 
-          <Box sx={{
-            flex: 1,
-            maxWidth: settings.fullWidth ? "none" : 1400,
-            mx: "auto",
-            width: "100%",
-            px: 3,
-            py: 2,
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-          }}>
+          <Box sx={{ flex: 1, px: 3, py: 2, display: "flex", flexDirection: "column", gap: 2 }}>
             {tokenError && (
               <Alert severity="warning" onClose={() => setTokenError(null)}>{tokenError}</Alert>
             )}

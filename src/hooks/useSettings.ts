@@ -3,13 +3,11 @@ import { useCallback, useState } from "react";
 type Settings = {
   highlightWeekends: boolean;
   colorblindMode: boolean;
-  fullWidth: boolean;
 };
 
 const DEFAULT_SETTINGS: Settings = {
   highlightWeekends: false,
   colorblindMode: false,
-  fullWidth: false,
 };
 
 const LS_KEY = "gmt_settings";
@@ -27,7 +25,6 @@ const useSettings = (): { settings: Settings; updateSetting: <K extends keyof Se
       return {
         highlightWeekends: typeof p.highlightWeekends === "boolean" ? p.highlightWeekends : DEFAULT_SETTINGS.highlightWeekends,
         colorblindMode:    typeof p.colorblindMode    === "boolean" ? p.colorblindMode    : DEFAULT_SETTINGS.colorblindMode,
-        fullWidth:         typeof p.fullWidth         === "boolean" ? p.fullWidth         : DEFAULT_SETTINGS.fullWidth,
       };
     } catch {
       return DEFAULT_SETTINGS;
