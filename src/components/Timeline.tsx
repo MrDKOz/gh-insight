@@ -222,8 +222,12 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
       const end = itemEndDate(item);
       return [new Date(item.createdAt).getTime(), ...(end ? [new Date(end).getTime()] : [])];
     });
-    const min = Math.min(...allTs);
-    const max = Math.max(...allTs, Date.now());
+    // Mirror the trackWidth useMemo exactly so the initial zoom fills the column:
+    // midnight-snap min, and only extend to today when there are open items.
+    const rawMin = Math.min(...allTs);
+    const min = new Date(new Date(rawMin).toISOString().slice(0, 10)).getTime();
+    const hasOpen = items.some((item) => !itemEndDate(item));
+    const max = hasOpen ? Math.max(...allTs, Date.now()) : Math.max(...allTs) + 3 * MS;
     const days = Math.max(1, (max - min) / MS);
     setPixelsPerDay(Math.max(3, Math.min(200, el.clientWidth / days)));
   }, [items, view]);
