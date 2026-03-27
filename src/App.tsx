@@ -24,6 +24,7 @@ import { useNewVersionAvailable } from "./hooks/useNewVersionAvailable";
 import { useSettings } from "./hooks/useSettings";
 import { initialState, milestoneReducer } from "./state/milestoneReducer";
 import { muiDarkTheme, muiLightTheme } from "./theme";
+import { COLORS } from "./utils/utils";
 import { EncryptionUnavailableError, decryptToken, encryptToken } from "./utils/tokenCrypto";
 
 type AppPhase = "splash" | "authenticating" | "dashboard";
@@ -58,7 +59,7 @@ const syncUrlParams = (activeRepo: Repo | null, selectedNums: number[], isDemo: 
   window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
 };
 
-const MILESTONE_COLORS = ["#0969da", "#8250df", "#1a7f37", "#d97706", "#cf222e", "#0550ae"];
+const MILESTONE_COLORS = [COLORS.issue, COLORS.prMerged, COLORS.success, COLORS.warning, "#cf222e", COLORS.issueDark];
 
 const initDark = (): boolean => {
   const isDark = localStorage.getItem(LS_DARK) !== "false";

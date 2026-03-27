@@ -5,24 +5,13 @@ import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { AuthorTag } from "../components/AuthorTag";
-import { COLORS, COLORS_CB, fmtDate, hoverCardPos, itemEndDate } from "../utils/utils";
+import { CHART_EMPTY_STATE_SX, fmtDate, hoverCardPos, itemEndDate, makeChartColors } from "../utils/utils";
 
 type Props = {
   items: TimelineItem[];
   colorblindMode: boolean;
 };
 
-const makeCOL = (cb: boolean) => {
-  const p = cb ? COLORS_CB : COLORS;
-  return {
-    issue:    p.issue,
-    prMerged: p.prMerged,
-    prClosed: p.prClosed,
-    axis:     p.chartAxis,
-    grid:     p.chartGrid,
-    label:    p.chartAxis,
-  };
-};
 
 type ContribRow = {
   login: string;
@@ -47,7 +36,7 @@ const ROW_H = 36;
 const BAR_H = 22;
 
 const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) => {
-  const COL = makeCOL(colorblindMode);
+  const COL = makeChartColors(colorblindMode);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<Hover | null>(null);
 
@@ -116,7 +105,7 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
 
   if (rows.length === 0) {
     return (
-      <Typography sx={{ fontSize: "0.875rem", color: "text.secondary", py: 2.5 }}>
+      <Typography sx={CHART_EMPTY_STATE_SX}>
         No completed items to show contributor breakdown for.
       </Typography>
     );

@@ -4,7 +4,7 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useMemo, useRef, useState } from "react";
-import { COLORS, COLORS_CB, MS, fmtDate, hoverCardPos, pluralize, upperBound } from "../utils/utils";
+import { CHART_EMPTY_STATE_SX, HOVER_CARD_BASE_SX, MS, fmtDate, hoverCardPos, makeChartColors, pluralize, upperBound } from "../utils/utils";
 
 type Props = {
   items: TimelineItem[];
@@ -22,25 +22,6 @@ const H = 320;
 const CW = W - L - R;
 const CH = H - T - B;
 
-// Hardcoded fallback colours used as SVG presentation attributes so
-// html-to-image captures them correctly (CSS custom properties don't
-// resolve inside the cloned document it creates).
-const makeC = (cb: boolean) => {
-  const p = cb ? COLORS_CB : COLORS;
-  return {
-    area: cb ? "rgba(0,114,178,0.12)" : "rgba(9,105,218,0.12)",
-    line: p.issue,
-    grid: p.chartGrid,
-    axis: p.chartAxis,
-    today: "rgba(248,81,73,0.7)",
-    todayLabel: "rgba(248,81,73,0.9)",
-    label: p.chartAxis,
-    callout: "#24292f",
-    cursor: "rgba(87, 96, 106, 0.5)",
-  };
-};
-
-
 type HoverInfo = {
   x: number;
   y: number;
@@ -52,7 +33,10 @@ type HoverInfo = {
 };
 
 const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, colorblindMode }) => {
-  const C = makeC(colorblindMode);
+  const COL = makeChartColors(colorblindMode);
+  // chart-specific colours not covered by the shared factory
+  const areaFill   = colorblindMode ? "rgba(0,114,178,0.12)" : "rgba(9,105,218,0.12)";
+  const calloutColor = "#24292f"; // bd-callout-text CSS class overrides this in dark mode
   const isMulti = milestones.length > 1;
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<HoverInfo | null>(null);
@@ -134,7 +118,7 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
   }, [highlightWeekends, totalDays, minTime, issues.length]);
 
   if (issues.length === 0) {
-    return <Typography sx={{ fontSize: "0.875rem", color: "text.secondary", py: 2.5 }}>No issues to plot a burndown for.</Typography>;
+    return <Typography sx={CHART_EMPTY_STATE_SX}>No issues to plot a burndown for.</Typography>;
   }
 
   // ── Hover handler ─────────────────────────────────────────────────────────────
@@ -176,7 +160,7 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
   return (
     <Box role="presentation" className="burndown-wrap" ref={wrapRef} style={{ position: "relative" }} onMouseMove={handleMouseMove} onMouseLeave={() => setHover(null)}>
       {hover && (
-        <Paper elevation={2} sx={{ position: "absolute", display: "flex", flexDirection: "column", gap: "5px", minWidth: 148, px: 1.5, py: 1, pointerEvents: "none", zIndex: 50, ...hoverCardStyle }}>
+        <Paper elevation={2} sx={{ ...HOVER_CARD_BASE_SX, ...hoverCardStyle }}>
           <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>{hover.date}</Box>
           {hover.msColor && (
             <Box sx={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>
@@ -185,7 +169,7 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
             </Box>
           )}
           <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: hover.msColor ?? C.line, flexShrink: 0 }} />
+            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: hover.msColor ?? COL.issue, flexShrink: 0 }} />
             {pluralize(hover.count, "open issue")}
           </Box>
         </Paper>
@@ -222,13 +206,13 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
         aria-hidden="true"
       >
         {weekendBands.map((b, idx) => (
-          <rect key={idx} x={b.x} y={T} width={b.w} height={CH} fill="rgba(0,0,0,0.04)" className="chart-weekend" />
+          <rect key={idx} x={b.x} y={T} width={b.w} height={CH} fill={COL.weekendBand} className="chart-weekend" />
         ))}
 
         {yLabels.map((count) => (
           <line key={count}
             x1={L} y1={pyFn(count).toFixed(1)} x2={L + CW} y2={pyFn(count).toFixed(1)}
-            stroke={C.grid} strokeWidth={1} strokeDasharray="4 3" className="chart-grid" />
+            stroke={COL.grid} strokeWidth={1} strokeDasharray="4 3" className="chart-grid" />
         ))}
 
         {/* Chart lines (and fill area for single-milestone mode) */}
@@ -249,8 +233,8 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
               const areaPath = `${linePath} L${(L + CW).toFixed(1)},${(T + CH).toFixed(1)} L${L.toFixed(1)},${(T + CH).toFixed(1)} Z`;
               return (
                 <>
-                  <path d={areaPath} fill={C.area} />
-                  <path d={linePath} fill="none" stroke={C.line} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+                  <path d={areaPath} fill={areaFill} />
+                  <path d={linePath} fill="none" stroke={COL.issue} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
                 </>
               );
             })()
@@ -261,36 +245,36 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
             <line
               x1={hover.svgX.toFixed(1)} y1={T}
               x2={hover.svgX.toFixed(1)} y2={T + CH}
-              stroke={C.cursor} strokeWidth={1.5} strokeDasharray="4 3"
+              stroke={COL.cursor} strokeWidth={1.5} strokeDasharray="4 3"
               style={{ pointerEvents: "none" }}
             />
             <circle
               cx={hover.svgX.toFixed(1)} cy={pyFn(hover.count).toFixed(1)}
-              r={4} fill={hover.msColor ?? C.line} style={{ pointerEvents: "none" }}
+              r={4} fill={hover.msColor ?? COL.issue} style={{ pointerEvents: "none" }}
             />
           </>
         )}
 
         {showToday && (
           <g>
-            <line x1={todayX} y1={T} x2={todayX} y2={T + CH} stroke={C.today} strokeWidth={2} strokeDasharray="5 3" />
+            <line x1={todayX} y1={T} x2={todayX} y2={T + CH} stroke={COL.today} strokeWidth={2} strokeDasharray="5 3" />
             <text
               x={todayFlipLeft ? todayXNum - 4 : todayXNum + 4}
               y={T + 11}
               textAnchor={todayFlipLeft ? "end" : "start"}
-              fill={C.todayLabel} fontSize={10} fontFamily="inherit"
+              fill={COL.todayLabel} fontSize={10} fontFamily="inherit"
             >
               Today
             </text>
           </g>
         )}
 
-        <line x1={L} y1={T + CH} x2={L + CW} y2={T + CH} stroke={C.axis} strokeWidth={1} className="chart-axis" />
-        <line x1={L} y1={T}      x2={L}       y2={T + CH} stroke={C.axis} strokeWidth={1} className="chart-axis" />
+        <line x1={L} y1={T + CH} x2={L + CW} y2={T + CH} stroke={COL.axis} strokeWidth={1} className="chart-axis" />
+        <line x1={L} y1={T}      x2={L}       y2={T + CH} stroke={COL.axis} strokeWidth={1} className="chart-axis" />
 
         {yLabels.map((count) => (
           <text key={count} x={L - 6} y={pyFn(count) + 4} textAnchor="end"
-            fill={C.label} fontSize={10} fontFamily="inherit" className="chart-label">
+            fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">
             {count}
           </text>
         ))}
@@ -300,7 +284,7 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
             x={(L + ((t - minTime) / (maxTime - minTime)) * CW).toFixed(1)}
             y={T + CH + 22}
             textAnchor={li === 0 ? "start" : li === numXLabels - 1 ? "end" : "middle"}
-            fill={C.label} fontSize={10} fontFamily="inherit" className="chart-label">
+            fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">
             {fmtDate(new Date(t).toISOString())}
           </text>
         ))}
@@ -309,7 +293,7 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
         {isMulti && milestones.map((ms, i) => (
           <g key={ms.number} transform={`translate(${L + CW - 160}, ${T + i * 15})`}>
             <line x1={0} y1={-4} x2={10} y2={-4} stroke={ms.color} strokeWidth={2} />
-            <text x={14} y={0} fill={C.label} fontSize={9} fontFamily="inherit" className="chart-label">{ms.title}</text>
+            <text x={14} y={0} fill={COL.label} fontSize={9} fontFamily="inherit" className="chart-label">{ms.title}</text>
           </g>
         ))}
 
@@ -319,7 +303,7 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
             x={L + CW - 4}
             y={T - 6}
             textAnchor="end"
-            fill={C.callout}
+            fill={calloutColor}
             fontSize={11}
             fontWeight="bold"
             fontFamily="inherit"

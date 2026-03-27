@@ -1,6 +1,6 @@
 import type { FunctionComponent } from "react";
 import Chip from "@mui/material/Chip";
-import { labelTextColor } from "../utils/utils";
+import { FS, labelTextColor } from "../utils/utils";
 
 type Props = {
   name: string;
@@ -18,7 +18,7 @@ const LabelBadge: FunctionComponent<Props> = ({ name, color }) => (
       border: "1px solid",
       borderColor: `${color}99`,
       fontWeight: 500,
-      fontSize: "0.625rem",
+      fontSize: FS.xs,
     }}
   />
 );

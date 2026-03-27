@@ -4,7 +4,7 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useRef, useState } from "react";
-import { COLORS, COLORS_CB, MS, fmtDate, hoverCardPos, itemEndDate, upperBound } from "../utils/utils";
+import { CHART_EMPTY_STATE_SX, HOVER_CARD_BASE_SX, MS, fmtDate, hoverCardPos, itemEndDate, makeChartColors, upperBound } from "../utils/utils";
 
 type Props = {
   items: TimelineItem[];
@@ -15,20 +15,6 @@ type Props = {
 const L = 52, R = 20, T = 24, B = 48, W = 1200, H = 320;
 const CW = W - L - R;
 const CH = H - T - B;
-
-const makeCOL = (cb: boolean) => {
-  const p = cb ? COLORS_CB : COLORS;
-  return {
-    closedFill: cb ? "rgba(0,114,178,0.22)"    : "rgba(9,105,218,0.22)",
-    openFill:   "rgba(209,213,218,0.35)",
-    closedLine: p.issue,
-    openedLine: p.chartAxis,
-    axis:       p.chartAxis,
-    grid:       p.chartGrid,
-    label:      p.chartAxis,
-    cursor:     "rgba(87, 96, 106, 0.5)",
-  };
-};
 
 type DayPt = {
   t:      number;
@@ -43,12 +29,17 @@ type HoverState = {
 };
 
 const CumulativeFlowInner: FunctionComponent<Props> = ({ items, highlightWeekends, colorblindMode }) => {
-  const COL = makeCOL(colorblindMode);
+  const COL = makeChartColors(colorblindMode);
+  // chart-specific derived colours not in the shared factory
+  const closedFill  = colorblindMode ? "rgba(0,114,178,0.22)" : "rgba(9,105,218,0.22)";
+  const openFill    = "rgba(209,213,218,0.35)";
+  const closedLine  = COL.issue;
+  const openedLine  = COL.axis;
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<HoverState | null>(null);
 
   if (items.length === 0) {
-    return <Typography sx={{ fontSize: "0.875rem", color: "text.secondary", py: 2.5 }}>No items to plot cumulative flow for.</Typography>;
+    return <Typography sx={CHART_EMPTY_STATE_SX}>No items to plot cumulative flow for.</Typography>;
   }
 
   const allTs = items.flatMap((item) => {
@@ -128,14 +119,14 @@ const pts: DayPt[] = Array.from({ length: totalDays + 1 }, (_, i) => {
       onMouseLeave={() => setHover(null)}
     >
       {hovered && hover && (
-        <Paper elevation={2} sx={{ position: "absolute", display: "flex", flexDirection: "column", gap: "5px", minWidth: 148, px: 1.5, py: 1, pointerEvents: "none", zIndex: 50, ...cardStyle }}>
+        <Paper elevation={2} sx={{ ...HOVER_CARD_BASE_SX, ...cardStyle }}>
           <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>{fmtDate(new Date(hovered.t).toISOString())}</Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: COL.openedLine, flexShrink: 0 }} />
+            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: openedLine, flexShrink: 0 }} />
             {hovered.opened} created
           </Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: COL.closedLine, flexShrink: 0 }} />
+            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: closedLine, flexShrink: 0 }} />
             {hovered.closed} completed
           </Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600, color: "text.secondary" }}>
@@ -176,7 +167,7 @@ const pts: DayPt[] = Array.from({ length: totalDays + 1 }, (_, i) => {
           if (day.getUTCDay() !== 6) {return null;}
           const x = L + (i / totalDays) * CW;
           const w = Math.min((2 / totalDays) * CW, CW - (x - L));
-          return <rect key={i} x={x.toFixed(1)} y={T} width={w.toFixed(1)} height={CH} fill="rgba(0,0,0,0.04)" className="chart-weekend" />;
+          return <rect key={i} x={x.toFixed(1)} y={T} width={w.toFixed(1)} height={CH} fill={COL.weekendBand} className="chart-weekend" />;
         })}
 
         {yLabels.map((c) => (
@@ -185,11 +176,11 @@ const pts: DayPt[] = Array.from({ length: totalDays + 1 }, (_, i) => {
             stroke={COL.grid} strokeWidth={1} strokeDasharray="4 3" className="chart-grid" />
         ))}
 
-        <path d={openBandPath} fill={COL.openFill} />
-        <path d={closedAreaPath} fill={COL.closedFill} />
+        <path d={openBandPath} fill={openFill} />
+        <path d={closedAreaPath} fill={closedFill} />
 
-        <path d={openedLinePts} fill="none" stroke={COL.openedLine} strokeWidth={1.5} strokeLinejoin="round" />
-        <path d={closedLinePts} fill="none" stroke={COL.closedLine} strokeWidth={2}   strokeLinejoin="round" />
+        <path d={openedLinePts} fill="none" stroke={openedLine} strokeWidth={1.5} strokeLinejoin="round" />
+        <path d={closedLinePts} fill="none" stroke={closedLine} strokeWidth={2}   strokeLinejoin="round" />
 
         {hover !== null && hovered !== null && (
           <>
@@ -199,8 +190,8 @@ const pts: DayPt[] = Array.from({ length: totalDays + 1 }, (_, i) => {
               stroke={COL.cursor} strokeWidth={1.5} strokeDasharray="4 3"
               style={{ pointerEvents: "none" }}
             />
-            <circle cx={hoverSvgX.toFixed(1)} cy={pyFn(hovered.closed).toFixed(1)} r={4} fill={COL.closedLine} style={{ pointerEvents: "none" }} />
-            <circle cx={hoverSvgX.toFixed(1)} cy={pyFn(hovered.opened).toFixed(1)} r={4} fill={COL.openedLine} style={{ pointerEvents: "none" }} />
+            <circle cx={hoverSvgX.toFixed(1)} cy={pyFn(hovered.closed).toFixed(1)} r={4} fill={closedLine} style={{ pointerEvents: "none" }} />
+            <circle cx={hoverSvgX.toFixed(1)} cy={pyFn(hovered.opened).toFixed(1)} r={4} fill={openedLine} style={{ pointerEvents: "none" }} />
           </>
         )}
 
@@ -223,8 +214,8 @@ const pts: DayPt[] = Array.from({ length: totalDays + 1 }, (_, i) => {
         ))}
 
         {[
-          { col: COL.closedLine, label: "Completed (cumulative)" },
-          { col: COL.openedLine, label: "Created (cumulative)" },
+          { col: closedLine, label: "Completed (cumulative)" },
+          { col: openedLine, label: "Created (cumulative)" },
         ].map(({ col, label }, i) => (
           <g key={label} transform={`translate(${L + 4}, ${T + i * 15})`}>
             <line x1={0} y1={-3} x2={16} y2={-3} stroke={col} strokeWidth={i === 0 ? 2 : 1.5} />

@@ -5,7 +5,7 @@ import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { AuthorTag } from "../components/AuthorTag";
-import { COLORS, COLORS_CB, MS, fmtDate, hoverCardPos, itemEndDate, pluralize } from "../utils/utils";
+import { CHART_EMPTY_STATE_SX, MS, fmtDate, hoverCardPos, itemEndDate, makeChartColors, pluralize } from "../utils/utils";
 
 type Props = {
   items: TimelineItem[];
@@ -17,20 +17,6 @@ type Props = {
 const L = 56, R = 20, T = 32, B = 48, W = 1200, H = 320;
 const CW = W - L - R;
 const CH = H - T - B;
-
-const makeCOL = (cb: boolean) => {
-  const p = cb ? COLORS_CB : COLORS;
-  return {
-    issue:    p.issue,
-    prMerged: p.prMerged,
-    prClosed: p.prClosed,
-    axis:     p.chartAxis,
-    grid:     p.chartGrid,
-    label:    p.chartAxis,
-    median:   "#1a7f37",
-    mean:     "#d97706",
-  };
-};
 
 type Pt = {
   item: TimelineItem;
@@ -50,7 +36,7 @@ type Hover = {
 };
 
 const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, colorblindMode }) => {
-  const COL = makeCOL(colorblindMode);
+  const COL = makeChartColors(colorblindMode);
   const isMulti = milestones.length > 1;
   const milestoneColorMap = useMemo(
     () => new Map(milestones.map((m) => [m.number, m.color])),
@@ -88,7 +74,7 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
   }, []);
 
   if (pts.length === 0) {
-    return <Typography sx={{ fontSize: "0.875rem", color: "text.secondary", py: 2.5 }}>No completed items to plot cycle times for.</Typography>;
+    return <Typography sx={CHART_EMPTY_STATE_SX}>No completed items to plot cycle times for.</Typography>;
   }
 
   const endTimes = pts.map((p) => p.endMs);
@@ -233,7 +219,7 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
           if (day.getUTCDay() !== 6) {return null;}
           const x = L + (i * MS / totalMs) * CW;
           const w = Math.min((2 * MS / totalMs) * CW, CW - (x - L));
-          return <rect key={i} x={x.toFixed(1)} y={T} width={w.toFixed(1)} height={CH} fill="rgba(0,0,0,0.04)" className="chart-weekend" />;
+          return <rect key={i} x={x.toFixed(1)} y={T} width={w.toFixed(1)} height={CH} fill={COL.weekendBand} className="chart-weekend" />;
         })}
 
         {yLabels.map((d) => (

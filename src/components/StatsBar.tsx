@@ -104,7 +104,7 @@ const StatsBar: FunctionComponent<Props> = ({ items, view, colorblindMode, title
           <Stat value={String(reviewWait.total)}    label="PRs total"    title="Total pull requests shown" />
           <Stat value={String(reviewWait.reviewed)} label="Reviewed"     title="PRs that received at least one review" lightColor={palette.prMerged} />
           {reviewWait.unreviewed > 0 && (
-            <Stat value={String(reviewWait.unreviewed)} label="Not reviewed" title="PRs with no review recorded" lightColor="#d97706" darkColor="#f59e0b" />
+            <Stat value={String(reviewWait.unreviewed)} label="Not reviewed" title="PRs with no review recorded" lightColor={COLORS.warning} darkColor={COLORS.warningDark} />
           )}
           {reviewWait.waitDetails !== null && (
             <>
@@ -116,15 +116,15 @@ const StatsBar: FunctionComponent<Props> = ({ items, view, colorblindMode, title
               />
               <Stat
                 value={reviewWait.waitDetails.fastest === 0 ? "same day" : `${reviewWait.waitDetails.fastest}d`}
-                lightColor="#1a7f37"
-                darkColor="#3fb950"
+                lightColor={COLORS.success}
+                darkColor={COLORS.successDark}
                 label="Fastest"
                 title={`Shortest review wait: ${pluralize(reviewWait.waitDetails.fastest, "day")}`}
               />
               <Stat
                 value={`${reviewWait.waitDetails.slowest}d`}
-                lightColor="#d97706"
-                darkColor="#f59e0b"
+                lightColor={COLORS.warning}
+                darkColor={COLORS.warningDark}
                 label="Slowest"
                 title={`Longest review wait: ${pluralize(reviewWait.waitDetails.slowest, "day")}`}
               />
@@ -135,7 +135,7 @@ const StatsBar: FunctionComponent<Props> = ({ items, view, colorblindMode, title
         <>
           <Stat value={String(closedIssues.length)} label="Issues closed" title="Number of issues that have been closed" />
           {openIssues.length > 0 && (
-            <Stat value={String(openIssues.length)} lightColor="#d97706" darkColor="#f59e0b" label="Issues open" title="Number of issues still open" />
+            <Stat value={String(openIssues.length)} lightColor={COLORS.warning} darkColor={COLORS.warningDark} label="Issues open" title="Number of issues still open" />
           )}
           <Stat value={String(mergedPRs.length)} lightColor={palette.prMerged} label="PRs merged" title="Number of pull requests that have been merged" />
           {closedPRs.length > 0 && (
@@ -145,8 +145,8 @@ const StatsBar: FunctionComponent<Props> = ({ items, view, colorblindMode, title
             <>
               <Divider orientation="vertical" flexItem />
               <Stat value={`${cycleStats.avg}d`}     label="Avg cycle" title="Average days from issue creation to close, across all closed issues" />
-              <Stat value={`${cycleStats.fastest}d`} lightColor="#1a7f37" darkColor="#3fb950" label="Fastest" title={`Fastest issue closed in ${pluralize(cycleStats.fastest, "day")} (creation to close)`} />
-              <Stat value={`${cycleStats.slowest}d`} lightColor="#d97706" darkColor="#f59e0b" label="Slowest" title={`Slowest issue took ${pluralize(cycleStats.slowest, "day")} to close (creation to close)`} />
+              <Stat value={`${cycleStats.fastest}d`} lightColor={COLORS.success} darkColor={COLORS.successDark} label="Fastest" title={`Fastest issue closed in ${pluralize(cycleStats.fastest, "day")} (creation to close)`} />
+              <Stat value={`${cycleStats.slowest}d`} lightColor={COLORS.warning} darkColor={COLORS.warningDark} label="Slowest" title={`Slowest issue took ${pluralize(cycleStats.slowest, "day")} to close (creation to close)`} />
             </>
           )}
         </>

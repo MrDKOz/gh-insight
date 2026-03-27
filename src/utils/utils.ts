@@ -16,21 +16,75 @@ const fmtDate = (iso: string | null | undefined, includeYear = false): string =>
 const itemEndDate = (item: TimelineItem): string | null =>
   item.type === "issue" ? item.closedAt : (item.mergedAt ?? item.closedAt);
 
+/**
+ * Canonical colour palette. Always reference these instead of hardcoding hex values.
+ * issueDark / prMergedDark / prClosedDark are the gradient-end shades used in
+ * the Gantt legend; keep them in sync if the primary colours ever change.
+ */
 const COLORS = {
-  issue: "#0969da",
-  prMerged: "#8250df",
-  prClosed: "#dc3545",
-  chartAxis: "#57606a",
-  chartGrid: "#d0d7de",
+  issue:        "#0969da",
+  issueDark:    "#0550ae",
+  prMerged:     "#8250df",
+  prMergedDark: "#6639ba",
+  prClosed:     "#dc3545",
+  prClosedDark: "#c82333",
+  chartAxis:    "#57606a",
+  chartGrid:    "#d0d7de",
+  /** Amber — used for open items, slow metrics, "not reviewed" warnings. */
+  warning:      "#d97706",
+  warningDark:  "#f59e0b",  // slightly lighter for dark-mode surfaces
+  /** Green — used for fast metrics, "fastest" stats, chart median line. */
+  success:      "#1a7f37",
+  successDark:  "#3fb950",  // slightly lighter for dark-mode surfaces
+  /** Neutral segment in review-wait bar (post-review time). */
+  chartBarDone: "#6b7280",
+  /** SVG-only chart tokens — not for MUI sx use. */
+  chartToday:      "rgba(248,81,73,0.7)",
+  chartTodayLabel: "rgba(248,81,73,0.9)",
+  chartCursor:     "rgba(87,96,106,0.5)",
+  weekendBand:     "rgba(0,0,0,0.04)",
 } as const;
 
 // Okabe-Ito palette — distinguishable for deuteranopia, protanopia and tritanopia.
 const COLORS_CB = {
-  issue: "#0072B2",      // blue
-  prMerged: "#009E73",   // bluish green
-  prClosed: "#E69F00",   // amber
-  chartAxis: "#57606a",
-  chartGrid: "#d0d7de",
+  issue:        "#0072B2",
+  issueDark:    "#005a8e",
+  prMerged:     "#009E73",
+  prMergedDark: "#007a58",
+  prClosed:     "#E69F00",
+  prClosedDark: "#b87e00",
+  chartAxis:    "#57606a",
+  chartGrid:    "#d0d7de",
+  warning:      "#d97706",   // warning is semantic, not categorical — same in both modes
+  warningDark:  "#f59e0b",
+  success:      "#1a7f37",
+  successDark:  "#3fb950",
+  /** Sky blue — Okabe-Ito post-review segment in review-wait bar. */
+  chartBarDone: "#56B4E9",
+  chartToday:      "rgba(248,81,73,0.7)",
+  chartTodayLabel: "rgba(248,81,73,0.9)",
+  chartCursor:     "rgba(87,96,106,0.5)",
+  weekendBand:     "rgba(0,0,0,0.04)",
+} as const;
+
+/**
+ * App-wide font-size scale. Use these named tokens everywhere instead of raw
+ * rem strings — a single edit here updates every consumer at once.
+ *
+ *   tiny  0.5625rem  mini type/label badges
+ *   xs    0.625rem   small inline badges and counts
+ *   sm    0.6875rem  table headers, chip labels, card meta
+ *   base  0.75rem    table cells, link numbers, dates
+ *   md    0.8125rem  body text, card titles, form inputs
+ *   lg    0.875rem   empty-state messages
+ */
+const FS = {
+  tiny: "0.5625rem",
+  xs:   "0.625rem",
+  sm:   "0.6875rem",
+  base: "0.75rem",
+  md:   "0.8125rem",
+  lg:   "0.875rem",
 } as const;
 
 const hoverCardPos = (
@@ -115,17 +169,94 @@ const pluralize = (count: number, word: string): string =>
   `${count} ${word}${count !== 1 ? "s" : ""}`;
 
 /**
- * Returns MUI sx objects for status Chips, keyed by lowercase status string.
- * Respects colorblind mode and adapts to MUI theme (no hardcoded light/dark hex).
+ * Shared chart colour factory. Returns a full token set for SVG charts.
+ * Each chart destructures only the fields it uses — no local makeCOL/makeC needed.
  */
-const makeStatusChipSx = (colorblindMode: boolean): Record<string, object> => ({
-  open:   { bgcolor: "rgba(214,149,0,0.15)", color: "#d97706" },
-  closed: colorblindMode
-    ? { bgcolor: `${COLORS_CB.prClosed}22`, color: COLORS_CB.prClosed }
-    : { bgcolor: "rgba(220,53,69,0.12)",   color: "#dc3545" },
-  merged: colorblindMode
-    ? { bgcolor: `${COLORS_CB.prMerged}22`, color: COLORS_CB.prMerged }
-    : { bgcolor: "rgba(130,80,223,0.12)",  color: "#8250df" },
-});
+const makeChartColors = (colorblindMode: boolean) => {
+  const p = colorblindMode ? COLORS_CB : COLORS;
+  return {
+    issue:       p.issue,
+    prMerged:    p.prMerged,
+    prClosed:    p.prClosed,
+    axis:        p.chartAxis,
+    grid:        p.chartGrid,
+    label:       p.chartAxis,
+    cursor:      p.chartCursor,
+    median:      p.success,
+    mean:        p.warning,
+    today:       p.chartToday,
+    todayLabel:  p.chartTodayLabel,
+    weekendBand: p.weekendBand,
+  };
+};
 
-export { COLORS, COLORS_CB, MS, assigneesOtherThanAuthor, durationDays, fmtDate, hoverCardPos, itemEndDate, itemStatus, labelTextColor, makeStatusChipSx, pluralize, safeUrl, upperBound };
+/**
+ * sx prop for chart empty-state Typography elements.
+ * All five SVG charts use exactly this shape — import instead of inlining.
+ */
+const CHART_EMPTY_STATE_SX = { fontSize: FS.lg, color: "text.secondary", py: 2.5 } as const;
+
+/**
+ * Base sx spread for passive chart hover-card Paper elements (pointer-events: none).
+ * Usage: <Paper elevation={2} sx={{ ...HOVER_CARD_BASE_SX, ...cardStyle }}>
+ * For clickable cards (e.g. CycleTime link cards) define sx inline as they
+ * have different pointer-event and decoration requirements.
+ */
+const HOVER_CARD_BASE_SX = {
+  position:      "absolute"  as const,
+  display:       "flex",
+  flexDirection: "column"    as const,
+  gap:           "5px",
+  minWidth:      148,
+  px:            1.5,
+  py:            1,
+  pointerEvents: "none"      as const,
+  zIndex:        50,
+};
+
+/** sx for the small coloured dot indicator inside hover cards. Add `bgcolor` at the call site. */
+const DOT_SX = { width: 8, height: 8, borderRadius: "50%", flexShrink: 0 };
+
+/** sx for a stat row (dot + value text) inside hover cards. */
+const STAT_ROW_SX = { display: "flex", alignItems: "center", gap: "7px", fontSize: FS.md, fontWeight: 600 };
+
+/** sx for the subdued label/meta text inside hover cards (dates, milestone names, totals). */
+const CARD_LABEL_SX = { fontSize: FS.sm, fontWeight: 600, color: "text.secondary" };
+
+/**
+ * Returns MUI sx objects for status Chips, keyed by lowercase status string.
+ * Respects colorblind mode. Background is a semi-transparent tint of the status colour.
+ */
+const makeStatusChipSx = (colorblindMode: boolean): Record<string, object> => {
+  const p = colorblindMode ? COLORS_CB : COLORS;
+  return {
+    // 0x26 ≈ 15% opacity, 0x1f ≈ 12% opacity — chosen to match the original design intent
+    open:   { bgcolor: `${COLORS.warning}26`, color: COLORS.warning },
+    closed: { bgcolor: `${p.prClosed}1f`,     color: p.prClosed },
+    merged: { bgcolor: `${p.prMerged}1f`,     color: p.prMerged },
+  };
+};
+
+export {
+  CARD_LABEL_SX,
+  CHART_EMPTY_STATE_SX,
+  COLORS,
+  COLORS_CB,
+  DOT_SX,
+  FS,
+  HOVER_CARD_BASE_SX,
+  MS,
+  STAT_ROW_SX,
+  assigneesOtherThanAuthor,
+  durationDays,
+  fmtDate,
+  hoverCardPos,
+  itemEndDate,
+  itemStatus,
+  labelTextColor,
+  makeChartColors,
+  makeStatusChipSx,
+  pluralize,
+  safeUrl,
+  upperBound,
+};

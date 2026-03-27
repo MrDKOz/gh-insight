@@ -13,7 +13,7 @@ import TableSortLabel from "@mui/material/TableSortLabel";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { memo, useMemo, useState } from "react";
-import { COLORS, COLORS_CB, MS, fmtDate, itemStatus, makeStatusChipSx, safeUrl } from "../utils/utils";
+import { COLORS, COLORS_CB, FS, MS, fmtDate, itemStatus, makeStatusChipSx, safeUrl } from "../utils/utils";
 import { AuthorWithAssignees } from "./AuthorWithAssignees";
 import { MilestonePill } from "./MilestonePill";
 
@@ -109,11 +109,11 @@ const sortRows = (rows: PRRow[], col: SortCol, dir: SortDir): PRRow[] => {
   });
 };
 
-// Amber for review-wait segment, blue-grey for post-review segment
-const BAR_WAIT    = "#f59e0b";
-const BAR_DONE    = "#6b7280";
-const BAR_WAIT_CB = "#E69F00";
-const BAR_DONE_CB = "#56B4E9";
+// Amber for review-wait segment, neutral/sky-blue for post-review segment
+const BAR_WAIT    = COLORS.warningDark;
+const BAR_DONE    = COLORS.chartBarDone;
+const BAR_WAIT_CB = COLORS_CB.prClosed;
+const BAR_DONE_CB = COLORS_CB.chartBarDone;
 
 const Th: FunctionComponent<{
   col: SortCol;
@@ -123,7 +123,7 @@ const Th: FunctionComponent<{
   onSort: (c: SortCol) => void;
   align?: "left" | "right";
 }> = ({ col, label, active, dir, onSort, align = "left" }) => (
-  <TableCell align={align} sx={{ fontWeight: 600, fontSize: "0.6875rem", whiteSpace: "nowrap", py: 1 }}>
+  <TableCell align={align} sx={{ fontWeight: 600, fontSize: FS.sm, whiteSpace: "nowrap", py: 1 }}>
     <TableSortLabel
       active={active === col}
       direction={active === col ? dir : "asc"}
@@ -179,12 +179,12 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
             <Th col="created"     label="Created"       active={sortCol} dir={sortDir} onSort={handleSort} />
             <Th col="firstReview" label="First Review"  active={sortCol} dir={sortDir} onSort={handleSort} />
             <Th col="wait"        label="Wait"          active={sortCol} dir={sortDir} onSort={handleSort} align="right" />
-            <TableCell sx={{ fontWeight: 600, fontSize: "0.6875rem", py: 1, width: 140 }}>
+            <TableCell sx={{ fontWeight: 600, fontSize: FS.sm, py: 1, width: 140 }}>
               Wait vs Total
             </TableCell>
             <Th col="total"       label="Total"         active={sortCol} dir={sortDir} onSort={handleSort} align="right" />
             {isMulti && (
-              <TableCell sx={{ fontWeight: 600, fontSize: "0.6875rem", py: 1 }}>Milestone</TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: FS.sm, py: 1 }}>Milestone</TableCell>
             )}
           </TableRow>
         </TableHead>
@@ -224,20 +224,20 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
                 sx={{ opacity: isOpen ? 0.65 : 1, "&:hover": { opacity: 1, bgcolor: "action.hover" }, "&:last-child td": { borderBottom: 0 } }}
               >
                 {/* # */}
-                <TableCell sx={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}>
+                <TableCell sx={{ fontSize: FS.base, whiteSpace: "nowrap" }}>
                   <Link
                     href={safeUrl(row.url)}
                     target="_blank"
                     rel="noreferrer"
                     underline="hover"
-                    sx={{ color: row.status === "Merged" ? palette.prMerged : row.status === "Closed" ? palette.prClosed : palette.prMerged, fontWeight: 700, fontSize: "0.75rem" }}
+                    sx={{ color: row.status === "Merged" ? palette.prMerged : row.status === "Closed" ? palette.prClosed : palette.prMerged, fontWeight: 700, fontSize: FS.base }}
                   >
                     #{row.number}
                   </Link>
                 </TableCell>
 
                 {/* Title */}
-                <TableCell sx={{ fontSize: "0.8125rem", maxWidth: 320 }}>
+                <TableCell sx={{ fontSize: FS.md, maxWidth: 320 }}>
                   <Link
                     href={safeUrl(row.url)}
                     target="_blank"
@@ -260,28 +260,28 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
                   <Chip
                     label={row.status}
                     size="small"
-                    sx={{ ...statusChipSx[row.status.toLowerCase()], fontSize: "0.6875rem", fontWeight: 600, height: 22 }}
+                    sx={{ ...statusChipSx[row.status.toLowerCase()], fontSize: FS.sm, fontWeight: 600, height: 22 }}
                   />
                 </TableCell>
 
                 {/* Created */}
-                <TableCell sx={{ fontSize: "0.75rem", color: "text.secondary", whiteSpace: "nowrap" }}>
+                <TableCell sx={{ fontSize: FS.base, color: "text.secondary", whiteSpace: "nowrap" }}>
                   {fmtDate(row.createdAt)}
                 </TableCell>
 
                 {/* First review */}
-                <TableCell sx={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}>
+                <TableCell sx={{ fontSize: FS.base, whiteSpace: "nowrap" }}>
                   {row.firstReviewAt ? (
                     fmtDate(row.firstReviewAt)
                   ) : (
-                    <Typography component="span" sx={{ fontSize: "0.75rem", color: "text.disabled", fontStyle: "italic" }}>
+                    <Typography component="span" sx={{ fontSize: FS.base, color: "text.disabled", fontStyle: "italic" }}>
                       {isOpen ? "Awaiting review" : "Not reviewed"}
                     </Typography>
                   )}
                 </TableCell>
 
                 {/* Wait days */}
-                <TableCell align="right" sx={{ fontSize: "0.8125rem", fontWeight: row.reviewWaitDays !== null ? 600 : 400, whiteSpace: "nowrap", color: row.reviewWaitDays === null ? "text.disabled" : "text.primary" }}>
+                <TableCell align="right" sx={{ fontSize: FS.md, fontWeight: row.reviewWaitDays !== null ? 600 : 400, whiteSpace: "nowrap", color: row.reviewWaitDays === null ? "text.disabled" : "text.primary" }}>
                   {waitLabel}
                 </TableCell>
 
@@ -319,13 +319,13 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
                 </TableCell>
 
                 {/* Total */}
-                <TableCell align="right" sx={{ fontSize: "0.8125rem", fontWeight: row.totalDays !== null ? 600 : 400, whiteSpace: "nowrap", color: row.totalDays === null ? "text.secondary" : "text.primary" }}>
+                <TableCell align="right" sx={{ fontSize: FS.md, fontWeight: row.totalDays !== null ? 600 : 400, whiteSpace: "nowrap", color: row.totalDays === null ? "text.secondary" : "text.primary" }}>
                   {totalLabel}
                 </TableCell>
 
                 {/* Milestone (multi only) */}
                 {isMulti && (
-                  <TableCell sx={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}>
+                  <TableCell sx={{ fontSize: FS.base, whiteSpace: "nowrap" }}>
                     {ms && <MilestonePill color={ms.color} title={ms.title} size={10} />}
                   </TableCell>
                 )}

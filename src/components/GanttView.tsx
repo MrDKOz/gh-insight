@@ -5,7 +5,7 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { COLORS, COLORS_CB, MS, assigneesOtherThanAuthor, durationDays, fmtDate, itemEndDate, pluralize, safeUrl } from "../utils/utils";
+import { COLORS, COLORS_CB, FS, MS, assigneesOtherThanAuthor, durationDays, fmtDate, itemEndDate, pluralize, safeUrl } from "../utils/utils";
 import { AuthorCard, AuthorTag } from "./AuthorTag";
 import { LabelBadge } from "./LabelBadge";
 
@@ -60,23 +60,25 @@ type GanttLegendProps = {
 };
 
 const GanttLegend: FunctionComponent<GanttLegendProps> = ({ hasOpenIssues, isMultiMilestone, milestones, colorblindMode }) => {
-  const issueClosed  = colorblindMode ? "linear-gradient(135deg, #0072B2 0%, #005a8e 100%)" : "linear-gradient(135deg, #0969da 0%, #0550ae 100%)";
-  const issueOpen    = colorblindMode ? "linear-gradient(135deg, rgba(0,114,178,0.45) 0%, rgba(0,90,142,0.45) 100%)" : "linear-gradient(135deg, rgba(9,105,218,0.45) 0%, rgba(5,80,174,0.45) 100%)";
-  const prMergedBg   = colorblindMode ? "linear-gradient(135deg, #009E73 0%, #007a58 100%)" : "linear-gradient(135deg, #8250df 0%, #6639ba 100%)";
-  const prClosedBg   = colorblindMode ? "linear-gradient(135deg, #E69F00 0%, #b87e00 100%)" : "linear-gradient(135deg, #dc3545 0%, #c82333 100%)";
+  const p = colorblindMode ? COLORS_CB : COLORS;
+  // 0x73 hex ≈ 0.45 alpha — used for the open-issue dashed bar fill
+  const issueClosed = `linear-gradient(135deg, ${p.issue} 0%, ${p.issueDark} 100%)`;
+  const issueOpen   = `linear-gradient(135deg, ${p.issue}73 0%, ${p.issueDark}73 100%)`;
+  const prMergedBg  = `linear-gradient(135deg, ${p.prMerged} 0%, ${p.prMergedDark} 100%)`;
+  const prClosedBg  = `linear-gradient(135deg, ${p.prClosed} 0%, ${p.prClosedDark} 100%)`;
   return (
   <>
     <Box sx={{ display: "flex", gap: 2.5, flexWrap: "wrap" }}>
       {[
         { bg: issueClosed, label: "Issues (closed)" },
         ...(hasOpenIssues
-          ? [{ bg: issueOpen, label: "Issues (open)", dashed: true, borderColor: colorblindMode ? "#0072B2" : "#0969da" }]
+          ? [{ bg: issueOpen, label: "Issues (open)", dashed: true, borderColor: p.issue }]
           : []),
         { bg: prMergedBg, label: "PRs (merged)" },
         { bg: prClosedBg, label: "PRs (closed)" },
       ].map(({ bg, label, dashed, borderColor }) => (
-        <Box key={label} sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem" }}>
-          <Box sx={{ width: 20, height: 14, borderRadius: "3px", flexShrink: 0, background: bg, ...(dashed ? { border: `1.5px dashed ${borderColor ?? "#0969da"}` } : {}) }} />
+        <Box key={label} sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: FS.md }}>
+          <Box sx={{ width: 20, height: 14, borderRadius: "3px", flexShrink: 0, background: bg, ...(dashed ? { border: `1.5px dashed ${borderColor ?? COLORS.issue}` } : {}) }} />
           {label}
         </Box>
       ))}
@@ -85,7 +87,7 @@ const GanttLegend: FunctionComponent<GanttLegendProps> = ({ hasOpenIssues, isMul
     {isMultiMilestone && (
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", pt: "6px", pb: "2px", borderTop: 1, borderColor: "divider", mt: "4px" }}>
         {milestones.map((m) => (
-          <Box key={m.number} sx={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.75rem", color: "text.secondary" }}>
+          <Box key={m.number} sx={{ display: "flex", alignItems: "center", gap: "6px", fontSize: FS.base, color: "text.secondary" }}>
             <Box sx={{ width: 10, height: 10, borderRadius: "2px", flexShrink: 0, bgcolor: m.color }} />
             {m.title}
           </Box>
@@ -93,7 +95,7 @@ const GanttLegend: FunctionComponent<GanttLegendProps> = ({ hasOpenIssues, isMul
       </Box>
     )}
 
-    <Alert icon={false} severity="info" sx={{ fontSize: "0.75rem", py: "6px" }}>
+    <Alert icon={false} severity="info" sx={{ fontSize: FS.base, py: "6px" }}>
       Click issue/PR numbers to open in GitHub &nbsp;·&nbsp; Drag handle to resize labels &nbsp;·&nbsp; Scroll wheel to zoom
     </Alert>
   </>
@@ -105,26 +107,26 @@ const BarHoverCard: FunctionComponent<{ barHover: BarHover }> = ({ barHover }) =
   const otherAssignees = assigneesOtherThanAuthor(item.assignees, item.author);
   return (
     <Paper elevation={2} sx={{ display: "flex", flexDirection: "column", gap: "6px", minWidth: 200, maxWidth: 280, px: 1.5, py: 1.25, pointerEvents: "none", ...barCardStyle(barHover.clientX, barHover.clientY) }}>
-      <Box sx={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: "6px", fontSize: FS.sm, fontWeight: 600, color: "text.secondary" }}>
         <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: barHover.dotColor, flexShrink: 0, opacity: barHover.isOpen ? 0.55 : 1 }} />
         {item.type === "pr" ? "PR" : "Issue"} #{item.number}
         {item.type === "issue" && item.reopenedCount > 0 && (
-          <Box component="span" title={`Reopened ${pluralize(item.reopenedCount, "time")}`} sx={{ color: "#d97706", ml: "2px" }}>
+          <Box component="span" title={`Reopened ${pluralize(item.reopenedCount, "time")}`} sx={{ color: COLORS.warning, ml: "2px" }}>
             ↺{item.reopenedCount}
           </Box>
         )}
         <Box component="span" sx={{ ml: "auto", fontWeight: 500 }}>{barHover.statusWord}</Box>
       </Box>
-      <Typography sx={{ fontSize: "0.8125rem", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+      <Typography sx={{ fontSize: FS.md, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         {item.title}
       </Typography>
       <Box>
-        <Typography sx={{ fontSize: "0.5625rem", color: "text.disabled", fontWeight: 600, lineHeight: 1, mb: "3px", textTransform: "uppercase", letterSpacing: "0.04em" }}>Author</Typography>
+        <Typography sx={{ fontSize: FS.tiny, color: "text.disabled", fontWeight: 600, lineHeight: 1, mb: "3px", textTransform: "uppercase", letterSpacing: "0.04em" }}>Author</Typography>
         <AuthorTag login={item.author} prefix="@" />
       </Box>
       {otherAssignees.length > 0 && (
         <Box>
-          <Typography sx={{ fontSize: "0.5625rem", color: "text.disabled", fontWeight: 600, lineHeight: 1, mb: "3px", textTransform: "uppercase", letterSpacing: "0.04em" }}>Assignees</Typography>
+          <Typography sx={{ fontSize: FS.tiny, color: "text.disabled", fontWeight: 600, lineHeight: 1, mb: "3px", textTransform: "uppercase", letterSpacing: "0.04em" }}>Assignees</Typography>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
             {otherAssignees.map((a) => (
               <AuthorTag key={a} login={a} prefix="@" />
@@ -140,12 +142,12 @@ const BarHoverCard: FunctionComponent<{ barHover: BarHover }> = ({ barHover }) =
         </Box>
       )}
       {item.type === "pr" && item.linkedIssue != null && (
-        <Box sx={{ fontSize: "0.6875rem", color: "text.secondary" }}>Closes #{item.linkedIssue}</Box>
+        <Box sx={{ fontSize: FS.sm, color: "text.secondary" }}>Closes #{item.linkedIssue}</Box>
       )}
-      <Box sx={{ fontSize: "0.6875rem", color: "text.secondary" }}>
+      <Box sx={{ fontSize: FS.sm, color: "text.secondary" }}>
         {fmtDate(item.createdAt)} → {barHover.isOpen ? "ongoing" : fmtDate(barHover.endDate)}
       </Box>
-      <Box sx={{ fontSize: "0.8125rem", fontWeight: 600 }}>{barHover.durationText}</Box>
+      <Box sx={{ fontSize: FS.md, fontWeight: 600 }}>{barHover.durationText}</Box>
     </Paper>
   );
 };
@@ -239,7 +241,7 @@ const GanttView: FunctionComponent<Props> = ({
                   height: ROW_HEIGHT,
                   opacity: isOpen ? 0.75 : 1,
                   boxShadow: isMultiMilestone
-                    ? `inset 3px 0 0 ${milestoneColorMap.get(item.milestoneNumber) ?? "#57606a"}`
+                    ? `inset 3px 0 0 ${milestoneColorMap.get(item.milestoneNumber) ?? COLORS.chartAxis}`
                     : undefined,
                 }}
               >
@@ -396,7 +398,7 @@ const GanttView: FunctionComponent<Props> = ({
 
       {cursorInfo !== null && barHover === null && (
         <Paper elevation={2} sx={{ position: "fixed", top: cursorInfo.clientY - 34, left: cursorInfo.clientX, transform: "translateX(-50%)", px: 1, py: 0.5, pointerEvents: "none", zIndex: 150, userSelect: "none", whiteSpace: "nowrap" }}>
-          <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>
+          <Box sx={{ fontSize: FS.sm, fontWeight: 600, color: "text.secondary" }}>
             {fmtDate(new Date(minTime + (cursorInfo.pct / 100) * totalMs).toISOString())}
           </Box>
         </Paper>

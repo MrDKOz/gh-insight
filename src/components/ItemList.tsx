@@ -12,7 +12,7 @@ import TableRow from "@mui/material/TableRow";
 import TableSortLabel from "@mui/material/TableSortLabel";
 import Typography from "@mui/material/Typography";
 import { memo, useMemo, useState } from "react";
-import { COLORS, COLORS_CB, MS, fmtDate, itemEndDate, itemStatus, makeStatusChipSx, pluralize, safeUrl } from "../utils/utils";
+import { COLORS, COLORS_CB, FS, MS, fmtDate, itemEndDate, itemStatus, makeStatusChipSx, pluralize, safeUrl } from "../utils/utils";
 import { AuthorWithAssignees } from "./AuthorWithAssignees";
 import { LabelBadge } from "./LabelBadge";
 import { MilestonePill } from "./MilestonePill";
@@ -103,7 +103,7 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
   const Th: FunctionComponent<{ col: SortCol; label: string }> = ({ col, label }) => (
     <TableCell
       sortDirection={sortCol === col ? sortDir : false}
-      sx={{ fontWeight: 600, fontSize: "0.6875rem", py: 1, whiteSpace: "nowrap" }}
+      sx={{ fontWeight: 600, fontSize: FS.sm, py: 1, whiteSpace: "nowrap" }}
     >
       <TableSortLabel
         active={sortCol === col}
@@ -154,7 +154,7 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                     size="small"
                     sx={{
                       ...typeBadgeSx[badgeKey],
-                      fontSize: "0.5625rem",
+                      fontSize: FS.tiny,
                       fontWeight: 700,
                       height: 18,
                       letterSpacing: 0.3,
@@ -172,7 +172,7 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                     sx={{
                       color: item.type === "issue" ? palette.issue : palette.prMerged,
                       fontWeight: 700,
-                      fontSize: "0.75rem",
+                      fontSize: FS.base,
                     }}
                   >
                     #{item.number}
@@ -190,11 +190,11 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
-                      fontSize: "0.8125rem",
+                      fontSize: FS.md,
                     }}
                   >
                     {item.type === "issue" && item.reopenedCount > 0 && (
-                      <Box component="span" title={`Reopened ${pluralize(item.reopenedCount, "time")}`} sx={{ color: "#d97706", mr: "4px", fontSize: "0.75rem" }}>↺</Box>
+                      <Box component="span" title={`Reopened ${pluralize(item.reopenedCount, "time")}`} sx={{ color: COLORS.warning, mr: "4px", fontSize: FS.base }}>↺</Box>
                     )}
                     {item.title}
                   </Link>
@@ -206,14 +206,14 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                     </Box>
                   )}
                 </TableCell>
-                <TableCell sx={{ whiteSpace: "nowrap", color: "text.secondary", fontSize: "0.75rem" }}>
+                <TableCell sx={{ whiteSpace: "nowrap", color: "text.secondary", fontSize: FS.base }}>
                   <AuthorWithAssignees author={item.author} assignees={item.assignees} />
                 </TableCell>
                 <TableCell>
                   <Chip
                     label={status}
                     size="small"
-                    sx={{ ...statusChipSx[status.toLowerCase()], fontSize: "0.6875rem", fontWeight: 600, height: 22 }}
+                    sx={{ ...statusChipSx[status.toLowerCase()], fontSize: FS.sm, fontWeight: 600, height: 22 }}
                   />
                 </TableCell>
                 {isMulti && (
@@ -221,15 +221,15 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                     {ms && <MilestonePill color={ms.color} title={ms.title} />}
                   </TableCell>
                 )}
-                <TableCell sx={{ whiteSpace: "nowrap", color: "text.secondary", fontSize: "0.75rem" }}>
+                <TableCell sx={{ whiteSpace: "nowrap", color: "text.secondary", fontSize: FS.base }}>
                   {fmtDate(item.createdAt)}
                 </TableCell>
-                <TableCell sx={{ whiteSpace: "nowrap", color: "text.secondary", fontSize: "0.75rem" }}>
+                <TableCell sx={{ whiteSpace: "nowrap", color: "text.secondary", fontSize: FS.base }}>
                   {end ? fmtDate(end) : <Typography component="span" color="divider">—</Typography>}
                 </TableCell>
                 <TableCell
                   align="right"
-                  sx={{ whiteSpace: "nowrap", color: "text.secondary", fontSize: "0.75rem", fontVariantNumeric: "tabular-nums" }}
+                  sx={{ whiteSpace: "nowrap", color: "text.secondary", fontSize: FS.base, fontVariantNumeric: "tabular-nums" }}
                 >
                   {days !== null ? days : <Typography component="span" color="divider">—</Typography>}
                 </TableCell>

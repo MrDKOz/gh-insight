@@ -4,7 +4,7 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
-import { COLORS, COLORS_CB, fmtDate, hoverCardPos, itemEndDate, pluralize } from "../utils/utils";
+import { CHART_EMPTY_STATE_SX, HOVER_CARD_BASE_SX, fmtDate, hoverCardPos, itemEndDate, makeChartColors, pluralize } from "../utils/utils";
 
 type Props = {
   items: TimelineItem[];
@@ -24,17 +24,6 @@ const L = 52, R = 20, T = 24, B = 48, W = 1200, H = 320;
 const CW = W - L - R;
 const CH = H - T - B;
 
-const makeCOL = (cb: boolean) => {
-  const p = cb ? COLORS_CB : COLORS;
-  return {
-    issue:    p.issue,
-    prMerged: p.prMerged,
-    prClosed: p.prClosed,
-    axis:     p.chartAxis,
-    grid:     p.chartGrid,
-    label:    p.chartAxis,
-  };
-};
 
 type Week = {
   startMs: number;
@@ -67,7 +56,7 @@ type MilestoneHover = {
 };
 
 const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblindMode }) => {
-  const COL = makeCOL(colorblindMode);
+  const COL = makeChartColors(colorblindMode);
   const isMulti = milestones.length > 1;
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<Hover | null>(null);
@@ -121,7 +110,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
   }, []);
 
   if ((isMulti ? allWeekStarts.length : weeks.length) === 0) {
-    return <Typography sx={{ fontSize: "0.875rem", color: "text.secondary", py: 2.5 }}>No completed items to plot velocity for.</Typography>;
+    return <Typography sx={CHART_EMPTY_STATE_SX}>No completed items to plot velocity for.</Typography>;
   }
 
   // ── Single-milestone rendering ───────────────────────────────────────────────
@@ -151,7 +140,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
     return (
       <Box className="chart-wrap" ref={wrapRef} style={{ position: "relative" }}>
         {hover && (
-          <Paper elevation={2} sx={{ position: "absolute", display: "flex", flexDirection: "column", gap: "5px", minWidth: 148, px: 1.5, py: 1, pointerEvents: "none", zIndex: 50, ...cardStyle }}>
+          <Paper elevation={2} sx={{ ...HOVER_CARD_BASE_SX, ...cardStyle }}>
             <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>
               {fmtDate(new Date(hover.week.startMs).toISOString())} – {fmtDate(new Date(hover.week.endMs).toISOString())}
             </Box>
@@ -283,7 +272,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
   return (
     <Box className="chart-wrap" ref={wrapRef} style={{ position: "relative" }}>
       {msHover && (
-        <Paper elevation={2} sx={{ position: "absolute", display: "flex", flexDirection: "column", gap: "5px", minWidth: 148, px: 1.5, py: 1, pointerEvents: "none", zIndex: 50, ...msCardStyle }}>
+        <Paper elevation={2} sx={{ ...HOVER_CARD_BASE_SX, ...msCardStyle }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>
             <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: msHover.msColor, flexShrink: 0 }} />
             {msHover.msTitle}

@@ -11,7 +11,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useMemo, useState } from "react";
-import { COLORS, COLORS_CB, itemEndDate, labelTextColor } from "../utils/utils";
+import { COLORS, COLORS_CB, FS, itemEndDate, labelTextColor } from "../utils/utils";
 
 type PeopleRole = "author" | "assignees" | "either";
 
@@ -163,7 +163,7 @@ const DateField: FunctionComponent<DateFieldProps> = ({ value, min, max, onChang
       },
     }}
     onChange={(e) => onChange(e.target.value)}
-    sx={{ "& .MuiInputBase-input": { fontSize: "0.8125rem", py: 0.625 } }}
+    sx={{ "& .MuiInputBase-input": { fontSize: FS.md, py: 0.625 } }}
   />
 );
 
@@ -328,7 +328,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
             label={
               <Stack component="span" direction="row" alignItems="center" gap={0.5}>
                 {label}
-                <Box component="span" sx={{ fontSize: "0.625rem", opacity: 0.7 }}>
+                <Box component="span" sx={{ fontSize: FS.xs, opacity: 0.7 }}>
                   {count}
                 </Box>
               </Stack>
@@ -345,7 +345,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
               borderColor: `${color}55`,
               opacity: filters[key] ? 1 : 0.35,
               fontWeight: 500,
-              fontSize: "0.6875rem",
+              fontSize: FS.sm,
               "&:hover": { bgcolor: `${color}2e`, opacity: 1 },
             }}
           />
@@ -367,7 +367,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
               aria-haspopup="true"
               aria-expanded={Boolean(labelsAnchor)}
               sx={{
-                fontSize: "0.6875rem",
+                fontSize: FS.sm,
                 height: 26,
                 borderColor: activeCount > 0 ? "primary.main" : undefined,
                 color: activeCount > 0 ? "primary.main" : "text.secondary",
@@ -394,7 +394,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
                   autoFocus
                   fullWidth
                   slotProps={{ htmlInput: { "aria-label": "Search labels" } }}
-                  sx={{ "& .MuiInputBase-input": { fontSize: "0.8125rem", py: 0.625 } }}
+                  sx={{ "& .MuiInputBase-input": { fontSize: FS.md, py: 0.625 } }}
                 />
               </Box>
               <Divider />
@@ -421,7 +421,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
                         border: "1px solid",
                         borderColor: `${color}99`,
                         fontWeight: 500,
-                        fontSize: "0.625rem",
+                        fontSize: FS.xs,
                         opacity: active ? 1 : 0.65,
                         "&:hover": { bgcolor: color, color: textCol, opacity: 1 },
                       }}
@@ -433,7 +433,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
                 <>
                   <Divider />
                   <Box sx={{ p: 0.75, display: "flex", justifyContent: "flex-end" }}>
-                    <Button size="small" sx={{ fontSize: "0.6875rem" }} onClick={() => set({ activeLabels: [] })}>
+                    <Button size="small" sx={{ fontSize: FS.sm }} onClick={() => set({ activeLabels: [] })}>
                       Clear
                     </Button>
                   </Box>
@@ -457,7 +457,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
               aria-haspopup="true"
               aria-expanded={Boolean(peopleAnchor)}
               sx={{
-                fontSize: "0.6875rem",
+                fontSize: FS.sm,
                 height: 26,
                 borderColor: activeCount > 0 ? "primary.main" : undefined,
                 color: activeCount > 0 ? "primary.main" : "text.secondary",
@@ -491,7 +491,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
                       aria-pressed={filters.peopleRole === value}
                       sx={{
                         flex: 1, px: 1, py: 0.5,
-                        fontSize: "0.6875rem", fontWeight: 500, lineHeight: 1.4,
+                        fontSize: FS.sm, fontWeight: 500, lineHeight: 1.4,
                         border: "none",
                         borderRight: i < ROLE_OPTIONS.length - 1 ? 1 : 0,
                         borderColor: "divider",
@@ -520,7 +520,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
                   autoFocus
                   fullWidth
                   slotProps={{ htmlInput: { "aria-label": "Search people" } }}
-                  sx={{ "& .MuiInputBase-input": { fontSize: "0.8125rem", py: 0.625 } }}
+                  sx={{ "& .MuiInputBase-input": { fontSize: FS.md, py: 0.625 } }}
                 />
               </Box>
               <Divider />
@@ -542,7 +542,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
                         height: 22,
                         cursor: "pointer",
                         fontWeight: 500,
-                        fontSize: "0.625rem",
+                        fontSize: FS.xs,
                         opacity: active ? 1 : 0.6,
                         "&:hover": { opacity: 1 },
                       }}
@@ -554,7 +554,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
                 <>
                   <Divider />
                   <Box sx={{ p: 0.75, display: "flex", justifyContent: "flex-end" }}>
-                    <Button size="small" sx={{ fontSize: "0.6875rem" }} onClick={() => set({ activePeople: [] })}>
+                    <Button size="small" sx={{ fontSize: FS.sm }} onClick={() => set({ activePeople: [] })}>
                       Clear
                     </Button>
                   </Box>
