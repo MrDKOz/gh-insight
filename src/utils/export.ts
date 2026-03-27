@@ -287,10 +287,91 @@ const exportSVG = (wrapperEl: HTMLElement, title: string): void => {
   );
 };
 
+// Minimal jsPDF surface needed by drawPDFTable — avoids importing the full type.
+type PdfDoc = {
+  setFillColor(r: number, g: number, b: number): unknown;
+  setTextColor(r: number, g: number, b: number): unknown;
+  setFont(name: string, style: string): unknown;
+  setFontSize(size: number): unknown;
+  rect(x: number, y: number, w: number, h: number, style: string): unknown;
+  text(text: string, x: number, y: number): unknown;
+  link(x: number, y: number, w: number, h: number, options: { url: string }): unknown;
+  addPage(): unknown;
+  splitTextToSize(text: string, maxWidth: number): string[];
+  internal: { pageSize: { getHeight(): number } };
+};
+
+type PdfColDef = { label: string; width: number };
+
+// Draws a styled table into a jsPDF document without any third-party plugins.
+// Repeats the header on each new page and adds a hyperlink on linkColIdx.
+const drawPDFTable = (
+  doc: PdfDoc,
+  startY: number,
+  cols: PdfColDef[],
+  rows: string[][],
+  getUrl: (rowIdx: number) => string | undefined,
+  linkColIdx: number,
+): void => {
+  const MARGIN = 14;
+  const ROW_H = 7;
+  const PAD_X = 2;
+  const BASE_Y = 5; // text baseline offset from row top (mm)
+  const FS = 8;
+  const BOTTOM_MARGIN = 10;
+  const tableW = cols.reduce((s, c) => s + c.width, 0);
+  const pageH = doc.internal.pageSize.getHeight();
+
+  const drawHeader = (atY: number): void => {
+    doc.setFillColor(9, 105, 218);
+    doc.rect(MARGIN, atY, tableW, ROW_H, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(FS);
+    let x = MARGIN;
+    for (const col of cols) {
+      const label = doc.splitTextToSize(col.label, col.width - PAD_X * 2)[0] ?? "";
+      doc.text(label, x + PAD_X, atY + BASE_Y);
+      x += col.width;
+    }
+  };
+
+  let y = startY;
+  drawHeader(y);
+  y += ROW_H;
+
+  doc.setFont("helvetica", "normal");
+  for (let i = 0; i < rows.length; i++) {
+    if (y + ROW_H > pageH - BOTTOM_MARGIN) {
+      doc.addPage();
+      y = MARGIN;
+      drawHeader(y);
+      y += ROW_H;
+      doc.setFont("helvetica", "normal");
+    }
+    const row = rows[i]!;
+    if (i % 2 === 1) {
+      doc.setFillColor(248, 249, 250);
+      doc.rect(MARGIN, y, tableW, ROW_H, "F");
+    }
+    doc.setTextColor(36, 41, 47);
+    let x = MARGIN;
+    for (let j = 0; j < cols.length; j++) {
+      const col = cols[j]!;
+      const cell = doc.splitTextToSize(row[j] ?? "", col.width - PAD_X * 2)[0] ?? "";
+      doc.text(cell, x + PAD_X, y + BASE_Y);
+      if (j === linkColIdx) {
+        const url = getUrl(i);
+        if (url) { doc.link(x, y, col.width, ROW_H, { url }); }
+      }
+      x += col.width;
+    }
+    y += ROW_H;
+  }
+};
+
 const exportPDF = async (items: TimelineItem[], title: string): Promise<void> => {
   const { jsPDF } = await import("jspdf");
-  const { default: autoTable } = await import("jspdf-autotable");
-
   const rows = buildRows(items);
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
 
@@ -305,33 +386,25 @@ const exportPDF = async (items: TimelineItem[], title: string): Promise<void> =>
     25,
   );
 
-  autoTable(doc, {
-    startY: 30,
-    head: [["Type", "#", "Title", "Author", "Status", "Opened", "Closed/Merged", "Days", "Linked to"]],
-    body: rows.map((r) => [r.type, r.num, r.title, r.author, r.status, r.opened, r.closed, r.duration, r.linked]),
-    styles: { fontSize: 8, cellPadding: 2.5 },
-    headStyles: { fillColor: [9, 105, 218], textColor: 255, fontStyle: "bold" },
-    alternateRowStyles: { fillColor: [248, 249, 250] },
-    columnStyles: {
-      0: { cellWidth: 13 },
-      1: { cellWidth: 14 },
-      2: { cellWidth: "auto" },
-      3: { cellWidth: 22 },
-      4: { cellWidth: 17 },
-      5: { cellWidth: 24 },
-      6: { cellWidth: 24 },
-      7: { cellWidth: 12 },
-      8: { cellWidth: 26 },
-    },
-    didDrawCell: (data) => {
-      if (data.section === "body" && data.column.index === 1) {
-        const url = rows[data.row.index]?.url;
-        if (url) {
-          doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url });
-        }
-      }
-    },
-  });
+  // Available width: 297 (A4 landscape) − 14 (left) − 14 (right) = 269 mm
+  drawPDFTable(
+    doc,
+    30,
+    [
+      { label: "Type",          width: 13  },
+      { label: "#",             width: 14  },
+      { label: "Title",         width: 117 },
+      { label: "Author",        width: 22  },
+      { label: "Status",        width: 17  },
+      { label: "Opened",        width: 24  },
+      { label: "Closed/Merged", width: 24  },
+      { label: "Days",          width: 12  },
+      { label: "Linked to",     width: 26  },
+    ],
+    rows.map((r) => [r.type, r.num, r.title, r.author, r.status, r.opened, r.closed, r.duration, r.linked]),
+    (i) => rows[i]?.url,
+    1, // "#" column carries the hyperlink
+  );
 
   doc.save(`${safeFilename(title)}.pdf`);
 };
@@ -478,7 +551,6 @@ const exportReviewWaitXLSX = async (items: TimelineItem[], title: string): Promi
 
 const exportReviewWaitPDF = async (items: TimelineItem[], title: string): Promise<void> => {
   const { jsPDF } = await import("jspdf");
-  const { default: autoTable } = await import("jspdf-autotable");
   const rows = buildReviewWaitRows(items);
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   doc.setFontSize(16);
@@ -487,30 +559,26 @@ const exportReviewWaitPDF = async (items: TimelineItem[], title: string): Promis
   doc.setFontSize(9);
   doc.setTextColor(87, 96, 106);
   doc.text(`Generated ${fmtDate(new Date().toISOString(), true)}  ·  ${rows.length} PR${rows.length !== 1 ? "s" : ""}`, 14, 25);
-  autoTable(doc, {
-    startY: 30,
-    head: [["#", "Title", "Author", "Status", "Created", "First Review", "Wait (d)", "Total (d)"]],
-    body: rows.map((r) => [r.num, r.title, r.author, r.status, r.created, r.firstReview, r.waitDays, r.totalDays]),
-    styles: { fontSize: 8, cellPadding: 2.5 },
-    headStyles: { fillColor: [9, 105, 218], textColor: 255, fontStyle: "bold" },
-    alternateRowStyles: { fillColor: [248, 249, 250] },
-    columnStyles: {
-      0: { cellWidth: 14 },
-      1: { cellWidth: "auto" },
-      2: { cellWidth: 22 },
-      3: { cellWidth: 16 },
-      4: { cellWidth: 22 },
-      5: { cellWidth: 22 },
-      6: { cellWidth: 16 },
-      7: { cellWidth: 16 },
-    },
-    didDrawCell: (data) => {
-      if (data.section === "body" && data.column.index === 0) {
-        const url = rows[data.row.index]?.url;
-        if (url) { doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url }); }
-      }
-    },
-  });
+
+  // Available width: 297 (A4 landscape) − 14 (left) − 14 (right) = 269 mm
+  drawPDFTable(
+    doc,
+    30,
+    [
+      { label: "#",            width: 14  },
+      { label: "Title",        width: 141 },
+      { label: "Author",       width: 22  },
+      { label: "Status",       width: 16  },
+      { label: "Created",      width: 22  },
+      { label: "First Review", width: 22  },
+      { label: "Wait (d)",     width: 16  },
+      { label: "Total (d)",    width: 16  },
+    ],
+    rows.map((r) => [r.num, r.title, r.author, r.status, r.created, r.firstReview, r.waitDays, r.totalDays]),
+    (i) => rows[i]?.url,
+    0, // "#" column carries the hyperlink
+  );
+
   doc.save(`${safeFilename(title)}_review_wait.pdf`);
 };
 
