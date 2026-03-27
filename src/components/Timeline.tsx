@@ -63,38 +63,38 @@ const DEFAULT_VIEW: View = "Gantt";
 
 const readViewFiltersFromUrl = (): { view: View; filters: Filters } => {
   const p = new URLSearchParams(window.location.search);
-  const rawView = p.get("v") ?? "";
+  const rawView = p.get("view") ?? "";
   const view: View = (VIEWS as readonly string[]).includes(rawView) ? (rawView as View) : DEFAULT_VIEW;
 
   const hide = new Set((p.get("hide") ?? "").split(",").filter(Boolean));
-  const rawRole = p.get("pr");
+  const rawRole = p.get("role");
 
   const filters: Filters = {
-    createdStart:     p.get("cs") ?? "",
-    createdEnd:       p.get("ce") ?? "",
-    closedStart:      p.get("xs") ?? "",
-    closedEnd:        p.get("xe") ?? "",
+    createdStart:     p.get("created_from") ?? "",
+    createdEnd:       p.get("created_to") ?? "",
+    closedStart:      p.get("closed_from") ?? "",
+    closedEnd:        p.get("closed_to") ?? "",
     showOpenIssues:   !hide.has("oi"),
     showClosedIssues: !hide.has("ci"),
     showOpenPRs:      !hide.has("op"),
     showMergedPRs:    !hide.has("mp"),
     showClosedPRs:    !hide.has("cp"),
     // "|" separator; each value is URI-encoded so "|" inside a label/name is safe
-    activeLabels: p.get("lb") ? p.get("lb")!.split("|").filter(Boolean).map(decodeURIComponent) : [],
-    activePeople: p.get("pp") ? p.get("pp")!.split("|").filter(Boolean).map(decodeURIComponent) : [],
-    peopleRole:   rawRole === "a" ? "author" : rawRole === "s" ? "assignees" : "either",
+    activeLabels: p.get("labels") ? p.get("labels")!.split("|").filter(Boolean).map(decodeURIComponent) : [],
+    activePeople: p.get("people") ? p.get("people")!.split("|").filter(Boolean).map(decodeURIComponent) : [],
+    peopleRole:   rawRole === "author" ? "author" : rawRole === "assignees" ? "assignees" : "either",
   };
   return { view, filters };
 };
 
 const syncFiltersToUrl = (filters: Filters): void => {
-  // Read the current params so App-owned keys (owner/repo/milestones/demo/v) are preserved
+  // Read the current params so App-owned keys (owner/repo/milestones/demo/view) are preserved
   const p = new URLSearchParams(window.location.search);
 
-  if (filters.createdStart) {p.set("cs", filters.createdStart);} else {p.delete("cs");}
-  if (filters.createdEnd)   {p.set("ce", filters.createdEnd);}   else {p.delete("ce");}
-  if (filters.closedStart)  {p.set("xs", filters.closedStart);}  else {p.delete("xs");}
-  if (filters.closedEnd)    {p.set("xe", filters.closedEnd);}    else {p.delete("xe");}
+  if (filters.createdStart) {p.set("created_from", filters.createdStart);} else {p.delete("created_from");}
+  if (filters.createdEnd)   {p.set("created_to",   filters.createdEnd);}   else {p.delete("created_to");}
+  if (filters.closedStart)  {p.set("closed_from",  filters.closedStart);}  else {p.delete("closed_from");}
+  if (filters.closedEnd)    {p.set("closed_to",    filters.closedEnd);}    else {p.delete("closed_to");}
 
   const hidden: string[] = [];
   if (!filters.showOpenIssues)   {hidden.push("oi");}
@@ -104,11 +104,10 @@ const syncFiltersToUrl = (filters: Filters): void => {
   if (!filters.showClosedPRs)    {hidden.push("cp");}
   if (hidden.length > 0) {p.set("hide", hidden.join(","));} else {p.delete("hide");}
 
-  if (filters.activeLabels.length > 0) {p.set("lb", filters.activeLabels.map(encodeURIComponent).join("|"));} else {p.delete("lb");}
-  if (filters.activePeople.length > 0) {p.set("pp", filters.activePeople.map(encodeURIComponent).join("|"));} else {p.delete("pp");}
+  if (filters.activeLabels.length > 0) {p.set("labels", filters.activeLabels.map(encodeURIComponent).join("|"));} else {p.delete("labels");}
+  if (filters.activePeople.length > 0) {p.set("people", filters.activePeople.map(encodeURIComponent).join("|"));} else {p.delete("people");}
 
-  const roleAbbr = filters.peopleRole === "author" ? "a" : filters.peopleRole === "assignees" ? "s" : null;
-  if (roleAbbr) {p.set("pr", roleAbbr);} else {p.delete("pr");}
+  if (filters.peopleRole !== "either") {p.set("role", filters.peopleRole);} else {p.delete("role");}
 
   const qs = p.toString();
   window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
@@ -124,7 +123,7 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
   const [exportError, setExportError] = useState<string | null>(null);
   const [copyTooltip, setCopyTooltip] = useState<"idle" | "copied">("idle");
   const [snapMode, setSnapMode] = useState<"day" | "hour">(() =>
-    new URLSearchParams(window.location.search).get("sm") === "h" ? "hour" : "day",
+    new URLSearchParams(window.location.search).get("snap") === "hour" ? "hour" : "day",
   );
 
   const [toolbarSlot, setToolbarSlot] = useState<Element | null>(null);
@@ -182,7 +181,7 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
-    if (snapMode === "hour") { p.set("sm", "h"); } else { p.delete("sm"); }
+    if (snapMode === "hour") { p.set("snap", "hour"); } else { p.delete("snap"); }
     const qs = p.toString();
     window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
   }, [snapMode]);

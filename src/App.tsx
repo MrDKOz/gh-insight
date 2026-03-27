@@ -204,7 +204,7 @@ const App: FunctionComponent = () => {
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
-    if (view !== DEFAULT_VIEW) { p.set("v", view); } else { p.delete("v"); }
+    if (view !== DEFAULT_VIEW) { p.set("view", view); } else { p.delete("view"); }
     const qs = p.toString();
     window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
   }, [view]);
