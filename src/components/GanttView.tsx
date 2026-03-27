@@ -266,6 +266,8 @@ const GanttView: FunctionComponent<Props> = ({
     fmtDate(new Date(minTime + (totalMs * i) / (numDateLabels - 1)).toISOString()),
   );
 
+  const todayDateStr = new Date(todayMs).toISOString().slice(0, 10);
+
   const dueMarkers = useMemo(() =>
     milestones.flatMap((ms) => {
       if (!ms.dueOn) { return []; }
@@ -273,9 +275,10 @@ const GanttView: FunctionComponent<Props> = ({
       if (isNaN(dueMs)) { return []; }
       const leftPct = ((dueMs - minTime) / totalMs) * 100;
       if (leftPct < -2 || leftPct > 102) { return []; }
-      return [{ key: ms.number, leftPct, label: `Due ${fmtDate(ms.dueOn)}`, color: milestones.length > 1 ? ms.color : "#8250df" }];
+      const coincidesToday = ms.dueOn.slice(0, 10) === todayDateStr;
+      return [{ key: ms.number, leftPct, label: `Due ${fmtDate(ms.dueOn)}`, color: milestones.length > 1 ? ms.color : "#8250df", coincidesToday }];
     }),
-  [milestones, minTime, totalMs]);
+  [milestones, minTime, totalMs, todayDateStr]);
 
   return (
     <>
@@ -367,7 +370,7 @@ const GanttView: FunctionComponent<Props> = ({
             ))}
           </Box>
           <Box style={{ position: "relative", width: trackWidth }}>
-          {dueMarkers.map((dm) => (
+          {dueMarkers.filter((dm) => !dm.coincidesToday).map((dm) => (
             <Box
               key={dm.key}
               aria-hidden="true"
@@ -399,6 +402,27 @@ const GanttView: FunctionComponent<Props> = ({
               >
                 {dm.label}
               </Box>
+            </Box>
+          ))}
+          {showToday && dueMarkers.filter((dm) => dm.coincidesToday).map((dm) => (
+            <Box
+              key={`due-today-lbl-${dm.key}`}
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                top: 2,
+                left: `calc(${todayLeftPct}% + 5px)`,
+                fontSize: FS.tiny,
+                color: dm.color,
+                whiteSpace: "nowrap",
+                fontWeight: 700,
+                lineHeight: 1,
+                userSelect: "none",
+                pointerEvents: "none",
+                zIndex: 6,
+              }}
+            >
+              Today · Due
             </Box>
           ))}
           {weekendBands.length > 0 && (
