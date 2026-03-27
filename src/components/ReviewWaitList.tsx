@@ -13,7 +13,8 @@ import TableSortLabel from "@mui/material/TableSortLabel";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { memo, useMemo, useState } from "react";
-import { COLORS, COLORS_CB, FS, MS, fmtDate, itemStatus, makeStatusChipSx, safeUrl } from "../utils/utils";
+import { useColumnResize } from "../hooks/useColumnResize";
+import { COLORS, COLORS_CB, FS, MS, RESIZE_HANDLE_SX, fmtDate, itemStatus, makeStatusChipSx, safeUrl } from "../utils/utils";
 import { AuthorWithAssignees } from "./AuthorWithAssignees";
 import { LabelBadge } from "./LabelBadge";
 import { MilestonePill } from "./MilestonePill";
@@ -46,6 +47,9 @@ type PRRow = {
   milestoneNumber: number;
 };
 
+// Default column widths (px): #, title, author, status, created, firstReview, wait, bar, total, [milestone]
+const DEFAULTS_SINGLE = [60, 300, 160, 88, 92, 105, 76, 140, 76] as const;
+const DEFAULTS_MULTI  = [60, 300, 160, 88, 92, 105, 76, 140, 76, 120] as const;
 
 const toDays = (ms: number): number => Math.round(ms / MS);
 
@@ -118,15 +122,19 @@ const BAR_DONE    = COLORS.chartBarDone;
 const BAR_WAIT_CB = COLORS_CB.prClosed;
 const BAR_DONE_CB = COLORS_CB.chartBarDone;
 
-const Th: FunctionComponent<{
+type ThProps = {
   col: SortCol;
   label: string;
   active: SortCol;
   dir: SortDir;
   onSort: (c: SortCol) => void;
+  onResize: (e: React.MouseEvent) => void;
   align?: "left" | "right";
-}> = ({ col, label, active, dir, onSort, align = "left" }) => (
-  <TableCell align={align} sx={{ fontWeight: 600, fontSize: FS.sm, whiteSpace: "nowrap", py: 1 }}>
+};
+
+// Defined at module level to prevent remount during resize drags.
+const Th: FunctionComponent<ThProps> = ({ col, label, active, dir, onSort, onResize, align = "left" }) => (
+  <TableCell align={align} sx={{ fontWeight: 600, fontSize: FS.sm, whiteSpace: "nowrap", py: 1, position: "relative", overflow: "hidden", userSelect: "none" }}>
     <TableSortLabel
       active={active === col}
       direction={active === col ? dir : "asc"}
@@ -134,6 +142,7 @@ const Th: FunctionComponent<{
     >
       {label}
     </TableSortLabel>
+    <Box onMouseDown={onResize} sx={RESIZE_HANDLE_SX} />
   </TableCell>
 );
 
@@ -149,6 +158,10 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
   const barWait = colorblindMode ? BAR_WAIT_CB : BAR_WAIT;
   const barDone = colorblindMode ? BAR_DONE_CB : BAR_DONE;
 
+  const defaultWidths = isMulti ? [...DEFAULTS_MULTI] : [...DEFAULTS_SINGLE];
+  const { widths: colWidths, startResize } = useColumnResize(defaultWidths);
+  const widths = colWidths.length === defaultWidths.length ? colWidths : defaultWidths;
+
   const handleSort = (col: SortCol) => {
     if (col === sortCol) {setSortDir((d) => (d === "asc" ? "desc" : "asc"));}
     else { setSortCol(col); setSortDir(col === "wait" ? "desc" : "asc"); }
@@ -162,6 +175,12 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
     [rows],
   );
 
+  // Helper to build the onResize handler for a given column index.
+  const resize = (i: number) => (e: React.MouseEvent) => startResize(i, e, widths[i]!);
+
+  // Column indices: #=0, title=1, author=2, status=3, created=4, firstReview=5, wait=6, bar=7, total=8, [milestone=9]
+  const CI = { num: 0, title: 1, author: 2, status: 3, created: 4, firstReview: 5, wait: 6, bar: 7, total: 8, milestone: 9 };
+
   if (rows.length === 0) {
     return (
       <Typography color="text.secondary" sx={{ py: 2 }}>
@@ -171,23 +190,30 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
   }
 
   return (
-    <TableContainer sx={{ overflowX: "clip", border: 1, borderColor: "divider", borderRadius: 1 }}>
-      <Table size="small" aria-label="Review wait time per pull request">
+    <TableContainer sx={{ border: 1, borderColor: "divider", borderRadius: 1, overflowX: "auto" }}>
+      <Table size="small" aria-label="Review wait time per pull request" sx={{ tableLayout: "fixed", minWidth: widths.reduce((s, w) => s + w, 0) }}>
+        <colgroup>
+          {widths.map((w, i) => <col key={i} style={{ width: w }} />)}
+        </colgroup>
         <TableHead>
           <TableRow>
-            <Th col="number"      label="#"             active={sortCol} dir={sortDir} onSort={handleSort} />
-            <Th col="title"       label="Pull Request"  active={sortCol} dir={sortDir} onSort={handleSort} />
-            <Th col="author"      label="Author / Assignees" active={sortCol} dir={sortDir} onSort={handleSort} />
-            <Th col="status"      label="Status"        active={sortCol} dir={sortDir} onSort={handleSort} />
-            <Th col="created"     label="Created"       active={sortCol} dir={sortDir} onSort={handleSort} />
-            <Th col="firstReview" label="First Review"  active={sortCol} dir={sortDir} onSort={handleSort} />
-            <Th col="wait"        label="Wait"          active={sortCol} dir={sortDir} onSort={handleSort} align="right" />
-            <TableCell sx={{ fontWeight: 600, fontSize: FS.sm, py: 1, width: 140 }}>
+            <Th col="number"      label="#"                  active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(CI.num)} />
+            <Th col="title"       label="Pull Request"       active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(CI.title)} />
+            <Th col="author"      label="Author / Assignees" active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(CI.author)} />
+            <Th col="status"      label="Status"             active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(CI.status)} />
+            <Th col="created"     label="Created"            active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(CI.created)} />
+            <Th col="firstReview" label="First Review"       active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(CI.firstReview)} />
+            <Th col="wait"        label="Wait"               active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(CI.wait)} align="right" />
+            <TableCell sx={{ fontWeight: 600, fontSize: FS.sm, py: 1, position: "relative", overflow: "hidden", userSelect: "none" }}>
               Wait vs Total
+              <Box onMouseDown={resize(CI.bar)} sx={RESIZE_HANDLE_SX} />
             </TableCell>
-            <Th col="total"       label="Total"         active={sortCol} dir={sortDir} onSort={handleSort} align="right" />
+            <Th col="total"       label="Total"              active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(CI.total)} align="right" />
             {isMulti && (
-              <TableCell sx={{ fontWeight: 600, fontSize: FS.sm, py: 1 }}>Milestone</TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: FS.sm, py: 1, position: "relative", overflow: "hidden", userSelect: "none" }}>
+                Milestone
+                <Box onMouseDown={resize(CI.milestone)} sx={RESIZE_HANDLE_SX} />
+              </TableCell>
             )}
           </TableRow>
         </TableHead>
@@ -227,7 +253,7 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
                 sx={{ opacity: isOpen ? 0.65 : 1, "&:hover": { opacity: 1, bgcolor: "action.hover" }, "&:last-child td": { borderBottom: 0 } }}
               >
                 {/* # */}
-                <TableCell sx={{ fontSize: FS.base, whiteSpace: "nowrap" }}>
+                <TableCell sx={{ fontSize: FS.base, overflow: "hidden" }}>
                   <Link
                     href={safeUrl(row.url)}
                     target="_blank"
@@ -240,7 +266,7 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
                 </TableCell>
 
                 {/* Title */}
-                <TableCell sx={{ fontSize: FS.md, maxWidth: 320 }}>
+                <TableCell sx={{ fontSize: FS.md, overflow: "hidden" }}>
                   <Link
                     href={safeUrl(row.url)}
                     target="_blank"
@@ -261,12 +287,12 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
                 </TableCell>
 
                 {/* Author + assignees */}
-                <TableCell sx={{ whiteSpace: "nowrap" }}>
+                <TableCell sx={{ overflow: "hidden" }}>
                   <AuthorWithAssignees author={row.author} assignees={row.assignees} />
                 </TableCell>
 
                 {/* Status */}
-                <TableCell sx={{ whiteSpace: "nowrap" }}>
+                <TableCell sx={{ overflow: "hidden" }}>
                   <Chip
                     label={row.status}
                     size="small"
@@ -275,12 +301,12 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
                 </TableCell>
 
                 {/* Created */}
-                <TableCell sx={{ fontSize: FS.base, color: "text.secondary", whiteSpace: "nowrap" }}>
+                <TableCell sx={{ fontSize: FS.base, color: "text.secondary", overflow: "hidden", whiteSpace: "nowrap" }}>
                   {fmtDate(row.createdAt)}
                 </TableCell>
 
                 {/* First review */}
-                <TableCell sx={{ fontSize: FS.base, whiteSpace: "nowrap" }}>
+                <TableCell sx={{ fontSize: FS.base, overflow: "hidden", whiteSpace: "nowrap" }}>
                   {row.firstReviewAt ? (
                     fmtDate(row.firstReviewAt)
                   ) : (
@@ -291,12 +317,12 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
                 </TableCell>
 
                 {/* Wait days */}
-                <TableCell align="right" sx={{ fontSize: FS.md, fontWeight: row.reviewWaitDays !== null ? 600 : 400, whiteSpace: "nowrap", color: row.reviewWaitDays === null ? "text.disabled" : "text.primary" }}>
+                <TableCell align="right" sx={{ fontSize: FS.md, fontWeight: row.reviewWaitDays !== null ? 600 : 400, overflow: "hidden", whiteSpace: "nowrap", color: row.reviewWaitDays === null ? "text.disabled" : "text.primary" }}>
                   {waitLabel}
                 </TableCell>
 
                 {/* Bar */}
-                <TableCell sx={{ py: 1, width: 140 }}>
+                <TableCell sx={{ py: 1, overflow: "hidden" }}>
                   {row.reviewWaitDays !== null ? (
                     <Tooltip
                       title={
@@ -329,13 +355,13 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
                 </TableCell>
 
                 {/* Total */}
-                <TableCell align="right" sx={{ fontSize: FS.md, fontWeight: row.totalDays !== null ? 600 : 400, whiteSpace: "nowrap", color: row.totalDays === null ? "text.secondary" : "text.primary" }}>
+                <TableCell align="right" sx={{ fontSize: FS.md, fontWeight: row.totalDays !== null ? 600 : 400, overflow: "hidden", whiteSpace: "nowrap", color: row.totalDays === null ? "text.secondary" : "text.primary" }}>
                   {totalLabel}
                 </TableCell>
 
                 {/* Milestone (multi only) */}
                 {isMulti && (
-                  <TableCell sx={{ fontSize: FS.base, whiteSpace: "nowrap" }}>
+                  <TableCell sx={{ fontSize: FS.base, overflow: "hidden", whiteSpace: "nowrap" }}>
                     {ms && <MilestonePill color={ms.color} title={ms.title} size={10} />}
                   </TableCell>
                 )}

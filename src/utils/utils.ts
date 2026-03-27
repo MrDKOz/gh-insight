@@ -224,6 +224,28 @@ const STAT_ROW_SX = { display: "flex", alignItems: "center", gap: "7px", fontSiz
 const CARD_LABEL_SX = { fontSize: FS.sm, fontWeight: 600, color: "text.secondary" };
 
 /**
+ * sx for the drag handle positioned at the right edge of a resizable table
+ * header cell. The cell itself must have `position: "relative"` and
+ * `overflow: "hidden"`. A 1px hairline appears on hover; turns primary on drag.
+ */
+const RESIZE_HANDLE_SX = {
+  position: "absolute" as const,
+  right: 0, top: 0, bottom: 0,
+  width: 8,
+  cursor: "col-resize",
+  zIndex: 1,
+  "&::after": {
+    content: '""',
+    position: "absolute",
+    right: "3px", top: "20%", bottom: "20%",
+    width: "1px",
+    bgcolor: "divider",
+    transition: "background-color 0.15s",
+  },
+  "&:hover::after": { bgcolor: "primary.main" },
+} as const;
+
+/**
  * Returns MUI sx objects for status Chips, keyed by lowercase status string.
  * Respects colorblind mode. Background is a semi-transparent tint of the status colour.
  */
@@ -246,6 +268,7 @@ export {
   FS,
   HOVER_CARD_BASE_SX,
   MS,
+  RESIZE_HANDLE_SX,
   STAT_ROW_SX,
   assigneesOtherThanAuthor,
   durationDays,

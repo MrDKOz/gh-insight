@@ -12,7 +12,8 @@ import TableRow from "@mui/material/TableRow";
 import TableSortLabel from "@mui/material/TableSortLabel";
 import Typography from "@mui/material/Typography";
 import { memo, useMemo, useState } from "react";
-import { COLORS, COLORS_CB, FS, MS, fmtDate, itemEndDate, itemStatus, makeStatusChipSx, pluralize, safeUrl } from "../utils/utils";
+import { useColumnResize } from "../hooks/useColumnResize";
+import { COLORS, COLORS_CB, FS, MS, RESIZE_HANDLE_SX, fmtDate, itemEndDate, itemStatus, makeStatusChipSx, pluralize, safeUrl } from "../utils/utils";
 import { AuthorWithAssignees } from "./AuthorWithAssignees";
 import { LabelBadge } from "./LabelBadge";
 import { MilestonePill } from "./MilestonePill";
@@ -26,6 +27,36 @@ type Props = {
 type SortCol = "type" | "number" | "title" | "author" | "status" | "milestone" | "created" | "closed" | "days";
 type SortDir = "asc" | "desc";
 
+// Default column widths (px): type, #, title, author, status, [milestone,] created, closed, days
+const DEFAULTS_SINGLE = [56, 60, 320, 160, 88,      92, 92, 62] as const;
+const DEFAULTS_MULTI  = [56, 60, 320, 160, 88, 120, 92, 92, 62] as const;
+
+type ThProps = {
+  col: SortCol;
+  label: string;
+  sortCol: SortCol;
+  sortDir: SortDir;
+  onSort: (col: SortCol) => void;
+  onResize: (e: React.MouseEvent) => void;
+};
+
+// Defined outside ItemListInner so React doesn't see a new component type on
+// every render (which would cause unnecessary unmount/remount during resize drags).
+const Th: FunctionComponent<ThProps> = ({ col, label, sortCol, sortDir, onSort, onResize }) => (
+  <TableCell
+    sortDirection={sortCol === col ? sortDir : false}
+    sx={{ fontWeight: 600, fontSize: FS.sm, py: 1, whiteSpace: "nowrap", position: "relative", overflow: "hidden", userSelect: "none" }}
+  >
+    <TableSortLabel
+      active={sortCol === col}
+      direction={sortCol === col ? sortDir : "asc"}
+      onClick={() => onSort(col)}
+    >
+      {label}
+    </TableSortLabel>
+    <Box onMouseDown={onResize} sx={RESIZE_HANDLE_SX} />
+  </TableCell>
+);
 
 const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblindMode }) => {
   const palette = colorblindMode ? COLORS_CB : COLORS;
@@ -33,8 +64,12 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
   const isMulti = milestones.length > 1;
-
   const milestoneMap = useMemo(() => new Map(milestones.map((m) => [m.number, m])), [milestones]);
+
+  const defaultWidths = isMulti ? [...DEFAULTS_MULTI] : [...DEFAULTS_SINGLE];
+  const { widths: colWidths, startResize } = useColumnResize(defaultWidths);
+  // Guard: if isMulti changed since mount the lengths won't match — fall back to defaults.
+  const widths = colWidths.length === defaultWidths.length ? colWidths : defaultWidths;
 
   const handleSort = (col: SortCol) => {
     if (col === sortCol) {
@@ -100,35 +135,31 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
 
   const statusChipSx = makeStatusChipSx(colorblindMode);
 
-  const Th: FunctionComponent<{ col: SortCol; label: string }> = ({ col, label }) => (
-    <TableCell
-      sortDirection={sortCol === col ? sortDir : false}
-      sx={{ fontWeight: 600, fontSize: FS.sm, py: 1, whiteSpace: "nowrap" }}
-    >
-      <TableSortLabel
-        active={sortCol === col}
-        direction={sortCol === col ? sortDir : "asc"}
-        onClick={() => handleSort(col)}
-      >
-        {label}
-      </TableSortLabel>
-    </TableCell>
-  );
+  // Helper to build the onResize handler for a given column index.
+  const resize = (i: number) => (e: React.MouseEvent) => startResize(i, e, widths[i]!);
+
+  // Column indices shift when milestone is visible.
+  const ci = isMulti
+    ? { type: 0, num: 1, title: 2, author: 3, status: 4, milestone: 5, created: 6, closed: 7, days: 8 }
+    : { type: 0, num: 1, title: 2, author: 3, status: 4, milestone: -1, created: 5, closed: 6, days: 7 };
 
   return (
-    <TableContainer sx={{ border: 1, borderColor: "divider", borderRadius: 1 }}>
-      <Table size="small">
+    <TableContainer sx={{ border: 1, borderColor: "divider", borderRadius: 1, overflowX: "auto" }}>
+      <Table size="small" sx={{ tableLayout: "fixed", minWidth: widths.reduce((s, w) => s + w, 0) }}>
+        <colgroup>
+          {widths.map((w, i) => <col key={i} style={{ width: w }} />)}
+        </colgroup>
         <TableHead>
           <TableRow>
-            <Th col="type" label="Type" />
-            <Th col="number" label="#" />
-            <Th col="title" label="Title" />
-            <Th col="author" label="Author / Assignees" />
-            <Th col="status" label="Status" />
-            {isMulti && <Th col="milestone" label="Milestone" />}
-            <Th col="created" label="Created" />
-            <Th col="closed" label="Closed" />
-            <Th col="days" label="Days" />
+            <Th col="type"      label="Type"               sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(ci.type)} />
+            <Th col="number"    label="#"                  sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(ci.num)} />
+            <Th col="title"     label="Title"              sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(ci.title)} />
+            <Th col="author"    label="Author / Assignees" sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(ci.author)} />
+            <Th col="status"    label="Status"             sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(ci.status)} />
+            {isMulti && <Th col="milestone" label="Milestone" sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(ci.milestone)} />}
+            <Th col="created"   label="Created"            sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(ci.created)} />
+            <Th col="closed"    label="Closed"             sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(ci.closed)} />
+            <Th col="days"      label="Days"               sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(ci.days)} />
           </TableRow>
         </TableHead>
         <TableBody>
@@ -148,7 +179,7 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                 key={`${item.type}-${item.number}`}
                 sx={{ opacity: isOpen ? 0.65 : 1, "&:hover": { opacity: 1, bgcolor: "action.hover" } }}
               >
-                <TableCell>
+                <TableCell sx={{ overflow: "hidden" }}>
                   <Chip
                     label={item.type.toUpperCase()}
                     size="small"
@@ -162,7 +193,7 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                     }}
                   />
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ overflow: "hidden" }}>
                   <Link
                     href={safeUrl(item.url)}
                     target="_blank"
@@ -178,7 +209,7 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                     #{item.number}
                   </Link>
                 </TableCell>
-                <TableCell sx={{ maxWidth: 380 }}>
+                <TableCell sx={{ overflow: "hidden" }}>
                   <Link
                     href={safeUrl(item.url)}
                     target="_blank"
@@ -206,10 +237,10 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                     </Box>
                   )}
                 </TableCell>
-                <TableCell sx={{ whiteSpace: "nowrap", color: "text.secondary", fontSize: FS.base }}>
+                <TableCell sx={{ overflow: "hidden", color: "text.secondary", fontSize: FS.base }}>
                   <AuthorWithAssignees author={item.author} assignees={item.assignees} />
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ overflow: "hidden" }}>
                   <Chip
                     label={status}
                     size="small"
@@ -217,19 +248,19 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                   />
                 </TableCell>
                 {isMulti && (
-                  <TableCell>
+                  <TableCell sx={{ overflow: "hidden" }}>
                     {ms && <MilestonePill color={ms.color} title={ms.title} />}
                   </TableCell>
                 )}
-                <TableCell sx={{ whiteSpace: "nowrap", color: "text.secondary", fontSize: FS.base }}>
+                <TableCell sx={{ overflow: "hidden", whiteSpace: "nowrap", color: "text.secondary", fontSize: FS.base }}>
                   {fmtDate(item.createdAt)}
                 </TableCell>
-                <TableCell sx={{ whiteSpace: "nowrap", color: "text.secondary", fontSize: FS.base }}>
+                <TableCell sx={{ overflow: "hidden", whiteSpace: "nowrap", color: "text.secondary", fontSize: FS.base }}>
                   {end ? fmtDate(end) : <Typography component="span" color="divider">—</Typography>}
                 </TableCell>
                 <TableCell
                   align="right"
-                  sx={{ whiteSpace: "nowrap", color: "text.secondary", fontSize: FS.base, fontVariantNumeric: "tabular-nums" }}
+                  sx={{ overflow: "hidden", whiteSpace: "nowrap", color: "text.secondary", fontSize: FS.base, fontVariantNumeric: "tabular-nums" }}
                 >
                   {days !== null ? days : <Typography component="span" color="divider">—</Typography>}
                 </TableCell>
