@@ -2,6 +2,8 @@ import type { Milestone } from "./types";
 import type { FunctionComponent } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import ButtonGroup from "@mui/material/ButtonGroup";
 import CssBaseline from "@mui/material/CssBaseline";
 import Divider from "@mui/material/Divider";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -84,6 +86,9 @@ const App: FunctionComponent = () => {
   );
   const [settingsAnchor, setSettingsAnchor] = useState<HTMLElement | null>(null);
   const { settings, updateSetting } = useSettings();
+
+  const [configError, setConfigError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [state, dispatch] = useReducer(milestoneReducer, initialState);
 
@@ -307,6 +312,54 @@ const App: FunctionComponent = () => {
     try { localStorage.setItem(LS_REPO, v); } catch { /* quota exceeded — value persists in state for this session */ }
   }, []);
 
+  const handleExportConfig = useCallback(() => {
+    const config = { version: 1, owner, repo, dark, token, settings };
+    const blob = new Blob([JSON.stringify(config, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    try {
+      const a = document.createElement("a");
+      a.href = url; a.download = "github-work-visualiser-config.json";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }, [owner, repo, dark, token, settings]);
+
+  const handleImportConfig = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // reset so the same file can be re-imported
+    if (!file) {return;}
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const raw: unknown = JSON.parse(ev.target?.result as string);
+        if (typeof raw !== "object" || raw === null) {throw new Error("Not a valid config object");}
+        const c = raw as Record<string, unknown>;
+        if (typeof c.owner === "string")  {handleOwnerChange(c.owner);}
+        if (typeof c.repo  === "string")  {handleRepoChange(c.repo);}
+        if (typeof c.dark  === "boolean") {
+          setDark(c.dark);
+          localStorage.setItem(LS_DARK, String(c.dark));
+          document.body.classList.toggle("dark", c.dark);
+        }
+        if (typeof c.token === "string" && c.token) {
+          setToken(c.token);
+          handleTokenBlur(c.token);
+        }
+        if (typeof c.settings === "object" && c.settings !== null) {
+          const s = c.settings as Record<string, unknown>;
+          if (typeof s.highlightWeekends === "boolean") {updateSetting("highlightWeekends", s.highlightWeekends);}
+          if (typeof s.colorblindMode    === "boolean") {updateSetting("colorblindMode",    s.colorblindMode);}
+          if (typeof s.fullWidth         === "boolean") {updateSetting("fullWidth",         s.fullWidth);}
+        }
+        setSettingsAnchor(null);
+      } catch (err) {
+        setConfigError(`Config import failed: ${err instanceof Error ? err.message : "invalid file"}`);
+      }
+    };
+    reader.readAsText(file);
+  }, [handleOwnerChange, handleRepoChange, handleTokenBlur, updateSetting]);
+
   return (
     <ThemeProvider theme={dark ? muiDarkTheme : muiLightTheme}>
       <CssBaseline />
@@ -361,8 +414,21 @@ const App: FunctionComponent = () => {
                   label={<Typography variant="body2">Full width layout</Typography>}
                 />
               </Stack>
+              <Divider sx={{ my: 1.5 }} />
+              <Typography variant="caption" fontWeight={700} color="text.secondary"
+                sx={{ textTransform: "uppercase", letterSpacing: "0.06em", display: "block", mb: 1 }}>
+                Config
+              </Typography>
+              <ButtonGroup size="small" variant="outlined" fullWidth>
+                <Button onClick={handleExportConfig}>Export</Button>
+                <Button onClick={() => fileInputRef.current?.click()}>Import</Button>
+              </ButtonGroup>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.75 }}>
+                Export includes your token in plain text.
+              </Typography>
             </Box>
           </Popover>
+          <input type="file" accept=".json" hidden ref={fileInputRef} onChange={handleImportConfig} />
           <IconButton onClick={toggleDark} title={dark ? "Switch to light mode" : "Switch to dark mode"} aria-label={dark ? "Switch to light mode" : "Switch to dark mode"} size="small">
             {dark ? (
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -409,6 +475,9 @@ const App: FunctionComponent = () => {
 
         {tokenError && (
           <Alert severity="warning" onClose={() => setTokenError(null)}>{tokenError}</Alert>
+        )}
+        {configError && (
+          <Alert severity="error" onClose={() => setConfigError(null)}>{configError}</Alert>
         )}
         {state.error && <Alert severity="error">{state.error}</Alert>}
         {state.emptyMilestoneNums.length > 0 && (
