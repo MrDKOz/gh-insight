@@ -124,6 +124,9 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
   const [exportError, setExportError] = useState<string | null>(null);
   const [copyTooltip, setCopyTooltip] = useState<"idle" | "copied">("idle");
 
+  const [toolbarSlot, setToolbarSlot] = useState<Element | null>(null);
+  const [filterSlot, setFilterSlot] = useState<Element | null>(null);
+
   const wrapperRef = useRef<HTMLDivElement>(null);
   const trackColRef = useRef<HTMLDivElement>(null);
   const axisRef = useRef<HTMLDivElement>(null);
@@ -173,6 +176,15 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
   useEffect(() => {
     syncFiltersToUrl(filters);
   }, [filters]);
+
+  // Read portal target nodes after mount — querying the DOM inline during
+  // render returns null on first paint because sibling components haven't
+  // been committed yet. useLayoutEffect runs synchronously after commit, so
+  // the elements are guaranteed to exist by the time the second paint fires.
+  useLayoutEffect(() => {
+    setToolbarSlot(document.getElementById("timeline-toolbar"));
+    setFilterSlot(document.getElementById("filter-bar-slot"));
+  }, []);
 
   useEffect(() => () => {
     dragCleanupRef.current?.();
@@ -344,9 +356,6 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
   }
 
   const noFilteredItems = filteredItems.length === 0;
-
-  const toolbarSlot = document.getElementById("timeline-toolbar");
-  const filterSlot  = document.getElementById("filter-bar-slot");
 
   const toolbar = (
     <Stack direction="row" gap={1} alignItems="center" data-export-exclude>
