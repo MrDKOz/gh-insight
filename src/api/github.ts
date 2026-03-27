@@ -1,4 +1,4 @@
-import type { Milestone, TimelineItem } from "../types";
+import type { Label, Milestone, TimelineItem } from "../types";
 
 const GH_API = "https://api.github.com";
 const GH_GRAPHQL = "https://api.github.com/graphql";
@@ -11,29 +11,26 @@ type RawMilestone = {
   closed_issues: number;
 };
 
-function mapMilestone(raw: RawMilestone): Milestone {
-  return {
-    number: raw.number,
-    title: raw.title,
-    state: raw.state,
-    openIssues: raw.open_issues,
-    closedIssues: raw.closed_issues,
-  };
-}
+const mapMilestone = (raw: RawMilestone): Milestone => ({
+  number: raw.number,
+  title: raw.title,
+  state: raw.state,
+  openIssues: raw.open_issues,
+  closedIssues: raw.closed_issues,
+});
 
-function authHeaders(token: string): Record<string, string> {
-  return {
-    Authorization: `Bearer ${token}`,
-    Accept: "application/vnd.github.v3+json",
-  };
-}
+const authHeaders = (token: string): Record<string, string> => ({
+  Authorization: `Bearer ${token}`,
+  Accept: "application/vnd.github+json",
+  "X-GitHub-Api-Version": "2022-11-28",
+});
 
-async function checkResponse(res: Response): Promise<void> {
+const checkResponse = async (res: Response): Promise<void> => {
   if (!res.ok) {
     let ghMessage = "";
     try {
       const body = (await res.json()) as { message?: string };
-      if (body.message) ghMessage = body.message;
+      if (body.message) {ghMessage = body.message;}
     } catch {
       // ignore
     }
@@ -45,33 +42,43 @@ async function checkResponse(res: Response): Promise<void> {
     }
     if (res.status === 404) {
       throw new Error(
-        `Repository not found (404) — verify the owner/repo names are correct. ` +
-          `For private repos, ensure your token has the "repo" scope (classic) or "Contents: Read" permission (fine-grained).` +
+        "Repository not found (404) — verify the owner/repo names are correct. " +
+          "For private repos, ensure your token has the \"repo\" scope (classic) or \"Contents: Read\" permission (fine-grained)." +
           `${ghMessage ? ` GitHub: ${ghMessage}` : ""}`,
       );
     }
     throw new Error(`GitHub API error ${res.status}${ghMessage ? `: ${ghMessage}` : ""}`);
   }
-}
+};
 
-async function fetchMilestones(owner: string, repo: string, token: string, signal?: AbortSignal): Promise<Milestone[]> {
+const fetchMilestones = async (owner: string, repo: string, token: string, signal?: AbortSignal): Promise<Milestone[]> => {
   const results: Milestone[] = [];
   let page = 1;
 
   while (true) {
     const res = await fetch(
       `${GH_API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/milestones?state=all&per_page=100&page=${page}`,
-      { headers: authHeaders(token), signal },
+      { headers: authHeaders(token), signal: signal ?? null },
     );
     await checkResponse(res);
     const data = (await res.json()) as RawMilestone[];
     results.push(...data.map(mapMilestone));
-    if (data.length < 100) break;
+    if (data.length < 100) {break;}
     page++;
   }
 
   return results.sort((a, b) => a.title.localeCompare(b.title));
-}
+};
+
+// Fragment for label + assignee fields shared across issue/PR nodes
+const LABEL_ASSIGNEE_FIELDS = `
+  labels(first: 20) {
+    nodes { name color }
+  }
+  assignees(first: 10) {
+    nodes { login }
+  }
+`;
 
 const MILESTONE_QUERY = `
   query MilestoneData($owner: String!, $repo: String!, $milestoneNumber: Int!, $after: String) {
@@ -89,6 +96,10 @@ const MILESTONE_QUERY = `
             author { login }
             createdAt
             closedAt
+            ${LABEL_ASSIGNEE_FIELDS}
+            timelineItems(first: 1, itemTypes: [REOPENED_EVENT]) {
+              totalCount
+            }
             closedByPullRequestsReferences(first: 20, includeClosedPrs: true) {
               nodes {
                 number
@@ -98,6 +109,10 @@ const MILESTONE_QUERY = `
                 createdAt
                 mergedAt
                 closedAt
+                ${LABEL_ASSIGNEE_FIELDS}
+                reviews(first: 1, states: [APPROVED, CHANGES_REQUESTED, COMMENTED]) {
+                  nodes { submittedAt }
+                }
               }
             }
           }
@@ -107,6 +122,51 @@ const MILESTONE_QUERY = `
   }
 `;
 
+// Fetches PRs directly attached to the milestone (not just via closedByPullRequestsReferences)
+const MILESTONE_PRS_QUERY = `
+  query MilestonePRs($owner: String!, $repo: String!, $milestoneNumber: Int!, $after: String) {
+    repository(owner: $owner, name: $repo) {
+      milestone(number: $milestoneNumber) {
+        pullRequests(first: 100, after: $after, states: [OPEN, CLOSED, MERGED]) {
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
+          nodes {
+            number
+            title
+            url
+            author { login }
+            createdAt
+            mergedAt
+            closedAt
+            ${LABEL_ASSIGNEE_FIELDS}
+            reviews(first: 1, states: [APPROVED, CHANGES_REQUESTED, COMMENTED]) {
+              nodes { submittedAt }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+type GQLLabelNode = { name: string; color: string };
+type GQLUserNode  = { login: string };
+
+type GQLPRNode = {
+  number: number;
+  title: string;
+  url: string;
+  author: { login: string } | null;
+  createdAt: string;
+  mergedAt: string | null;
+  closedAt: string | null;
+  labels: { nodes: GQLLabelNode[] };
+  assignees: { nodes: GQLUserNode[] };
+  reviews: { nodes: Array<{ submittedAt: string }> };
+};
+
 type GQLIssueNode = {
   number: number;
   title: string;
@@ -114,86 +174,132 @@ type GQLIssueNode = {
   author: { login: string } | null;
   createdAt: string;
   closedAt: string | null;
+  labels: { nodes: GQLLabelNode[] };
+  assignees: { nodes: GQLUserNode[] };
+  timelineItems: { totalCount: number };
   closedByPullRequestsReferences: {
-    nodes: Array<{
-      number: number;
-      title: string;
-      url: string;
-      author: { login: string } | null;
-      createdAt: string;
-      mergedAt: string | null;
-      closedAt: string | null;
-    }>;
+    nodes: GQLPRNode[];
   };
 };
 
-type GQLResponse = {
-  data?: {
-    repository?: {
-      milestone?: {
-        issues: {
-          pageInfo: { hasNextPage: boolean; endCursor: string | null };
-          nodes: GQLIssueNode[];
-        };
-      } | null;
+
+// Explicit response data shapes for gqlFetch<T> to avoid TS7022 circular inference
+type IssuePageData = {
+  repository?: {
+    milestone?: {
+      issues: {
+        pageInfo: { hasNextPage: boolean; endCursor: string | null };
+        nodes: GQLIssueNode[];
+      };
     } | null;
-  };
-  errors?: Array<{ message: string }>;
+  } | null;
 };
 
-async function fetchMilestoneItems(
+type PRPageData = {
+  repository?: {
+    milestone?: {
+      pullRequests: {
+        pageInfo: { hasNextPage: boolean; endCursor: string | null };
+        nodes: GQLPRNode[];
+      };
+    } | null;
+  } | null;
+};
+
+const HEX_COLOR_RE = /^[0-9a-f]{6}$/i;
+
+const mapLabels = (nodes: GQLLabelNode[]): Label[] =>
+  nodes.map((n) => ({
+    name: n.name,
+    // GitHub returns a bare 6-char hex string; validate before prefixing so
+    // malformed API values don't silently break CSS or labelTextColor().
+    color: HEX_COLOR_RE.test(n.color) ? `#${n.color}` : "#cccccc",
+  }));
+
+const gqlFetch = async <T>(
+  query: string,
+  variables: Record<string, unknown>,
+  token: string,
+  signal?: AbortSignal,
+): Promise<T> => {
+  const res = await fetch(GH_GRAPHQL, {
+    method: "POST",
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify({ query, variables }),
+    signal: signal ?? null,
+  });
+  await checkResponse(res);
+  const json = (await res.json()) as { data?: T | null; errors?: Array<{ message: string }> };
+  if (json.errors && json.errors.length > 0) {throw new Error(json.errors[0]!.message);}
+  if (json.data == null) {throw new Error("GraphQL response contained no data");}
+  return json.data;
+};
+
+const fetchMilestoneItems = async (
   owner: string,
   repo: string,
   token: string,
   milestoneNumber: number,
   signal?: AbortSignal,
-): Promise<TimelineItem[]> {
+): Promise<TimelineItem[]> => {
+  // ── Fetch issues (+ PRs via closedByPullRequestsReferences) ────────────────
   const allIssues: GQLIssueNode[] = [];
   let after: string | null = null;
 
   while (true) {
-    const res = await fetch(GH_GRAPHQL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query: MILESTONE_QUERY,
-        variables: { owner, repo, milestoneNumber, after },
-      }),
+    const data: IssuePageData = await gqlFetch<IssuePageData>(
+      MILESTONE_QUERY,
+      { owner, repo, milestoneNumber, after },
+      token,
       signal,
-    });
+    );
 
-    await checkResponse(res);
-    const json = (await res.json()) as GQLResponse;
-
-    if (json.errors && json.errors.length > 0) {
-      throw new Error(json.errors[0].message);
-    }
-
-    const milestone = json.data?.repository?.milestone;
-    if (!milestone) {
-      throw new Error("Milestone not found in repository");
-    }
+    const milestone = data?.repository?.milestone;
+    if (!milestone) {throw new Error("Milestone not found in repository");}
 
     const { nodes, pageInfo } = milestone.issues;
     allIssues.push(...nodes);
-
-    if (!pageInfo.hasNextPage) break;
+    if (!pageInfo.hasNextPage) {break;}
     after = pageInfo.endCursor;
   }
 
+  // ── Fetch PRs directly assigned to the milestone ────────────────────────────
+  const allMilestonePRs: GQLPRNode[] = [];
+  let prAfter: string | null = null;
+
+  while (true) {
+    const data: PRPageData = await gqlFetch<PRPageData>(
+      MILESTONE_PRS_QUERY,
+      { owner, repo, milestoneNumber, after: prAfter },
+      token,
+      signal,
+    );
+
+    const milestone = data?.repository?.milestone;
+    if (!milestone) {break;} // graceful — some GH plans restrict this
+
+    const { nodes, pageInfo } = milestone.pullRequests;
+    allMilestonePRs.push(...nodes);
+    if (!pageInfo.hasNextPage) {break;}
+    prAfter = pageInfo.endCursor;
+  }
+
+  // Index milestone PRs by number for O(1) lookup
+  const milestonePRMap = new Map<number, GQLPRNode>(allMilestonePRs.map((pr) => [pr.number, pr]));
+
+  // ── Build TimelineItem list ──────────────────────────────────────────────────
   const items: TimelineItem[] = [];
   const seenPRs = new Set<number>();
 
   for (const issue of allIssues) {
     const linkedPRNums: number[] = [];
 
-    for (const pr of issue.closedByPullRequestsReferences.nodes) {
-      linkedPRNums.push(pr.number);
-      if (!seenPRs.has(pr.number)) {
-        seenPRs.add(pr.number);
+    for (const refPR of issue.closedByPullRequestsReferences.nodes) {
+      linkedPRNums.push(refPR.number);
+      if (!seenPRs.has(refPR.number)) {
+        seenPRs.add(refPR.number);
+        // Prefer milestone PR node (has full data); fall back to the reference node
+        const pr = milestonePRMap.get(refPR.number) ?? refPR;
         items.push({
           type: "pr",
           number: pr.number,
@@ -205,6 +311,9 @@ async function fetchMilestoneItems(
           closedAt: pr.closedAt,
           linkedIssue: issue.number > 0 ? issue.number : null,
           milestoneNumber,
+          labels: mapLabels(pr.labels.nodes),
+          assignees: pr.assignees.nodes.map((n) => n.login),
+          firstReviewAt: pr.reviews.nodes[0]?.submittedAt ?? null,
         });
       }
     }
@@ -219,10 +328,35 @@ async function fetchMilestoneItems(
       closedAt: issue.closedAt,
       linkedPRs: linkedPRNums,
       milestoneNumber,
+      labels: mapLabels(issue.labels.nodes),
+      assignees: issue.assignees.nodes.map((n) => n.login),
+      reopenedCount: issue.timelineItems.totalCount,
     });
   }
 
-  return items;
-}
+  // Add any milestone PRs that weren't already picked up via issue references
+  for (const pr of allMilestonePRs) {
+    if (!seenPRs.has(pr.number)) {
+      seenPRs.add(pr.number);
+      items.push({
+        type: "pr",
+        number: pr.number,
+        title: pr.title,
+        url: pr.url,
+        author: pr.author?.login ?? "ghost",
+        createdAt: pr.createdAt,
+        mergedAt: pr.mergedAt,
+        closedAt: pr.closedAt,
+        linkedIssue: null,
+        milestoneNumber,
+        labels: mapLabels(pr.labels.nodes),
+        assignees: pr.assignees.nodes.map((n) => n.login),
+        firstReviewAt: pr.reviews.nodes[0]?.submittedAt ?? null,
+      });
+    }
+  }
 
-export { fetchMilestones, fetchMilestoneItems };
+  return items;
+};
+
+export { fetchMilestoneItems, fetchMilestones };

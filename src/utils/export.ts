@@ -1,22 +1,23 @@
 import type { TimelineItem } from "../types";
-import { itemEndDate, fmtDate, MS } from "./utils";
+import { MS, fmtDate, itemEndDate } from "./utils";
 
-function safeFilename(s: string): string {
-  return s
+const safeFilename = (s: string): string =>
+  s
     .replace(/[^a-zA-Z0-9_-]/g, "_")
     .replace(/_+/g, "_")
     .replace(/^_|_$/g, "");
-}
 
-function triggerBlobDownload(content: string, filename: string, mime: string): void {
+const triggerBlobDownload = (content: string, filename: string, mime: string): void => {
   const blob = new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
   URL.revokeObjectURL(url);
-}
+};
 
 type Row = {
   type: string;
@@ -31,8 +32,8 @@ type Row = {
   url: string;
 };
 
-function buildRows(items: TimelineItem[]): Row[] {
-  return [...items]
+const buildRows = (items: TimelineItem[]): Row[] =>
+  [...items]
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
     .map((item) => {
       const endDate = itemEndDate(item);
@@ -60,11 +61,10 @@ function buildRows(items: TimelineItem[]): Row[] {
         url: item.url,
       };
     });
-}
 
 const COLS = ["Type", "Number", "Title", "Author", "Status", "Opened", "Closed/Merged", "Duration (days)", "Linked to", "URL"] as const;
 
-function exportCSV(items: TimelineItem[], title: string): void {
+const exportCSV = (items: TimelineItem[], title: string): void => {
   const rows = buildRows(items);
   const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
   const lines = [
@@ -74,9 +74,9 @@ function exportCSV(items: TimelineItem[], title: string): void {
     ),
   ];
   triggerBlobDownload(lines.join("\r\n"), `${safeFilename(title)}.csv`, "text/csv;charset=utf-8;");
-}
+};
 
-function exportMarkdown(items: TimelineItem[], title: string): void {
+const exportMarkdown = (items: TimelineItem[], title: string): void => {
   const rows = buildRows(items);
   const pipe = (s: string) => s.replace(/\|/g, "\\|");
   const lines = [
@@ -90,14 +90,14 @@ function exportMarkdown(items: TimelineItem[], title: string): void {
     ),
   ];
   triggerBlobDownload(lines.join("\n"), `${safeFilename(title)}.md`, "text/markdown;charset=utf-8;");
-}
+};
 
-async function exportPNG(
+const exportPNG = async (
   wrapperEl: HTMLElement,
   trackColEl: HTMLElement | null,
   title: string,
   mode: "current" | "full",
-): Promise<void> {
+): Promise<void> => {
   const { toPng } = await import("html-to-image");
 
   let prevTrackOverflowX = "";
@@ -119,14 +119,26 @@ async function exportPNG(
     wrapperEl.style.width = `${captureWidth}px`;
   }
 
+  // Transparent 1×1 PNG — used as fallback when external images (e.g. GitHub
+  // avatars) fail to load due to CORS inside html-to-image's cloned document.
+  const TRANSPARENT_PNG =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+
+  const opts = {
+    pixelRatio: 2,
+    skipFonts: true,
+    imagePlaceholder: TRANSPARENT_PNG,
+    ...(captureWidth !== undefined ? { width: captureWidth } : {}),
+    ...(captureHeight !== undefined ? { height: captureHeight } : {}),
+    filter: (node: Node) => !(node instanceof Element && node.hasAttribute("data-export-exclude")),
+  };
+
   try {
-    const dataUrl = await toPng(wrapperEl, {
-      cacheBust: true,
-      pixelRatio: 2,
-      ...(captureWidth !== undefined ? { width: captureWidth } : {}),
-      ...(captureHeight !== undefined ? { height: captureHeight } : {}),
-      filter: (node) => !(node instanceof Element && node.hasAttribute("data-export-exclude")),
-    });
+    // Warm-up call: forces Emotion's CSSStyleSheet.insertRule() styles to be
+    // inlined into the cloned document. html-to-image can't capture adoptedStyleSheets
+    // on the first call with Vite/Emotion — the second call always captures correctly.
+    await toPng(wrapperEl, opts).catch(() => {});
+    const dataUrl = await toPng(wrapperEl, opts);
     const a = document.createElement("a");
     a.href = dataUrl;
     a.download = `${safeFilename(title)}_${mode === "full" ? "full" : "current"}.png`;
@@ -138,9 +150,9 @@ async function exportPNG(
       wrapperEl.style.width = prevWrapperWidth;
     }
   }
-}
+};
 
-async function exportPDF(items: TimelineItem[], title: string): Promise<void> {
+const exportPDF = async (items: TimelineItem[], title: string): Promise<void> => {
   const { jsPDF } = await import("jspdf");
   const { default: autoTable } = await import("jspdf-autotable");
 
@@ -187,9 +199,9 @@ async function exportPDF(items: TimelineItem[], title: string): Promise<void> {
   });
 
   doc.save(`${safeFilename(title)}.pdf`);
-}
+};
 
-async function exportXLSX(items: TimelineItem[], title: string): Promise<void> {
+const exportXLSX = async (items: TimelineItem[], title: string): Promise<void> => {
   const { default: writeXlsxFile } = await import("write-excel-file");
 
   const rows = buildRows(items);
@@ -230,6 +242,6 @@ async function exportXLSX(items: TimelineItem[], title: string): Promise<void> {
     ],
     fileName: `${safeFilename(title)}.xlsx`,
   });
-}
+};
 
-export { exportCSV, exportMarkdown, exportPNG, exportPDF, exportXLSX };
+export { buildRows, exportCSV, exportMarkdown, exportPDF, exportPNG, exportXLSX, safeFilename };

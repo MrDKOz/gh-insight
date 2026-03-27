@@ -34,7 +34,7 @@ const initialState: MilestoneState = {
   emptyMilestoneNums: [],
 };
 
-function milestoneReducer(state: MilestoneState, action: Action): MilestoneState {
+const milestoneReducer = (state: MilestoneState, action: Action): MilestoneState => {
   switch (action.type) {
     case "FETCH_LIST_START":
       return { ...state, milestones: [], loadingList: true, error: null };
@@ -105,7 +105,7 @@ function milestoneReducer(state: MilestoneState, action: Action): MilestoneState
     default:
       return state;
   }
-}
+};
 
 export { initialState, milestoneReducer };
-export type { MilestoneState, Action };
+export type { Action, MilestoneState };

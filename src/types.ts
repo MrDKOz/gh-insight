@@ -6,6 +6,11 @@ type Milestone = {
   closedIssues: number;
 };
 
+type Label = {
+  name: string;
+  color: string; // includes leading #
+};
+
 type PRItem = {
   type: "pr";
   number: number;
@@ -17,6 +22,9 @@ type PRItem = {
   closedAt: string | null;
   linkedIssue: number | null;
   milestoneNumber: number;
+  labels: Label[];
+  assignees: string[];
+  firstReviewAt: string | null;
 };
 
 type IssueItem = {
@@ -29,6 +37,9 @@ type IssueItem = {
   closedAt: string | null;
   linkedPRs: number[];
   milestoneNumber: number;
+  labels: Label[];
+  assignees: string[];
+  reopenedCount: number;
 };
 
 type TimelineItem = IssueItem | PRItem;
@@ -39,4 +50,4 @@ type MilestoneMeta = {
   color: string;
 };
 
-export type { Milestone, PRItem, IssueItem, TimelineItem, MilestoneMeta };
+export type { IssueItem, Label, Milestone, MilestoneMeta, PRItem, TimelineItem };
