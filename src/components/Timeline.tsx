@@ -34,16 +34,16 @@ type Props = {
 
 type ExportFormat = "CSV" | "XLSX" | "Markdown" | "PNG — Current view" | "PNG — Full timeline" | "PDF";
 
-// Which exports make sense for each view category:
-//   Gantt       — all formats; PNG Full captures the full scrollable timeline
-//   Chart views — data formats + PNG current (captures the chart); PDF embeds chart as image
-//   List        — data formats only; PDF produces a matching table; PNG adds nothing over CSV
+// Only show export formats whose output visually matches what is on screen:
+//   Gantt       — PNG only; a data table is not a Gantt chart
+//   Chart views — PNG (current) + PDF (embeds the chart as an image)
+//   List        — CSV / XLSX / Markdown / PDF; the list IS a data table so all four match
 const CHART_VIEWS = new Set<View>(["Burndown", "Cycle Time", "Velocity", "Cumulative Flow", "Contributors", "Review Wait"]);
 
 const formatsForView = (v: View): ExportFormat[] => {
-  if (v === "Gantt") {return ["CSV", "XLSX", "Markdown", "PNG — Current view", "PNG — Full timeline", "PDF"];}
+  if (v === "Gantt") {return ["PNG — Current view", "PNG — Full timeline"];}
   if (v === "List")  {return ["CSV", "XLSX", "Markdown", "PDF"];}
-  return ["CSV", "XLSX", "Markdown", "PNG — Current view", "PDF"];
+  return ["PNG — Current view", "PDF"];
 };
 
 type View = "Gantt" | "Burndown" | "Cycle Time" | "Velocity" | "Cumulative Flow" | "Contributors" | "Review Wait" | "List";
