@@ -11,6 +11,8 @@ const stripDevCspPlugin: Plugin = {
     if (ctx.server) { return html; } // dev — leave untouched
     return html
       .replace(/'unsafe-eval'\s*/g, "")
+      // Remove 'unsafe-inline' from script-src only — style-src keeps it for Emotion
+      .replace(/(script-src\s[^;]*?)'unsafe-inline'\s*/g, "$1")
       .replace(/\s*ws:\/\/localhost:[^;]*;?/g, ";");
   },
 };
