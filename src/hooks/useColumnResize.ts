@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * Manages resizable column widths for a table.
@@ -13,6 +13,10 @@ import { useCallback, useState } from "react";
 function useColumnResize(defaultWidths: number[]) {
   const [widths, setWidths] = useState<number[]>(defaultWidths);
 
+  // Holds a cleanup fn for any in-progress drag so unmount can remove listeners.
+  const cleanupRef = useRef<(() => void) | null>(null);
+  useEffect(() => () => { cleanupRef.current?.(); }, []);
+
   const startResize = useCallback(
     (idx: number, e: React.MouseEvent, currentWidth: number) => {
       e.preventDefault();
@@ -22,6 +26,11 @@ function useColumnResize(defaultWidths: number[]) {
         setWidths((prev) => prev.map((w, i) => (i === idx ? newW : w)));
       };
       const onUp = () => {
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+        cleanupRef.current = null;
+      };
+      cleanupRef.current = () => {
         document.removeEventListener("mousemove", onMove);
         document.removeEventListener("mouseup", onUp);
       };

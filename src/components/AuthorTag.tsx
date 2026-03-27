@@ -30,7 +30,7 @@ const AuthorTag: FunctionComponent<TagProps> = ({
     <Box
       component="img"
       src={`https://github.com/${login}.png?size=${size * 2}`}
-      alt={login}
+      alt={showName ? "" : login}
       style={{
         width: size,
         height: size,
@@ -73,7 +73,7 @@ const AuthorCard: FunctionComponent<CardProps> = ({ login, style, onMouseEnter, 
     <Box
       component="img"
       src={`https://github.com/${login}.png?size=144`}
-      alt={login}
+      alt=""
       sx={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", border: 1, borderColor: "divider" }}
     />
     <Box sx={{ fontSize: "0.8125rem", fontWeight: 600 }}>@{login}</Box>

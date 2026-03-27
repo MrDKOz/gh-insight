@@ -79,9 +79,9 @@ const readViewFiltersFromUrl = (): { view: View; filters: Filters } => {
     showOpenPRs:      !hide.has("op"),
     showMergedPRs:    !hide.has("mp"),
     showClosedPRs:    !hide.has("cp"),
-    // Use "|" as separator so label names containing commas are safe
-    activeLabels: p.get("lb") ? p.get("lb")!.split("|").filter(Boolean) : [],
-    activePeople: p.get("pp") ? p.get("pp")!.split("|").filter(Boolean) : [],
+    // "|" separator; each value is URI-encoded so "|" inside a label/name is safe
+    activeLabels: p.get("lb") ? p.get("lb")!.split("|").filter(Boolean).map(decodeURIComponent) : [],
+    activePeople: p.get("pp") ? p.get("pp")!.split("|").filter(Boolean).map(decodeURIComponent) : [],
     peopleRole:   rawRole === "a" ? "author" : rawRole === "s" ? "assignees" : "either",
   };
   return { view, filters };
@@ -104,8 +104,8 @@ const syncFiltersToUrl = (filters: Filters): void => {
   if (!filters.showClosedPRs)    {hidden.push("cp");}
   if (hidden.length > 0) {p.set("hide", hidden.join(","));} else {p.delete("hide");}
 
-  if (filters.activeLabels.length > 0) {p.set("lb", filters.activeLabels.join("|"));} else {p.delete("lb");}
-  if (filters.activePeople.length > 0) {p.set("pp", filters.activePeople.join("|"));} else {p.delete("pp");}
+  if (filters.activeLabels.length > 0) {p.set("lb", filters.activeLabels.map(encodeURIComponent).join("|"));} else {p.delete("lb");}
+  if (filters.activePeople.length > 0) {p.set("pp", filters.activePeople.map(encodeURIComponent).join("|"));} else {p.delete("pp");}
 
   const roleAbbr = filters.peopleRole === "author" ? "a" : filters.peopleRole === "assignees" ? "s" : null;
   if (roleAbbr) {p.set("pr", roleAbbr);} else {p.delete("pr");}

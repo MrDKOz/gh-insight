@@ -266,6 +266,7 @@ const GanttView: FunctionComponent<Props> = ({
                   aria-valuenow={labelWidth}
                   aria-valuemin={200}
                   aria-valuemax={800}
+                  aria-valuetext={`${labelWidth}px`}
                   tabIndex={0}
                   onMouseDown={onResizeStart}
                   onKeyDown={onResizeKeyDown}

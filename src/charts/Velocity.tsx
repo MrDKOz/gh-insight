@@ -13,12 +13,13 @@ type Props = {
   colorblindMode: boolean;
 };
 
+const DAY_MS = 86_400_000;
+
 const weekStart = (ms: number): number => {
   const d = new Date(ms);
-  const dow = d.getUTCDay() === 0 ? 6 : d.getUTCDay() - 1; // 0=Mon … 6=Sun (UTC)
-  const midnight = new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - dow);
-  midnight.setUTCHours(0, 0, 0, 0);
-  return midnight.getTime();
+  const dow = d.getUTCDay() === 0 ? 6 : d.getUTCDay() - 1; // Mon=0 … Sun=6 (UTC)
+  // Date.UTC keeps everything in UTC — no local-timezone mixing
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - dow);
 };
 
 const L = 52, R = 20, T = 24, B = 48, W = 1200, H = 320;
@@ -72,7 +73,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
       if (!endDate) {continue;}
       const ws = weekStart(new Date(endDate).getTime());
       if (!buckets.has(ws)) {
-        buckets.set(ws, { startMs: ws, endMs: ws + 6 * 86_400_000, issues: 0, merged: 0, closed: 0 });
+        buckets.set(ws, { startMs: ws, endMs: ws + 6 * DAY_MS, issues: 0, merged: 0, closed: 0 });
       }
       const w = buckets.get(ws)!;
       if (item.type === "issue")      {w.issues++;}
@@ -97,7 +98,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
       const bucket = msWeekMap.get(item.milestoneNumber);
       if (!bucket) {continue;}
       if (!bucket.has(ws)) {
-        bucket.set(ws, { startMs: ws, endMs: ws + 6 * 86_400_000, total: 0 });
+        bucket.set(ws, { startMs: ws, endMs: ws + 6 * DAY_MS, total: 0 });
       }
       bucket.get(ws)!.total++;
     }
