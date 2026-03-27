@@ -123,39 +123,52 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
   const forecast = useMemo((): Forecast | null => {
     if (isMulti || !hasOpenIssues || !singleSeries || singleSeries.points.length < 2) {return null;}
     const pts = singleSeries.points;
-    const window = pts.slice(-14); // up to last 14 points
-    const n = window.length;
-    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
-    for (let i = 0; i < n; i++) {
-      sumX  += i;
-      sumY  += window[i]!.count;
-      sumXY += i * window[i]!.count;
-      sumX2 += i * i;
-    }
-    const denom = n * sumX2 - sumX * sumX;
-    if (denom === 0) {return null;}
-    const slope     = (n * sumXY - sumX * sumY) / denom;
-    const intercept = (sumY - slope * sumX) / n;
-    if (slope >= 0) {return null;} // not burning down
-    const zeroDayIdx = -intercept / slope; // fractional index within the window
-    // Map back to a real timestamp
-    const windowStartT = window[0]!.t;
-    const projectedT   = windowStartT + zeroDayIdx * MS;
-    if (projectedT <= todayMs) {return null;} // projected date is in the past
-    if (projectedT > todayMs + 180 * MS) {return null;} // too far in the future
-    // Last real data point
     const lastPtIdx = pts.length - 1;
     const lastCount = pts[lastPtIdx]!.count;
     const lastX     = pxFn(lastPtIdx, pts.length);
     const lastY     = pyFn(lastCount);
-    // Forecast X position
-    const rawForecastX = L + ((projectedT - minTime) / (maxTime - minTime)) * CW;
-    const clipped      = rawForecastX > L + CW;
-    const forecastX    = Math.min(rawForecastX, L + CW);
+
+    // Primary: linear regression over up to the last 30 data points
+    const window = pts.slice(-30);
+    const n = window.length;
+    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+    for (let i = 0; i < n; i++) {
+      sumX  += i; sumY  += window[i]!.count;
+      sumXY += i * window[i]!.count; sumX2 += i * i;
+    }
+    const denom = n * sumX2 - sumX * sumX;
+    let projectedT: number | null = null;
+    if (denom !== 0) {
+      const slope     = (n * sumXY - sumX * sumY) / denom;
+      const intercept = (sumY - slope * sumX) / n;
+      if (slope < 0) {
+        const zeroDayIdx  = -intercept / slope;
+        const candidate   = window[0]!.t + zeroDayIdx * MS;
+        if (candidate > todayMs && candidate <= todayMs + 365 * MS) {
+          projectedT = candidate;
+        }
+      }
+    }
+
+    // Fallback: average close-rate over the full milestone lifetime
+    if (projectedT === null) {
+      const closedCount = issues.filter((i) => i.milestoneNumber === singleSeries.ms.number && i.closedAt !== null).length;
+      if (closedCount > 0 && totalDays > 0) {
+        const daysPerClose = totalDays / closedCount;
+        const candidate   = todayMs + lastCount * daysPerClose * MS;
+        if (candidate > todayMs && candidate <= todayMs + 365 * MS) {
+          projectedT = candidate;
+        }
+      }
+    }
+
+    if (projectedT === null) {return null;}
+    const rawForecastX  = L + ((projectedT - minTime) / (maxTime - minTime)) * CW;
+    const clipped       = rawForecastX > L + CW;
+    const forecastX     = Math.min(rawForecastX, L + CW);
     const forecastLabel = `~${fmtDate(new Date(projectedT).toISOString())}`;
     return { lastX, lastY, forecastX, forecastLabel, clipped };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMulti, hasOpenIssues, singleSeries, minTime, maxTime, maxCount, todayMs]);
+  }, [isMulti, hasOpenIssues, singleSeries, issues, totalDays, minTime, maxTime, maxCount, todayMs]);
 
   // X-axis labels (from full time range, not per-series)
   const numXLabels  = Math.min(8, totalDays + 1);
