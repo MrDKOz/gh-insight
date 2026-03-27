@@ -1,14 +1,16 @@
-import { useState, useRef } from "react";
+import type { MilestoneMeta, TimelineItem } from "../types";
 import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
-import type { TimelineItem } from "../types";
-import { MS, fmtDate, COLORS, hoverCardPos } from "../utils/utils";
+import { memo, useMemo, useRef, useState } from "react";
+import { COLORS, COLORS_CB, MS, fmtDate, hoverCardPos } from "../utils/utils";
 
 type Props = {
   items: TimelineItem[];
+  milestones: MilestoneMeta[];
   highlightWeekends: boolean;
+  colorblindMode: boolean;
 };
 
 const L = 48; // left padding (y-axis labels)
@@ -23,16 +25,26 @@ const CH = H - T - B;
 // Hardcoded fallback colours used as SVG presentation attributes so
 // html-to-image captures them correctly (CSS custom properties don't
 // resolve inside the cloned document it creates).
-const C = {
-  area: "rgba(9,105,218,0.12)",
-  line: COLORS.issue,
-  grid: COLORS.chartGrid,
-  axis: COLORS.chartAxis,
-  today: "rgba(248,81,73,0.7)",
-  todayLabel: "rgba(248,81,73,0.9)",
-  label: COLORS.chartAxis,
-  callout: "#24292f",
-  cursor: "rgba(87, 96, 106, 0.5)",
+const makeC = (cb: boolean) => {
+  const p = cb ? COLORS_CB : COLORS;
+  return {
+    area: cb ? "rgba(0,114,178,0.12)" : "rgba(9,105,218,0.12)",
+    line: p.issue,
+    grid: p.chartGrid,
+    axis: p.chartAxis,
+    today: "rgba(248,81,73,0.7)",
+    todayLabel: "rgba(248,81,73,0.9)",
+    label: p.chartAxis,
+    callout: "#24292f",
+    cursor: "rgba(87, 96, 106, 0.5)",
+  };
+};
+
+const upperBound = (arr: number[], t: number): number => {
+  let lo = 0, hi = arr.length;
+  // arr[mid] is always within bounds: mid = (lo+hi)>>>1, and lo < hi throughout the loop
+  while (lo < hi) { const mid = (lo + hi) >>> 1; arr[mid]! <= t ? (lo = mid + 1) : (hi = mid); }
+  return lo;
 };
 
 type HoverInfo = {
@@ -41,125 +53,214 @@ type HoverInfo = {
   date: string;
   count: number;
   svgX: number;
+  msColor?: string;
+  msTitle?: string;
 };
 
-const Burndown: FunctionComponent<Props> = ({ items, highlightWeekends }) => {
-  const issues = items.filter((i) => i.type === "issue");
+const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, colorblindMode }) => {
+  const C = makeC(colorblindMode);
+  const isMulti = milestones.length > 1;
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<HoverInfo | null>(null);
 
-  if (issues.length === 0) {
-    return <Typography sx={{ fontSize: "0.875rem", color: "text.secondary", py: 2.5 }}>No issues to plot a burndown for.</Typography>;
-  }
+  const issues = items.filter((i) => i.type === "issue");
 
   const todayMs = Date.now();
   const hasOpenIssues = issues.some((i) => !i.closedAt);
 
-  // X-axis range: end at the last close date for fully-closed milestones.
-  // Only extend to today when issues are still open, otherwise all closed
-  // data gets squashed to the left when today is months/years later.
-  const createdTs = issues.map((i) => new Date(i.createdAt).getTime());
-  const closedTs = issues.filter((i) => i.closedAt).map((i) => new Date(i.closedAt!).getTime());
-  const minTime = Math.min(...createdTs);
-  const maxTime = hasOpenIssues
-    ? Math.max(...[...createdTs, ...closedTs], todayMs)
-    : Math.max(...[...createdTs, ...closedTs]);
+  // ── Time range ────────────────────────────────────────────────────────────────
+  const allCreatedTs = issues.map((i) => new Date(i.createdAt).getTime());
+  const allClosedTs  = issues.filter((i) => i.closedAt).map((i) => new Date(i.closedAt!).getTime());
+  const minTime = issues.length > 0 ? Math.min(...allCreatedTs) : 0;
+  const maxTime = issues.length > 0
+    ? (hasOpenIssues
+        ? Math.max(...allCreatedTs, ...allClosedTs, todayMs)
+        : Math.max(...allCreatedTs, ...allClosedTs))
+    : 0;
   const totalDays = Math.max(Math.ceil((maxTime - minTime) / MS), 1);
 
-  const points = Array.from({ length: totalDays + 1 }, (_, i) => {
-    const t = minTime + i * MS;
-    const count = issues.filter((issue) => {
-      const created = new Date(issue.createdAt).getTime();
-      const closed = issue.closedAt ? new Date(issue.closedAt).getTime() : Infinity;
-      return created <= t && closed > t;
-    }).length;
-    return { t, count };
-  });
+  // ── Per-milestone series (for both single and multi mode) ─────────────────────
+  const msSeries = useMemo(() => {
+    if (issues.length === 0) {return [];}
+    return milestones.map((ms) => {
+      const msIssues = issues.filter((i) => i.milestoneNumber === ms.number);
+      if (msIssues.length === 0) {return { ms, points: [] };}
+      const sortedCreatedTs = msIssues.map((i) => new Date(i.createdAt).getTime()).sort((a, b) => a - b);
+      const sortedClosedTs  = msIssues.filter((i) => i.closedAt).map((i) => new Date(i.closedAt!).getTime()).sort((a, b) => a - b);
+      const points = Array.from({ length: totalDays + 1 }, (_, idx) => {
+        const t = minTime + idx * MS;
+        return { t, count: upperBound(sortedCreatedTs, t) - upperBound(sortedClosedTs, t) };
+      });
+      return { ms, points };
+    }).filter((s) => s.points.length > 0);
+  }, [issues, milestones, totalDays, minTime]);
 
-  const maxCount = Math.max(...points.map((p) => p.count), 1);
+  // Single-milestone path (first series)
+  const singleSeries = msSeries[0];
 
-  const pxFn = (i: number) => L + (points.length > 1 ? (i / (points.length - 1)) * CW : CW / 2);
+  // ── Axis scales ───────────────────────────────────────────────────────────────
+  const maxCount = useMemo(() => {
+    if (issues.length === 0) {return 1;}
+    if (isMulti) {
+      return Math.max(...msSeries.flatMap((s) => s.points.map((p) => p.count)), 1);
+    }
+    return Math.max(...(singleSeries?.points.map((p) => p.count) ?? [1]), 1);
+  }, [issues.length, isMulti, msSeries, singleSeries]);
+
+  const pxFn = (i: number, numPts: number) => L + (numPts > 1 ? (i / (numPts - 1)) * CW : CW / 2);
   const pyFn = (count: number) => T + (1 - count / maxCount) * CH;
 
-  const linePath = points
-    .map(({ count }, i) => `${i === 0 ? "M" : "L"}${pxFn(i).toFixed(1)},${pyFn(count).toFixed(1)}`)
-    .join(" ");
-  const areaPath = `${linePath} L${(L + CW).toFixed(1)},${(T + CH).toFixed(1)} L${L.toFixed(1)},${(T + CH).toFixed(1)} Z`;
-
-  const numXLabels = Math.min(8, points.length);
-  const xLabelIndices = Array.from({ length: numXLabels }, (_, i) =>
-    Math.round((i / Math.max(numXLabels - 1, 1)) * (points.length - 1)),
-  );
-
-  const yStep = maxCount <= 15 ? 1 : maxCount <= 40 ? 2 : Math.ceil(maxCount / 15);
+  const yStep   = maxCount <= 15 ? 1 : maxCount <= 40 ? 2 : Math.ceil(maxCount / 15);
   const yLabels = Array.from({ length: Math.floor(maxCount / yStep) + 1 }, (_, i) => i * yStep);
 
   const showToday = todayMs >= minTime && todayMs <= maxTime;
   const todayFrac = (todayMs - minTime) / (maxTime - minTime);
   const todayXNum = L + todayFrac * CW;
-  const todayX = todayXNum.toFixed(1);
+  const todayX    = todayXNum.toFixed(1);
   const todayFlipLeft = todayFrac > 0.85;
 
-  const currentOpen = points[points.length - 1].count;
+  // X-axis labels (from full time range, not per-series)
+  const numXLabels  = Math.min(8, totalDays + 1);
+  const xLabelTimes = Array.from({ length: numXLabels }, (_, i) =>
+    minTime + Math.round((i / Math.max(numXLabels - 1, 1)) * totalDays) * MS,
+  );
 
+  // ── Weekend bands ─────────────────────────────────────────────────────────────
+  const weekendBands = useMemo(() => {
+    if (!highlightWeekends || issues.length === 0) {return [];}
+    const bands: Array<{ x: string; w: string }> = [];
+    for (let i = 0; i <= totalDays; i++) {
+      const day = new Date(minTime + i * MS);
+      if (day.getUTCDay() !== 6) {continue;}
+      const x = L + (i / totalDays) * CW;
+      const w = Math.min((2 / totalDays) * CW, CW - (x - L));
+      bands.push({ x: x.toFixed(1), w: w.toFixed(1) });
+    }
+    return bands;
+  }, [highlightWeekends, totalDays, minTime, issues.length]);
+
+  if (issues.length === 0) {
+    return <Typography sx={{ fontSize: "0.875rem", color: "text.secondary", py: 2.5 }}>No issues to plot a burndown for.</Typography>;
+  }
+
+  // ── Hover handler ─────────────────────────────────────────────────────────────
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const wrapX = e.clientX - rect.left;
-    const svgX = (wrapX / rect.width) * W;
-    if (svgX >= L && svgX <= L + CW) {
-      const frac = (svgX - L) / CW;
-      const ptIdx = Math.max(0, Math.min(points.length - 1, Math.round(frac * (points.length - 1))));
-      const { t, count } = points[ptIdx];
-      setHover({ x: wrapX, y: e.clientY - rect.top, date: fmtDate(new Date(t).toISOString()), count, svgX: pxFn(ptIdx) });
-    } else {
-      setHover(null);
+    const svgX  = (wrapX / rect.width) * W;
+    if (svgX < L || svgX > L + CW) { setHover(null); return; }
+
+    const frac  = (svgX - L) / CW;
+    const ptIdx = Math.max(0, Math.min(totalDays, Math.round(frac * totalDays)));
+
+    if (isMulti) {
+      // Show the milestone with the most open issues at this point in time
+      let best: { count: number; series: typeof msSeries[0] } | null = null;
+      for (const s of msSeries) {
+        const count = s.points[ptIdx]?.count ?? 0;
+        if (!best || count > best.count) {best = { count, series: s };}
+      }
+      if (!best) { setHover(null); return; }
+      const svgXPx = pxFn(ptIdx, totalDays + 1);
+      setHover({
+        x: wrapX, y: e.clientY - rect.top,
+        date: fmtDate(new Date(minTime + ptIdx * MS).toISOString()),
+        count: best.count,
+        svgX: svgXPx,
+        msColor: best.series.ms.color,
+        msTitle: best.series.ms.title,
+      });
+    } else if (singleSeries) {
+      // ptIdx is clamped to [0, totalDays] and points has totalDays+1 elements
+      const { t, count } = singleSeries.points[ptIdx]!;
+      setHover({ x: wrapX, y: e.clientY - rect.top, date: fmtDate(new Date(t).toISOString()), count, svgX: pxFn(ptIdx, singleSeries.points.length) });
     }
   };
 
-  const hoverCardStyle = hover ? hoverCardPos(hover.x, hover.y, wrapRef.current?.offsetWidth ?? 800, 180, 68) : {};
+  const hoverCardStyle = hover ? hoverCardPos(hover.x, hover.y, wrapRef.current?.offsetWidth ?? 800, 200, 68) : {};
 
   return (
-    <div className="burndown-wrap" ref={wrapRef} style={{ position: "relative" }} onMouseMove={handleMouseMove} onMouseLeave={() => setHover(null)}>
+    <Box role="presentation" className="burndown-wrap" ref={wrapRef} style={{ position: "relative" }} onMouseMove={handleMouseMove} onMouseLeave={() => setHover(null)}>
       {hover && (
         <Paper elevation={2} sx={{ position: "absolute", display: "flex", flexDirection: "column", gap: "5px", minWidth: 148, px: 1.5, py: 1, pointerEvents: "none", zIndex: 50, ...hoverCardStyle }}>
           <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>{hover.date}</Box>
+          {hover.msColor && (
+            <Box sx={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>
+              <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: hover.msColor, flexShrink: 0 }} />
+              {hover.msTitle}
+            </Box>
+          )}
           <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#0969da", flexShrink: 0 }} />
+            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: hover.msColor ?? C.line, flexShrink: 0 }} />
             {hover.count} open issue{hover.count !== 1 ? "s" : ""}
           </Box>
         </Paper>
       )}
 
+      <table className="sr-only" aria-label="Burndown chart data">
+        <caption>Open issue count over time{isMulti ? " by milestone" : ""}</caption>
+        <thead>
+          <tr>
+            <th scope="col">Date</th>
+            {isMulti
+              ? msSeries.map(({ ms }) => <th key={ms.number} scope="col">{ms.title} (open)</th>)
+              : <th scope="col">Open issues</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {Array.from({ length: totalDays + 1 }, (_, i) => {
+            const t = minTime + i * MS;
+            return (
+              <tr key={t}>
+                <td>{fmtDate(new Date(t).toISOString())}</td>
+                {isMulti
+                  ? msSeries.map(({ ms, points }) => <td key={ms.number}>{points[i]?.count ?? 0}</td>)
+                  : <td>{singleSeries?.points[i]?.count ?? 0}</td>}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+
       <svg
         viewBox={`0 0 ${W} ${H}`}
         style={{ width: "100%", height: "auto", display: "block" }}
-        aria-label="Burndown chart"
+        aria-hidden="true"
       >
-        {highlightWeekends && Array.from({ length: totalDays + 1 }, (_, i) => {
-          const day = new Date(minTime + i * MS);
-          if (day.getUTCDay() !== 6) return null;
-          const x = L + (i / totalDays) * CW;
-          const w = Math.min((2 / totalDays) * CW, CW - (x - L));
-          return <rect key={i} x={x.toFixed(1)} y={T} width={w.toFixed(1)} height={CH} fill="rgba(0,0,0,0.04)" className="chart-weekend" />;
-        })}
-
-        {yLabels.map((count) => (
-          <line
-            key={count}
-            x1={L}
-            y1={pyFn(count).toFixed(1)}
-            x2={L + CW}
-            y2={pyFn(count).toFixed(1)}
-            stroke={C.grid}
-            strokeWidth={1}
-            strokeDasharray="4 3"
-            className="chart-grid"
-          />
+        {weekendBands.map((b, idx) => (
+          <rect key={idx} x={b.x} y={T} width={b.w} height={CH} fill="rgba(0,0,0,0.04)" className="chart-weekend" />
         ))}
 
-        <path d={areaPath} fill={C.area} />
+        {yLabels.map((count) => (
+          <line key={count}
+            x1={L} y1={pyFn(count).toFixed(1)} x2={L + CW} y2={pyFn(count).toFixed(1)}
+            stroke={C.grid} strokeWidth={1} strokeDasharray="4 3" className="chart-grid" />
+        ))}
 
-        <path d={linePath} fill="none" stroke={C.line} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+        {/* Chart lines (and fill area for single-milestone mode) */}
+        {isMulti
+          ? msSeries.map(({ ms, points }) => {
+              const linePath = points
+                .map(({ count }, i) => `${i === 0 ? "M" : "L"}${pxFn(i, points.length).toFixed(1)},${pyFn(count).toFixed(1)}`)
+                .join(" ");
+              return (
+                <path key={ms.number} d={linePath} fill="none" stroke={ms.color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" opacity={0.9} />
+              );
+            })
+          : singleSeries && (() => {
+              const { points } = singleSeries;
+              const linePath = points
+                .map(({ count }, i) => `${i === 0 ? "M" : "L"}${pxFn(i, points.length).toFixed(1)},${pyFn(count).toFixed(1)}`)
+                .join(" ");
+              const areaPath = `${linePath} L${(L + CW).toFixed(1)},${(T + CH).toFixed(1)} L${L.toFixed(1)},${(T + CH).toFixed(1)} Z`;
+              return (
+                <>
+                  <path d={areaPath} fill={C.area} />
+                  <path d={linePath} fill="none" stroke={C.line} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+                </>
+              );
+            })()
+        }
 
         {hover && (
           <>
@@ -171,7 +272,7 @@ const Burndown: FunctionComponent<Props> = ({ items, highlightWeekends }) => {
             />
             <circle
               cx={hover.svgX.toFixed(1)} cy={pyFn(hover.count).toFixed(1)}
-              r={4} fill={C.line} style={{ pointerEvents: "none" }}
+              r={4} fill={hover.msColor ?? C.line} style={{ pointerEvents: "none" }}
             />
           </>
         )}
@@ -183,9 +284,7 @@ const Burndown: FunctionComponent<Props> = ({ items, highlightWeekends }) => {
               x={todayFlipLeft ? todayXNum - 4 : todayXNum + 4}
               y={T + 11}
               textAnchor={todayFlipLeft ? "end" : "start"}
-              fill={C.todayLabel}
-              fontSize={11}
-              fontFamily="inherit"
+              fill={C.todayLabel} fontSize={11} fontFamily="inherit"
             >
               Today
             </text>
@@ -193,53 +292,53 @@ const Burndown: FunctionComponent<Props> = ({ items, highlightWeekends }) => {
         )}
 
         <line x1={L} y1={T + CH} x2={L + CW} y2={T + CH} stroke={C.axis} strokeWidth={1} className="chart-axis" />
-        <line x1={L} y1={T} x2={L} y2={T + CH} stroke={C.axis} strokeWidth={1} className="chart-axis" />
+        <line x1={L} y1={T}      x2={L}       y2={T + CH} stroke={C.axis} strokeWidth={1} className="chart-axis" />
 
         {yLabels.map((count) => (
-          <text
-            key={count}
-            x={L - 6}
-            y={pyFn(count) + 4}
-            textAnchor="end"
-            fill={C.label}
-            fontSize={11}
-            fontFamily="inherit"
-            className="chart-label"
-          >
+          <text key={count} x={L - 6} y={pyFn(count) + 4} textAnchor="end"
+            fill={C.label} fontSize={11} fontFamily="inherit" className="chart-label">
             {count}
           </text>
         ))}
 
-        {xLabelIndices.map((ptIdx, labelIdx) => (
-          <text
-            key={ptIdx}
-            x={pxFn(ptIdx)}
+        {xLabelTimes.map((t, li) => (
+          <text key={t}
+            x={(L + ((t - minTime) / (maxTime - minTime)) * CW).toFixed(1)}
             y={T + CH + 22}
-            textAnchor={labelIdx === 0 ? "start" : labelIdx === numXLabels - 1 ? "end" : "middle"}
-            fill={C.label}
-            fontSize={11}
-            fontFamily="inherit"
-            className="chart-label"
-          >
-            {fmtDate(new Date(points[ptIdx].t).toISOString())}
+            textAnchor={li === 0 ? "start" : li === numXLabels - 1 ? "end" : "middle"}
+            fill={C.label} fontSize={11} fontFamily="inherit" className="chart-label">
+            {fmtDate(new Date(t).toISOString())}
           </text>
         ))}
 
-        <text
-          x={L + CW - 4}
-          y={T - 6}
-          textAnchor="end"
-          fill={C.callout}
-          fontSize={12}
-          fontWeight="bold"
-          fontFamily="inherit"
-          className="bd-callout-text"
-        >
-          {currentOpen} open
-        </text>
+        {/* Legend in multi-milestone mode */}
+        {isMulti && milestones.map((ms, i) => (
+          <g key={ms.number} transform={`translate(${L + CW - 160}, ${T + i * 15})`}>
+            <line x1={0} y1={-4} x2={10} y2={-4} stroke={ms.color} strokeWidth={2} />
+            <text x={14} y={0} fill={C.label} fontSize={10} fontFamily="inherit" className="chart-label">{ms.title}</text>
+          </g>
+        ))}
+
+        {/* Single milestone: "N open" callout */}
+        {!isMulti && singleSeries && (
+          <text
+            x={L + CW - 4}
+            y={T - 6}
+            textAnchor="end"
+            fill={C.callout}
+            fontSize={12}
+            fontWeight="bold"
+            fontFamily="inherit"
+            className="bd-callout-text"
+          >
+            {singleSeries.points[singleSeries.points.length - 1]!.count} open
+          </text>
+        )}
       </svg>
-    </div>
+    </Box>
   );
 };
+
+const Burndown = memo(BurndownInner);
 
 export { Burndown };

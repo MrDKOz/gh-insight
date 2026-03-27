@@ -1,29 +1,33 @@
-import { useState, useRef } from "react";
+import type { TimelineItem } from "../types";
 import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
-import type { TimelineItem } from "../types";
-import { MS, fmtDate, itemEndDate, COLORS, hoverCardPos } from "../utils/utils";
+import { memo, useRef, useState } from "react";
+import { COLORS, COLORS_CB, MS, fmtDate, hoverCardPos, itemEndDate } from "../utils/utils";
 
 type Props = {
   items: TimelineItem[];
   highlightWeekends: boolean;
+  colorblindMode: boolean;
 };
 
 const L = 48, R = 16, T = 20, B = 44, W = 800, H = 280;
 const CW = W - L - R;
 const CH = H - T - B;
 
-const COL = {
-  closedFill:  "rgba(9,105,218,0.22)",
-  openFill:    "rgba(209,213,218,0.35)",
-  closedLine:  COLORS.issue,
-  openedLine:  COLORS.chartAxis,
-  axis:        COLORS.chartAxis,
-  grid:        COLORS.chartGrid,
-  label:       COLORS.chartAxis,
-  cursor:      "rgba(87, 96, 106, 0.5)",
+const makeCOL = (cb: boolean) => {
+  const p = cb ? COLORS_CB : COLORS;
+  return {
+    closedFill: cb ? "rgba(0,114,178,0.22)"    : "rgba(9,105,218,0.22)",
+    openFill:   "rgba(209,213,218,0.35)",
+    closedLine: p.issue,
+    openedLine: p.chartAxis,
+    axis:       p.chartAxis,
+    grid:       p.chartGrid,
+    label:      p.chartAxis,
+    cursor:     "rgba(87, 96, 106, 0.5)",
+  };
 };
 
 type DayPt = {
@@ -38,7 +42,8 @@ type HoverState = {
   dayIdx: number;
 };
 
-const CumulativeFlow: FunctionComponent<Props> = ({ items, highlightWeekends }) => {
+const CumulativeFlowInner: FunctionComponent<Props> = ({ items, highlightWeekends, colorblindMode }) => {
+  const COL = makeCOL(colorblindMode);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<HoverState | null>(null);
 
@@ -61,7 +66,8 @@ const CumulativeFlow: FunctionComponent<Props> = ({ items, highlightWeekends }) 
 
   const upperBound = (sorted: number[], t: number): number => {
     let lo = 0, hi = sorted.length;
-    while (lo < hi) { const mid = (lo + hi) >>> 1; sorted[mid] <= t ? (lo = mid + 1) : (hi = mid); }
+    // sorted[mid] is always within bounds: mid = (lo+hi)>>>1, and lo < hi throughout the loop
+    while (lo < hi) { const mid = (lo + hi) >>> 1; sorted[mid]! <= t ? (lo = mid + 1) : (hi = mid); }
     return lo;
   };
 
@@ -111,7 +117,8 @@ const CumulativeFlow: FunctionComponent<Props> = ({ items, highlightWeekends }) 
     }
   };
 
-  const hovered = hover !== null ? pts[hover.dayIdx] : null;
+  // hover.dayIdx is clamped to [0, pts.length-1] in onMouseMove
+  const hovered = hover !== null ? pts[hover.dayIdx]! : null;
   const hoverSvgX = hover !== null ? pxFn(hover.dayIdx) : 0;
 
   const cardStyle = hover
@@ -119,7 +126,8 @@ const CumulativeFlow: FunctionComponent<Props> = ({ items, highlightWeekends }) 
     : {};
 
   return (
-    <div
+    <Box
+      role="presentation"
       className="chart-wrap"
       ref={wrapRef}
       style={{ position: "relative" }}
@@ -143,14 +151,36 @@ const CumulativeFlow: FunctionComponent<Props> = ({ items, highlightWeekends }) 
         </Paper>
       )}
 
+      <table className="sr-only" aria-label="Cumulative flow data">
+        <caption>Cumulative items created and completed over time</caption>
+        <thead>
+          <tr>
+            <th scope="col">Date</th>
+            <th scope="col">Created (cumulative)</th>
+            <th scope="col">Completed (cumulative)</th>
+            <th scope="col">Open</th>
+          </tr>
+        </thead>
+        <tbody>
+          {pts.map((p) => (
+            <tr key={p.t}>
+              <td>{fmtDate(new Date(p.t).toISOString())}</td>
+              <td>{p.opened}</td>
+              <td>{p.closed}</td>
+              <td>{p.opened - p.closed}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
       <svg
         viewBox={`0 0 ${W} ${H}`}
         style={{ width: "100%", height: "auto", display: "block", cursor: "crosshair" }}
-        aria-label="Cumulative flow diagram"
+        aria-hidden="true"
       >
         {highlightWeekends && Array.from({ length: totalDays + 1 }, (_, i) => {
           const day = new Date(minTime + i * MS);
-          if (day.getUTCDay() !== 6) return null;
+          if (day.getUTCDay() !== 6) {return null;}
           const x = L + (i / totalDays) * CW;
           const w = Math.min((2 / totalDays) * CW, CW - (x - L));
           return <rect key={i} x={x.toFixed(1)} y={T} width={w.toFixed(1)} height={CH} fill="rgba(0,0,0,0.04)" className="chart-weekend" />;
@@ -195,7 +225,7 @@ const CumulativeFlow: FunctionComponent<Props> = ({ items, highlightWeekends }) 
           <text key={pi} x={pxFn(pi)} y={T + CH + 20}
             textAnchor={li === 0 ? "start" : li === numX - 1 ? "end" : "middle"}
             fill={COL.label} fontSize={11} fontFamily="inherit" className="chart-label">
-            {fmtDate(new Date(pts[pi].t).toISOString())}
+            {fmtDate(new Date(pts[pi]!.t).toISOString())}
           </text>
         ))}
 
@@ -209,8 +239,10 @@ const CumulativeFlow: FunctionComponent<Props> = ({ items, highlightWeekends }) 
           </g>
         ))}
       </svg>
-    </div>
+    </Box>
   );
 };
+
+const CumulativeFlow = memo(CumulativeFlowInner);
 
 export { CumulativeFlow };

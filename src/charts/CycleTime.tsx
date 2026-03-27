@@ -1,30 +1,35 @@
-import { useState, useRef, useCallback, useMemo } from "react";
+import type { MilestoneMeta, TimelineItem } from "../types";
 import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
-import type { TimelineItem } from "../types";
-import { MS, fmtDate, itemEndDate, COLORS, hoverCardPos } from "../utils/utils";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { AuthorTag } from "../components/AuthorTag";
+import { COLORS, COLORS_CB, MS, fmtDate, hoverCardPos, itemEndDate } from "../utils/utils";
 
 type Props = {
   items: TimelineItem[];
+  milestones: MilestoneMeta[];
   highlightWeekends: boolean;
+  colorblindMode: boolean;
 };
 
 const L = 52, R = 16, T = 28, B = 44, W = 800, H = 280;
 const CW = W - L - R;
 const CH = H - T - B;
 
-const COL = {
-  issue:    COLORS.issue,
-  prMerged: COLORS.prMerged,
-  prClosed: COLORS.prClosed,
-  axis:     COLORS.chartAxis,
-  grid:     COLORS.chartGrid,
-  label:    COLORS.chartAxis,
-  median:   "#1a7f37",
-  mean:     "#d97706",
+const makeCOL = (cb: boolean) => {
+  const p = cb ? COLORS_CB : COLORS;
+  return {
+    issue:    p.issue,
+    prMerged: p.prMerged,
+    prClosed: p.prClosed,
+    axis:     p.chartAxis,
+    grid:     p.chartGrid,
+    label:    p.chartAxis,
+    median:   "#1a7f37",
+    mean:     "#d97706",
+  };
 };
 
 type Pt = {
@@ -34,6 +39,7 @@ type Pt = {
   days: number;
   col: string;
   typeLabel: string;
+  firstReviewAt: string | null;
 };
 
 type Hover = {
@@ -43,27 +49,43 @@ type Hover = {
   url: string;
 };
 
-const CycleTime: FunctionComponent<Props> = ({ items, highlightWeekends }) => {
+const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, colorblindMode }) => {
+  const COL = makeCOL(colorblindMode);
+  const isMulti = milestones.length > 1;
+  const milestoneColorMap = useMemo(
+    () => new Map(milestones.map((m) => [m.number, m.color])),
+    [milestones],
+  );
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<Hover | null>(null);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
   const pts: Pt[] = useMemo(() => items.flatMap((item) => {
     const endDate = itemEndDate(item);
-    if (!endDate) return [];
+    if (!endDate) {return [];}
     const days = Math.round(
       (new Date(endDate).getTime() - new Date(item.createdAt).getTime()) / MS,
     );
-    const col =
-      item.type === "issue" ? COL.issue
-        : item.mergedAt     ? COL.prMerged
-                            : COL.prClosed;
+    // In multi-milestone mode, color by milestone; in single mode, by item type
+    const col = isMulti
+      ? (milestoneColorMap.get(item.milestoneNumber) ?? COL.issue)
+      : item.type === "issue" ? COL.issue
+        : item.mergedAt        ? COL.prMerged
+                               : COL.prClosed;
     const typeLabel =
       item.type === "issue"  ? "Issue"
         : item.mergedAt      ? "PR (merged)"
                              : "PR (closed)";
-    return [{ item, endDate, endMs: new Date(endDate).getTime(), days, col, typeLabel }];
-  }), [items]);
+    const firstReviewAt = item.type === "pr" ? item.firstReviewAt : null;
+    return [{ item, endDate, endMs: new Date(endDate).getTime(), days, col, typeLabel, firstReviewAt }];
+  }), [items, isMulti, milestoneColorMap, COL.issue, COL.prMerged, COL.prClosed]);
+
+  const onEnter = useCallback((e: React.MouseEvent, p: Pt, idx: number) => {
+    const rect = wrapRef.current?.getBoundingClientRect();
+    if (!rect) {return;}
+    setHover({ x: e.clientX - rect.left, y: e.clientY - rect.top, pt: p, url: p.item.url });
+    setHoveredIdx(idx);
+  }, []);
 
   if (pts.length === 0) {
     return <Typography sx={{ fontSize: "0.875rem", color: "text.secondary", py: 2.5 }}>No completed items to plot cycle times for.</Typography>;
@@ -83,9 +105,10 @@ const CycleTime: FunctionComponent<Props> = ({ items, highlightWeekends }) => {
 
   const sorted = [...pts.map((p) => p.days)].sort((a, b) => a - b);
   const mid    = Math.floor(sorted.length / 2);
+  // sorted is non-empty (pts.length > 0 guarded above); mid and mid-1 are always valid indices
   const median = sorted.length % 2 === 1
-    ? sorted[mid]
-    : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+    ? sorted[mid]!
+    : Math.round((sorted[mid - 1]! + sorted[mid]!) / 2);
   const mean   = Math.round(sorted.reduce((s, d) => s + d, 0) / sorted.length);
   const showMean = mean !== median && Math.abs(pyFn(mean) - pyFn(median)) > 16;
 
@@ -100,34 +123,36 @@ const CycleTime: FunctionComponent<Props> = ({ items, highlightWeekends }) => {
   const SPREAD_STEP = 13;
   const spreadOffsets: { dy: number }[] = pts.map(() => ({ dy: 0 }));
   if (hoveredIdx !== null) {
-    const { x: hx, y: hy } = svgPts[hoveredIdx];
+    // hoveredIdx is always a valid pts index (set by onEnter which receives the loop index)
+    const { x: hx, y: hy } = svgPts[hoveredIdx]!;
     const cluster = pts
       .map((_, i) => i)
       .filter((i) => {
-        const dx = svgPts[i].x - hx, dy = svgPts[i].y - hy;
+        const dx = svgPts[i]!.x - hx, dy = svgPts[i]!.y - hy;
         return Math.sqrt(dx * dx + dy * dy) < CLUSTER_R;
       });
     if (cluster.length > 1) {
-      cluster.sort((a, b) => svgPts[a].y - svgPts[b].y);
+      cluster.sort((a, b) => svgPts[a]!.y - svgPts[b]!.y);
       cluster.forEach((idx, rank) => {
-        spreadOffsets[idx] = { dy: (rank - (cluster.length - 1) / 2) * SPREAD_STEP };
+        // idx comes from pts.map((_, i) => i), guaranteed within spreadOffsets bounds
+        spreadOffsets[idx]! = { dy: (rank - (cluster.length - 1) / 2) * SPREAD_STEP };
       });
     }
   }
 
-  const onEnter = useCallback((e: React.MouseEvent, p: Pt, idx: number) => {
-    const rect = wrapRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    setHover({ x: e.clientX - rect.left, y: e.clientY - rect.top, pt: p, url: p.item.url });
-    setHoveredIdx(idx);
-  }, []);
-
   const cardStyle = hover
-    ? hoverCardPos(hover.x, hover.y, wrapRef.current?.offsetWidth ?? 800, 230, 120)
+    ? hoverCardPos(hover.x, hover.y, wrapRef.current?.offsetWidth ?? 800, 230, 140)
     : {};
 
+  // Review wait time in days (PR only)
+  const reviewWaitDays = hover?.pt.firstReviewAt
+    ? Math.round(
+        (new Date(hover.pt.firstReviewAt).getTime() - new Date(hover.pt.item.createdAt).getTime()) / MS,
+      )
+    : null;
+
   return (
-    <div className="chart-wrap" ref={wrapRef} style={{ position: "relative" }}>
+    <Box className="chart-wrap" ref={wrapRef} style={{ position: "relative" }}>
       {hover && (
         <Paper
           component="a"
@@ -160,23 +185,52 @@ const CycleTime: FunctionComponent<Props> = ({ items, highlightWeekends }) => {
           </Typography>
           <AuthorTag login={hover.pt.item.author} prefix="@" />
           <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
-            {hover.pt.days} day{hover.pt.days !== 1 ? "s" : ""}
+            {hover.pt.days} day{hover.pt.days !== 1 ? "s" : ""} cycle time
           </Box>
+          {reviewWaitDays !== null && (
+            <Box sx={{ fontSize: "0.6875rem", fontWeight: 500, color: "text.secondary" }}>
+              ⏱ {reviewWaitDays}d to first review
+            </Box>
+          )}
           <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>
             {fmtDate(hover.pt.item.createdAt)} → {fmtDate(hover.pt.endDate)}
           </Box>
         </Paper>
       )}
 
+      <table className="sr-only" aria-label="Cycle time data">
+        <caption>Cycle time in days for each completed item</caption>
+        <thead>
+          <tr>
+            <th scope="col">Number</th>
+            <th scope="col">Title</th>
+            <th scope="col">Type</th>
+            <th scope="col">Closed</th>
+            <th scope="col">Cycle time (days)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {pts.map((p) => (
+            <tr key={`${p.item.type}-${p.item.number}`}>
+              <td>#{p.item.number}</td>
+              <td>{p.item.title}</td>
+              <td>{p.typeLabel}</td>
+              <td>{fmtDate(p.endDate)}</td>
+              <td>{p.days}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
       <svg
         viewBox={`0 0 ${W} ${H}`}
         style={{ width: "100%", height: "auto", display: "block" }}
-        aria-label="Cycle time scatter chart"
+        aria-hidden="true"
         onMouseLeave={() => { setHover(null); setHoveredIdx(null); }}
       >
         {highlightWeekends && Array.from({ length: Math.ceil(totalMs / MS) + 1 }, (_, i) => {
           const day = new Date(minTime + i * MS);
-          if (day.getUTCDay() !== 6) return null;
+          if (day.getUTCDay() !== 6) {return null;}
           const x = L + (i * MS / totalMs) * CW;
           const w = Math.min((2 * MS / totalMs) * CW, CW - (x - L));
           return <rect key={i} x={x.toFixed(1)} y={T} width={w.toFixed(1)} height={CH} fill="rgba(0,0,0,0.04)" className="chart-weekend" />;
@@ -211,10 +265,10 @@ const CycleTime: FunctionComponent<Props> = ({ items, highlightWeekends }) => {
         {pts.map((p, i) => (
           <g key={`${p.item.type}-${p.item.number}`}
             style={{ transition: "transform 0.15s ease" }}
-            transform={`translate(0, ${spreadOffsets[i].dy})`}
+            transform={`translate(0, ${spreadOffsets[i]!.dy})`}
           >
             <circle
-              cx={svgPts[i].x.toFixed(1)} cy={svgPts[i].y.toFixed(1)}
+              cx={svgPts[i]!.x.toFixed(1)} cy={svgPts[i]!.y.toFixed(1)}
               r={5} fill={p.col} opacity={0.82}
               className="ct-dot"
               onMouseEnter={(e) => onEnter(e, p, i)}
@@ -245,9 +299,31 @@ const CycleTime: FunctionComponent<Props> = ({ items, highlightWeekends }) => {
           transform={`rotate(-90 12 ${T + CH / 2})`}>
           Days to close
         </text>
+
+        {/* Legend: milestone colors in multi mode, item types in single mode */}
+        {isMulti
+          ? milestones.map((ms, i) => (
+              <g key={ms.number} transform={`translate(${L + CW - 160}, ${T + i * 15})`}>
+                <circle cx={5} cy={-3} r={4} fill={ms.color} opacity={0.82} />
+                <text x={14} y={0} fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">{ms.title}</text>
+              </g>
+            ))
+          : ([
+              { col: COL.issue,    label: "Issues" },
+              { col: COL.prMerged, label: "PRs merged" },
+              { col: COL.prClosed, label: "PRs closed" },
+            ]).map(({ col, label }, i) => (
+              <g key={label} transform={`translate(${L + CW - 160}, ${T + i * 15})`}>
+                <circle cx={5} cy={-3} r={4} fill={col} opacity={0.82} />
+                <text x={14} y={0} fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">{label}</text>
+              </g>
+            ))
+        }
       </svg>
-    </div>
+    </Box>
   );
 };
+
+const CycleTime = memo(CycleTimeInner);
 
 export { CycleTime };

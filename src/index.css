@@ -26,6 +26,19 @@ body.dark {
   --date-axis-line: #8b949e;
 }
 
+/* ── Screen-reader-only utility ── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* ── Gantt split layout ── */
 
 .tl-body {
@@ -162,10 +175,16 @@ body.dark {
   transition: background-image 0.1s;
 }
 
-.tl-resize-handle:hover {
+.tl-resize-handle:hover,
+.tl-resize-handle:focus-visible {
   background-image:
     radial-gradient(circle, #0969da 1px, transparent 1px),
     radial-gradient(circle, #0969da 1px, transparent 1px);
+}
+
+.tl-resize-handle:focus-visible {
+  outline: 2px solid #0969da;
+  outline-offset: -1px;
 }
 
 /* ── Gantt track and bars ── */
@@ -261,6 +280,35 @@ body.dark .chart-weekend {
   background: rgba(248, 81, 73, 0.65);
   pointer-events: none;
   z-index: 5;
+}
+
+/* ── Colorblind-friendly palette overrides (Okabe-Ito) ── */
+
+body.colorblind .tl-bar--issue     { background: linear-gradient(135deg, #0072B2 0%, #005a8e 100%); }
+body.colorblind .tl-bar--pr-merged { background: linear-gradient(135deg, #009E73 0%, #007a58 100%); }
+body.colorblind .tl-bar--pr-closed { background: linear-gradient(135deg, #E69F00 0%, #b87e00 100%); }
+
+body.colorblind .tl-bar--issue-open {
+  background: linear-gradient(135deg, rgba(0,114,178,0.45) 0%, rgba(0,90,142,0.45) 100%);
+  border-color: #0072B2;
+}
+
+body.colorblind .tl-bar--pr-open {
+  background: linear-gradient(135deg, rgba(0,158,115,0.45) 0%, rgba(0,122,88,0.45) 100%);
+  border-color: #009E73;
+}
+
+body.colorblind .tl-badge--issue     { background: #0072B2; }
+body.colorblind .tl-badge--pr        { background: #009E73; }
+body.colorblind .tl-badge--pr-closed { background: #E69F00; color: #000; }
+
+body.colorblind .tl-num--issue { color: #0072B2; }
+body.colorblind .tl-num--pr    { color: #009E73; }
+
+body.colorblind .tl-resize-handle:hover {
+  background-image:
+    radial-gradient(circle, #0072B2 1px, transparent 1px),
+    radial-gradient(circle, #0072B2 1px, transparent 1px);
 }
 
 /* ── SVG chart wrappers ── */
