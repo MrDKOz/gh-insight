@@ -192,6 +192,24 @@ describe("REFRESH_ITEMS_ERROR", () => {
   });
 });
 
+describe("RESET", () => {
+  it("returns initialState regardless of prior state", () => {
+    const state = {
+      ...initialState,
+      milestones: [ms1],
+      selected: [ms1],
+      itemsCache: { 1: [item] },
+      error: "some error",
+      loadingList: true,
+    };
+    expect(milestoneReducer(state, { type: "RESET" })).toEqual(initialState);
+  });
+
+  it("is idempotent — resetting initialState returns initialState", () => {
+    expect(milestoneReducer(initialState, { type: "RESET" })).toEqual(initialState);
+  });
+});
+
 describe("LOAD_DEMO", () => {
   it("replaces state with demo data and sets isDemo flag", () => {
     const cache = { [ms1.number]: [item] };

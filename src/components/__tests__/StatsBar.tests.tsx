@@ -64,3 +64,47 @@ describe("StatsBar — smoke", () => {
     expect(getByText("Issues open")).toBeInTheDocument();
   });
 });
+
+describe("StatsBar — Review Wait view", () => {
+  const reviewedPR: TimelineItem = {
+    type: "pr", number: 10, title: "Reviewed PR",
+    url: "https://github.com/o/r/pull/10", author: "alice",
+    createdAt: "2025-01-01T00:00:00Z", mergedAt: "2025-01-08T00:00:00Z",
+    closedAt: "2025-01-08T00:00:00Z", linkedIssue: null, milestoneNumber: 1,
+    labels: [], assignees: [], firstReviewAt: "2025-01-03T00:00:00Z", // 2 day wait
+  };
+
+  const unreviewedPR: TimelineItem = {
+    type: "pr", number: 11, title: "Unreviewed PR",
+    url: "https://github.com/o/r/pull/11", author: "bob",
+    createdAt: "2025-01-05T00:00:00Z", mergedAt: null, closedAt: null,
+    linkedIssue: null, milestoneNumber: 1, labels: [], assignees: [], firstReviewAt: null,
+  };
+
+  it("shows review wait stats when there are reviewed PRs", () => {
+    const { getByText } = wrap(
+      <StatsBar items={[reviewedPR]} view="Review Wait" colorblindMode={false} title="Sprint 42" />,
+    );
+
+    expect(getByText("PRs total")).toBeInTheDocument();
+    expect(getByText("Reviewed")).toBeInTheDocument();
+    expect(getByText("Avg wait")).toBeInTheDocument();
+  });
+
+  it("shows not-reviewed count when some PRs have no first review", () => {
+    const { getByText } = wrap(
+      <StatsBar items={[reviewedPR, unreviewedPR]} view="Review Wait" colorblindMode={false} title="Sprint 42" />,
+    );
+
+    expect(getByText("Not reviewed")).toBeInTheDocument();
+  });
+
+  it("does not show review wait stats in a non-Review-Wait view", () => {
+    const { queryByText } = wrap(
+      <StatsBar items={[reviewedPR]} view="Gantt" colorblindMode={false} title="Sprint 42" />,
+    );
+
+    expect(queryByText("PRs total")).not.toBeInTheDocument();
+    expect(queryByText("Avg wait")).not.toBeInTheDocument();
+  });
+});

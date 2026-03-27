@@ -1,5 +1,5 @@
 import type { TimelineItem } from "../../types";
-import { COLORS, MS, assigneesOtherThanAuthor, durationDays, fmtDate, hoverCardPos, itemEndDate, itemStatus, labelTextColor, pluralize, safeUrl, upperBound } from "../utils";
+import { COLORS, COLORS_CB, MS, MS_HOUR, assigneesOtherThanAuthor, durationDays, fmtDate, fmtDateTime, hoverCardPos, itemEndDate, itemStatus, labelTextColor, makeChartColors, makeStatusChipSx, pluralize, safeUrl, snapToHour, upperBound } from "../utils";
 
 const issue = (overrides: Partial<{ closedAt: string | null }> = {}): TimelineItem => ({
   type: "issue", number: 1, title: "Test issue",
@@ -223,6 +223,117 @@ describe("pluralize", () => {
 
   it("works with words that already contain spaces (e.g. 'open issue')", () => {
     expect(pluralize(3, "open issue")).toBe("3 open issues");
+  });
+});
+
+describe("MS_HOUR", () => {
+  it("equals the number of milliseconds in one hour", () => {
+    expect(MS_HOUR).toBe(60 * 60 * 1000);
+  });
+});
+
+describe("fmtDateTime", () => {
+  it("returns N/A for null", () => {
+    expect(fmtDateTime(null)).toBe("N/A");
+  });
+
+  it("returns N/A for undefined", () => {
+    expect(fmtDateTime(undefined)).toBe("N/A");
+  });
+
+  it("returns N/A for an invalid date string", () => {
+    expect(fmtDateTime("not-a-date")).toBe("N/A");
+  });
+
+  it("produces a string ending in HH:00 hour format", () => {
+    // Use a fixed local Date so the test is not timezone-sensitive
+    const d = new Date(2025, 0, 3, 14, 30, 0); // 3 Jan 2025 14:30 local
+    const result = fmtDateTime(d.toISOString());
+    expect(result).not.toBe("N/A");
+    expect(result).toMatch(/\d{2}:00$/);
+  });
+
+  it("does not include minutes or seconds in the output", () => {
+    const d = new Date(2025, 5, 15, 9, 45, 30); // 15 Jun 2025 09:45:30 local
+    const result = fmtDateTime(d.toISOString());
+    expect(result).toMatch(/09:00$/);
+  });
+});
+
+describe("snapToHour", () => {
+  it("floors to the local hour boundary", () => {
+    const d = new Date(2025, 0, 3, 14, 30, 45, 123); // 14:30:45.123 local
+    const snapped = new Date(snapToHour(d.getTime()));
+    expect(snapped.getHours()).toBe(14);
+    expect(snapped.getMinutes()).toBe(0);
+    expect(snapped.getSeconds()).toBe(0);
+    expect(snapped.getMilliseconds()).toBe(0);
+  });
+
+  it("is a no-op when already at an exact hour boundary", () => {
+    const d = new Date(2025, 0, 3, 10, 0, 0, 0);
+    expect(snapToHour(d.getTime())).toBe(d.getTime());
+  });
+
+  it("does not change the date or hour, only sub-hour components", () => {
+    const d = new Date(2025, 2, 15, 23, 59, 59, 999); // 23:59:59.999 local
+    const snapped = new Date(snapToHour(d.getTime()));
+    expect(snapped.getDate()).toBe(15);
+    expect(snapped.getHours()).toBe(23);
+    expect(snapped.getMinutes()).toBe(0);
+  });
+});
+
+describe("makeChartColors", () => {
+  it("returns the default palette when colorblind mode is off", () => {
+    const c = makeChartColors(false);
+    expect(c.issue).toBe(COLORS.issue);
+    expect(c.prMerged).toBe(COLORS.prMerged);
+    expect(c.prClosed).toBe(COLORS.prClosed);
+    expect(c.axis).toBe(COLORS.chartAxis);
+    expect(c.grid).toBe(COLORS.chartGrid);
+    expect(c.median).toBe(COLORS.success);
+    expect(c.mean).toBe(COLORS.warning);
+  });
+
+  it("returns the colorblind palette when colorblind mode is on", () => {
+    const c = makeChartColors(true);
+    expect(c.issue).toBe(COLORS_CB.issue);
+    expect(c.prMerged).toBe(COLORS_CB.prMerged);
+    expect(c.prClosed).toBe(COLORS_CB.prClosed);
+  });
+
+  it("exposes all expected keys", () => {
+    const c = makeChartColors(false);
+    const expectedKeys = ["issue", "prMerged", "prClosed", "axis", "grid", "label", "cursor", "median", "mean", "today", "todayLabel", "weekendBand"];
+    for (const key of expectedKeys) {
+      expect(c).toHaveProperty(key);
+    }
+  });
+});
+
+describe("makeStatusChipSx", () => {
+  it("returns sx for open, closed, and merged statuses", () => {
+    const sx = makeStatusChipSx(false);
+    expect(sx).toHaveProperty("open");
+    expect(sx).toHaveProperty("closed");
+    expect(sx).toHaveProperty("merged");
+  });
+
+  it("applies different colors in colorblind mode", () => {
+    const normal = makeStatusChipSx(false);
+    const cb = makeStatusChipSx(true);
+    // merged and closed colors come from the palette, so they should differ between modes
+    expect(JSON.stringify(normal.merged)).not.toBe(JSON.stringify(cb.merged));
+    expect(JSON.stringify(normal.closed)).not.toBe(JSON.stringify(cb.closed));
+  });
+
+  it("each status sx has bgcolor and color properties", () => {
+    const sx = makeStatusChipSx(false);
+    for (const key of ["open", "closed", "merged"] as const) {
+      expect(sx[key]).toHaveProperty("bgcolor");
+      expect(sx[key]).toHaveProperty("color");
+    }
   });
 });
 

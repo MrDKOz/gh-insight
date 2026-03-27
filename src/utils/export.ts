@@ -597,4 +597,4 @@ const exportReviewWaitPDF = async (items: TimelineItem[], title: string): Promis
   doc.save(`${safeFilename(title)}_review_wait.pdf`);
 };
 
-export { buildRows, exportCSV, exportChartPDF, exportGanttPDF, exportMarkdown, exportPDF, exportPNG, exportReviewWaitCSV, exportReviewWaitMarkdown, exportReviewWaitPDF, exportReviewWaitXLSX, exportSVG, exportXLSX, safeFilename };
+export { buildRows, buildReviewWaitRows, exportCSV, exportChartPDF, exportGanttPDF, exportMarkdown, exportPDF, exportPNG, exportReviewWaitCSV, exportReviewWaitMarkdown, exportReviewWaitPDF, exportReviewWaitXLSX, exportSVG, exportXLSX, safeFilename };

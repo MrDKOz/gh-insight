@@ -1,5 +1,5 @@
 import type { TimelineItem } from "../../types";
-import { buildRows, safeFilename } from "../export";
+import { buildReviewWaitRows, buildRows, exportCSV, exportMarkdown, safeFilename } from "../export";
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -248,5 +248,243 @@ describe("buildRows — closed date", () => {
     // Both have the same closedAt in this fixture, but this confirms the field is populated
     expect(rowMerged.closed).not.toBe("N/A");
     expect(rowClosed.closed).not.toBe("N/A");
+  });
+});
+
+// ── buildRows — labels ─────────────────────────────────────────────────────
+
+describe("buildRows — labels", () => {
+  it("joins label names with ', '", () => {
+    const item: TimelineItem = {
+      ...closedIssue,
+      labels: [{ name: "bug", color: "#d73a4a" }, { name: "urgent", color: "#e4e669" }],
+    };
+    const row = buildRows([item])[0]!;
+
+    expect(row.labels).toBe("bug, urgent");
+  });
+
+  it("shows '—' when there are no labels", () => {
+    const row = buildRows([closedIssue])[0]!; // labels: []
+
+    expect(row.labels).toBe("—");
+  });
+
+  it("works with a single label", () => {
+    const item: TimelineItem = { ...closedIssue, labels: [{ name: "enhancement", color: "#a2eeef" }] };
+    const row = buildRows([item])[0]!;
+
+    expect(row.labels).toBe("enhancement");
+  });
+});
+
+// ── buildReviewWaitRows ────────────────────────────────────────────────────
+
+const reviewedPR: TimelineItem = {
+  type: "pr",
+  number: 10,
+  title: "Add feature X",
+  url: "https://github.com/owner/repo/pull/10",
+  author: "alice",
+  createdAt: "2025-02-01T00:00:00Z",
+  mergedAt: "2025-02-08T00:00:00Z",
+  closedAt: "2025-02-08T00:00:00Z",
+  linkedIssue: null,
+  milestoneNumber: 1,
+  labels: [{ name: "feature", color: "#0075ca" }],
+  assignees: ["bob"],
+  firstReviewAt: "2025-02-03T00:00:00Z", // 2 days wait
+};
+
+const unreviewedPR: TimelineItem = {
+  type: "pr",
+  number: 11,
+  title: "Fix typo",
+  url: "https://github.com/owner/repo/pull/11",
+  author: "carol",
+  createdAt: "2025-02-05T00:00:00Z",
+  mergedAt: null,
+  closedAt: null,
+  linkedIssue: null,
+  milestoneNumber: 1,
+  labels: [],
+  assignees: [],
+  firstReviewAt: null,
+};
+
+const slowPR: TimelineItem = {
+  type: "pr",
+  number: 12,
+  title: "Slow review",
+  url: "https://github.com/owner/repo/pull/12",
+  author: "dave",
+  createdAt: "2025-02-01T00:00:00Z",
+  mergedAt: null,
+  closedAt: "2025-02-15T00:00:00Z",
+  linkedIssue: null,
+  milestoneNumber: 1,
+  labels: [],
+  assignees: [],
+  firstReviewAt: "2025-02-11T00:00:00Z", // 10 days wait
+};
+
+describe("buildReviewWaitRows — field mapping", () => {
+  it("maps a reviewed PR correctly", () => {
+    const row = buildReviewWaitRows([reviewedPR])[0]!;
+
+    expect(row.num).toBe("#10");
+    expect(row.title).toBe("Add feature X");
+    expect(row.author).toBe("alice");
+    expect(row.assignees).toBe("bob");
+    expect(row.labels).toBe("feature");
+    expect(row.status).toBe("Merged");
+    expect(row.waitDays).toBe("2");
+    expect(row.url).toBe("https://github.com/owner/repo/pull/10");
+  });
+
+  it("shows '—' for waitDays when the PR has no first review", () => {
+    const row = buildReviewWaitRows([unreviewedPR])[0]!;
+
+    expect(row.waitDays).toBe("—");
+    expect(row.firstReview).toBe("—");
+  });
+
+  it("shows 'open' for totalDays when the PR is still open", () => {
+    const row = buildReviewWaitRows([unreviewedPR])[0]!;
+
+    expect(row.totalDays).toBe("open");
+  });
+
+  it("calculates totalDays from closedAt when not merged", () => {
+    const row = buildReviewWaitRows([slowPR])[0]!; // Feb 1 → Feb 15 = 14 days
+
+    expect(row.totalDays).toBe("14");
+  });
+
+  it("shows '—' for labels when the PR has no labels", () => {
+    const row = buildReviewWaitRows([slowPR])[0]!;
+
+    expect(row.labels).toBe("—");
+  });
+
+  it("filters out issues — only PRs are included", () => {
+    const rows = buildReviewWaitRows([closedIssue, reviewedPR]);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.num).toBe("#10");
+  });
+});
+
+describe("buildReviewWaitRows — sort order", () => {
+  it("sorts by waitDays descending (slowest first)", () => {
+    const rows = buildReviewWaitRows([reviewedPR, slowPR]); // 2d and 10d
+
+    expect(rows[0]!.num).toBe("#12"); // 10 days
+    expect(rows[1]!.num).toBe("#10"); // 2 days
+  });
+
+  it("puts unreviewed PRs (waitDays '—') last", () => {
+    const rows = buildReviewWaitRows([unreviewedPR, reviewedPR]);
+
+    expect(rows[0]!.num).toBe("#10"); // reviewed
+    expect(rows[1]!.num).toBe("#11"); // unreviewed
+  });
+});
+
+// ── exportCSV / exportMarkdown ─────────────────────────────────────────────
+// Tests verify the output structure by intercepting the Blob before download.
+
+const realBlob = globalThis.Blob;
+let capturedContent = "";
+
+beforeEach(() => {
+  capturedContent = "";
+  globalThis.Blob = class extends realBlob {
+    constructor(parts?: BlobPart[], opts?: BlobPropertyBag) {
+      super(parts, opts);
+      if (parts?.[0] != null) { capturedContent = String(parts[0]); }
+    }
+  } as typeof Blob;
+  vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:mock");
+  vi.spyOn(URL, "revokeObjectURL").mockReturnValue(undefined);
+  vi.spyOn(HTMLAnchorElement.prototype, "click").mockReturnValue(undefined);
+});
+
+afterEach(() => {
+  globalThis.Blob = realBlob;
+  vi.restoreAllMocks();
+});
+
+describe("exportCSV", () => {
+  it("includes the header row with all expected columns", () => {
+    exportCSV([closedIssue], "Sprint 1");
+
+    expect(capturedContent).toContain('"Type"');
+    expect(capturedContent).toContain('"Number"');
+    expect(capturedContent).toContain('"Title"');
+    expect(capturedContent).toContain('"Author"');
+    expect(capturedContent).toContain('"Assignees"');
+    expect(capturedContent).toContain('"Labels"');
+    expect(capturedContent).toContain('"Status"');
+    expect(capturedContent).toContain('"Opened"');
+    expect(capturedContent).toContain('"Closed/Merged"');
+    expect(capturedContent).toContain('"Duration (days)"');
+    expect(capturedContent).toContain('"Linked to"');
+    expect(capturedContent).toContain('"URL"');
+  });
+
+  it("includes the item data in the CSV", () => {
+    exportCSV([closedIssue], "Sprint 1");
+
+    expect(capturedContent).toContain('"Issue"');
+    expect(capturedContent).toContain('"#42"');
+    expect(capturedContent).toContain('"Fix the login bug"');
+    expect(capturedContent).toContain('"torvalds"');
+    expect(capturedContent).toContain('"Closed"');
+    expect(capturedContent).toContain('"10"'); // duration
+  });
+
+  it("escapes double quotes inside cell values", () => {
+    const item: TimelineItem = { ...closedIssue, title: 'Fix "critical" bug' };
+    exportCSV([item], "Sprint");
+
+    expect(capturedContent).toContain('"Fix ""critical"" bug"');
+  });
+
+  it("uses CRLF line endings", () => {
+    exportCSV([closedIssue], "Sprint 1");
+
+    expect(capturedContent).toContain("\r\n");
+  });
+});
+
+describe("exportMarkdown", () => {
+  it("includes a heading with the milestone title", () => {
+    exportMarkdown([closedIssue], "Sprint 1");
+
+    expect(capturedContent).toContain("# Sprint 1");
+  });
+
+  it("includes all expected column headers", () => {
+    exportMarkdown([closedIssue], "Sprint 1");
+
+    expect(capturedContent).toContain("Labels");
+    expect(capturedContent).toContain("Author");
+    expect(capturedContent).toContain("Assignees");
+    expect(capturedContent).toContain("Status");
+    expect(capturedContent).toContain("Linked to");
+  });
+
+  it("renders the item number as a markdown link to the URL", () => {
+    exportMarkdown([closedIssue], "Sprint 1");
+
+    expect(capturedContent).toContain("[#42](https://github.com/owner/repo/issues/42)");
+  });
+
+  it("escapes pipe characters in titles", () => {
+    const item: TimelineItem = { ...closedIssue, title: "Support a|b routing" };
+    exportMarkdown([item], "Sprint");
+
+    expect(capturedContent).toContain("Support a\\|b routing");
   });
 });
