@@ -98,6 +98,65 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
   const todayX    = todayXNum.toFixed(1);
   const todayFlipLeft = todayFrac > 0.85;
 
+  // ── Due date markers ──────────────────────────────────────────────────────────
+  type DueMarker = { xNum: number; label: string; color: string; flipLeft: boolean };
+  const dueMarkers = useMemo((): DueMarker[] => {
+    if (issues.length === 0) {return [];}
+    const markers: DueMarker[] = [];
+    for (const ms of milestones) {
+      if (!ms.dueOn) {continue;}
+      const dueMs = new Date(ms.dueOn).getTime();
+      if (isNaN(dueMs)) {continue;}
+      // Only render if dueMs is within the visible range (with a 30-day slack on the right)
+      if (dueMs < minTime - MS || dueMs > maxTime + 30 * MS) {continue;}
+      const xNum = L + ((dueMs - minTime) / (maxTime - minTime)) * CW;
+      const frac = (dueMs - minTime) / (maxTime - minTime);
+      const color = isMulti ? ms.color : "#8250df";
+      const label = `Due ${fmtDate(ms.dueOn)}`;
+      markers.push({ xNum, label, color, flipLeft: frac > 0.85 });
+    }
+    return markers;
+  }, [issues.length, milestones, isMulti, minTime, maxTime]);
+
+  // ── Completion forecast (single-milestone, open issues only) ──────────────────
+  type Forecast = { lastX: number; lastY: number; forecastX: number; forecastLabel: string; clipped: boolean };
+  const forecast = useMemo((): Forecast | null => {
+    if (isMulti || !hasOpenIssues || !singleSeries || singleSeries.points.length < 2) {return null;}
+    const pts = singleSeries.points;
+    const window = pts.slice(-14); // up to last 14 points
+    const n = window.length;
+    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+    for (let i = 0; i < n; i++) {
+      sumX  += i;
+      sumY  += window[i]!.count;
+      sumXY += i * window[i]!.count;
+      sumX2 += i * i;
+    }
+    const denom = n * sumX2 - sumX * sumX;
+    if (denom === 0) {return null;}
+    const slope     = (n * sumXY - sumX * sumY) / denom;
+    const intercept = (sumY - slope * sumX) / n;
+    if (slope >= 0) {return null;} // not burning down
+    const zeroDayIdx = -intercept / slope; // fractional index within the window
+    // Map back to a real timestamp
+    const windowStartT = window[0]!.t;
+    const projectedT   = windowStartT + zeroDayIdx * MS;
+    if (projectedT <= todayMs) {return null;} // projected date is in the past
+    if (projectedT > todayMs + 180 * MS) {return null;} // too far in the future
+    // Last real data point
+    const lastPtIdx = pts.length - 1;
+    const lastCount = pts[lastPtIdx]!.count;
+    const lastX     = pxFn(lastPtIdx, pts.length);
+    const lastY     = pyFn(lastCount);
+    // Forecast X position
+    const rawForecastX = L + ((projectedT - minTime) / (maxTime - minTime)) * CW;
+    const clipped      = rawForecastX > L + CW;
+    const forecastX    = Math.min(rawForecastX, L + CW);
+    const forecastLabel = `~${fmtDate(new Date(projectedT).toISOString())}`;
+    return { lastX, lastY, forecastX, forecastLabel, clipped };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMulti, hasOpenIssues, singleSeries, minTime, maxTime, maxCount, todayMs]);
+
   // X-axis labels (from full time range, not per-series)
   const numXLabels  = Math.min(8, totalDays + 1);
   const xLabelTimes = Array.from({ length: numXLabels }, (_, i) =>
@@ -313,6 +372,44 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
           >
             {singleSeries.points[singleSeries.points.length - 1]!.count} open
           </text>
+        )}
+
+        {/* Due date markers */}
+        {dueMarkers.map((dm, idx) => (
+          <g key={idx}>
+            <line
+              x1={dm.xNum.toFixed(1)} y1={T}
+              x2={dm.xNum.toFixed(1)} y2={T + CH}
+              stroke={dm.color} strokeWidth={2} strokeDasharray="5 3" opacity={0.8}
+            />
+            <text
+              x={dm.flipLeft ? dm.xNum - 4 : dm.xNum + 4}
+              y={T + 11}
+              textAnchor={dm.flipLeft ? "end" : "start"}
+              fill={dm.color} fontSize={10} fontFamily="inherit" opacity={0.9}
+            >
+              {dm.label}
+            </text>
+          </g>
+        ))}
+
+        {/* Completion forecast line */}
+        {forecast && (
+          <g>
+            <line
+              x1={forecast.lastX.toFixed(1)} y1={forecast.lastY.toFixed(1)}
+              x2={forecast.forecastX.toFixed(1)} y2={pyFn(0).toFixed(1)}
+              stroke={COL.mean} strokeWidth={1.5} strokeDasharray="4 3" opacity={0.85}
+            />
+            <text
+              x={forecast.forecastX - 4}
+              y={pyFn(0) - 5}
+              textAnchor="end"
+              fill={COL.mean} fontSize={10} fontFamily="inherit"
+            >
+              {forecast.forecastLabel}
+            </text>
+          </g>
         )}
       </svg>
     </Box>

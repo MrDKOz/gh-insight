@@ -24,12 +24,12 @@ type Props = {
   colorblindMode: boolean;
 };
 
-type SortCol = "type" | "number" | "title" | "author" | "status" | "milestone" | "created" | "closed" | "days";
+type SortCol = "type" | "number" | "title" | "author" | "status" | "milestone" | "created" | "closed" | "age" | "days";
 type SortDir = "asc" | "desc";
 
-// Default column widths (px): type, #, title, author, status, [milestone,] created, closed, days
-const DEFAULTS_SINGLE = [56, 60, 320, 160, 88,      92, 92, 62] as const;
-const DEFAULTS_MULTI  = [56, 60, 320, 160, 88, 120, 92, 92, 62] as const;
+// Default column widths (px): type, #, title, author, status, [milestone,] created, closed, age, days
+const DEFAULTS_SINGLE = [56, 60, 320, 160, 88,      92, 92, 62, 62] as const;
+const DEFAULTS_MULTI  = [56, 60, 320, 160, 88, 120, 92, 92, 62, 62] as const;
 
 type ThProps = {
   col: SortCol;
@@ -115,6 +115,9 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
           else {cmp = new Date(ea).getTime() - new Date(eb).getTime();}
           break;
         }
+        case "age":
+          cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          break;
         case "days": {
           const ea = itemEndDate(a),
             eb = itemEndDate(b);
@@ -140,8 +143,8 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
 
   // Column indices shift when milestone is visible.
   const ci = isMulti
-    ? { type: 0, num: 1, title: 2, author: 3, status: 4, milestone: 5, created: 6, closed: 7, days: 8 }
-    : { type: 0, num: 1, title: 2, author: 3, status: 4, milestone: -1, created: 5, closed: 6, days: 7 };
+    ? { type: 0, num: 1, title: 2, author: 3, status: 4, milestone: 5, created: 6, closed: 7, age: 8, days: 9 }
+    : { type: 0, num: 1, title: 2, author: 3, status: 4, milestone: -1, created: 5, closed: 6, age: 7, days: 8 };
 
   return (
     <TableContainer sx={{ border: 1, borderColor: "divider", borderRadius: 1, overflowX: "auto" }}>
@@ -159,6 +162,7 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
             {isMulti && <Th col="milestone" label="Milestone" sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(ci.milestone)} />}
             <Th col="created"   label="Created"            sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(ci.created)} />
             <Th col="closed"    label="Closed"             sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(ci.closed)} />
+            <Th col="age"       label="Age"                sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(ci.age)} />
             <Th col="days"      label="Days"               sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(ci.days)} />
           </TableRow>
         </TableHead>
@@ -173,6 +177,9 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
             const isClosedPR = item.type === "pr" && !item.mergedAt && !!item.closedAt;
             const badgeKey = item.type === "issue" ? "issue" : isClosedPR ? "pr-closed" : "pr";
             const ms = milestoneMap.get(item.milestoneNumber);
+            const age = Math.floor((Date.now() - new Date(item.createdAt).getTime()) / MS);
+            const staleDays = Math.floor((Date.now() - new Date(item.updatedAt).getTime()) / MS);
+            const isStale = isOpen && staleDays > 7;
 
             return (
               <TableRow
@@ -180,18 +187,35 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                 sx={{ opacity: isOpen ? 0.65 : 1, "&:hover": { opacity: 1, bgcolor: "action.hover" } }}
               >
                 <TableCell sx={{ overflow: "hidden" }}>
-                  <Chip
-                    label={item.type.toUpperCase()}
-                    size="small"
-                    sx={{
-                      ...typeBadgeSx[badgeKey],
-                      fontSize: FS.tiny,
-                      fontWeight: 700,
-                      height: 18,
-                      letterSpacing: 0.3,
-                      borderRadius: 0.5,
-                    }}
-                  />
+                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: "3px", alignItems: "center" }}>
+                    <Chip
+                      label={item.type.toUpperCase()}
+                      size="small"
+                      sx={{
+                        ...typeBadgeSx[badgeKey],
+                        fontSize: FS.tiny,
+                        fontWeight: 700,
+                        height: 18,
+                        letterSpacing: 0.3,
+                        borderRadius: 0.5,
+                      }}
+                    />
+                    {item.type === "pr" && item.isDraft && (
+                      <Chip
+                        label="DRAFT"
+                        size="small"
+                        sx={{
+                          bgcolor: "action.selected",
+                          color: "text.secondary",
+                          fontSize: FS.tiny,
+                          fontWeight: 700,
+                          height: 18,
+                          letterSpacing: 0.3,
+                          borderRadius: 0.5,
+                        }}
+                      />
+                    )}
+                  </Box>
                 </TableCell>
                 <TableCell sx={{ overflow: "hidden" }}>
                   <Link
@@ -217,17 +241,35 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                     underline="hover"
                     color="text.primary"
                     sx={{
-                      display: "block",
+                      display: "flex",
+                      alignItems: "center",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
                       fontSize: FS.md,
                     }}
                   >
-                    {item.type === "issue" && item.reopenedCount > 0 && (
-                      <Box component="span" title={`Reopened ${pluralize(item.reopenedCount, "time")}`} sx={{ color: COLORS.warning, mr: "4px", fontSize: FS.base }}>↺</Box>
+                    {isStale && (
+                      <Box
+                        component="span"
+                        title={`No activity for ${staleDays} days`}
+                        sx={{
+                          display: "inline-block",
+                          flexShrink: 0,
+                          width: 8,
+                          height: 8,
+                          borderRadius: "50%",
+                          bgcolor: COLORS.warning,
+                          mr: "5px",
+                        }}
+                      />
                     )}
-                    {item.title}
+                    {item.type === "issue" && item.reopenedCount > 0 && (
+                      <Box component="span" title={`Reopened ${pluralize(item.reopenedCount, "time")}`} sx={{ color: COLORS.warning, mr: "4px", fontSize: FS.base, flexShrink: 0 }}>↺</Box>
+                    )}
+                    <Box component="span" sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {item.title}
+                    </Box>
                   </Link>
                   {item.labels.length > 0 && (
                     <Box sx={{ display: "flex", flexWrap: "wrap", gap: "3px", mt: "3px" }}>
@@ -236,16 +278,46 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                       ))}
                     </Box>
                   )}
+                  {item.type === "pr" && (
+                    <Box sx={{ mt: "2px", fontSize: FS.xs }}>
+                      <Box component="span" sx={{ color: COLORS.success, fontVariantNumeric: "tabular-nums" }}>+{item.additions}</Box>
+                      <Box component="span" sx={{ color: "text.disabled" }}> / </Box>
+                      <Box component="span" sx={{ color: COLORS.prClosed, fontVariantNumeric: "tabular-nums" }}>-{item.deletions}</Box>
+                    </Box>
+                  )}
                 </TableCell>
                 <TableCell sx={{ overflow: "hidden", color: "text.secondary", fontSize: FS.base }}>
                   <AuthorWithAssignees author={item.author} assignees={item.assignees} />
                 </TableCell>
                 <TableCell sx={{ overflow: "hidden" }}>
-                  <Chip
-                    label={status}
-                    size="small"
-                    sx={{ ...statusChipSx[status.toLowerCase()], fontSize: FS.sm, fontWeight: 600, height: 22 }}
-                  />
+                  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "3px" }}>
+                    <Chip
+                      label={status}
+                      size="small"
+                      sx={{ ...statusChipSx[status.toLowerCase()], fontSize: FS.sm, fontWeight: 600, height: 22 }}
+                    />
+                    {item.type === "pr" && item.reviewDecision === "APPROVED" && (
+                      <Chip
+                        label="✓ Approved"
+                        size="small"
+                        sx={{ bgcolor: `${COLORS.success}1f`, color: COLORS.success, fontSize: FS.tiny, fontWeight: 600, height: 18, borderRadius: 0.5, ml: 0.5 }}
+                      />
+                    )}
+                    {item.type === "pr" && item.reviewDecision === "CHANGES_REQUESTED" && (
+                      <Chip
+                        label="Changes"
+                        size="small"
+                        sx={{ bgcolor: `${COLORS.prClosed}1f`, color: COLORS.prClosed, fontSize: FS.tiny, fontWeight: 600, height: 18, borderRadius: 0.5, ml: 0.5 }}
+                      />
+                    )}
+                    {item.type === "pr" && item.reviewDecision === "REVIEW_REQUIRED" && (
+                      <Chip
+                        label="Review needed"
+                        size="small"
+                        sx={{ bgcolor: `${COLORS.warning}26`, color: COLORS.warning, fontSize: FS.tiny, fontWeight: 600, height: 18, borderRadius: 0.5, ml: 0.5 }}
+                      />
+                    )}
+                  </Box>
                 </TableCell>
                 {isMulti && (
                   <TableCell sx={{ overflow: "hidden" }}>
@@ -257,6 +329,12 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                 </TableCell>
                 <TableCell sx={{ overflow: "hidden", whiteSpace: "nowrap", color: "text.secondary", fontSize: FS.base }}>
                   {end ? fmtDate(end) : <Typography component="span" color="divider">—</Typography>}
+                </TableCell>
+                <TableCell
+                  align="right"
+                  sx={{ overflow: "hidden", whiteSpace: "nowrap", color: "text.secondary", fontSize: FS.base, fontVariantNumeric: "tabular-nums" }}
+                >
+                  {isOpen ? age : <Typography component="span" color="divider">—</Typography>}
                 </TableCell>
                 <TableCell
                   align="right"

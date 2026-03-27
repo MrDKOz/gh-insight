@@ -12,7 +12,7 @@ const wrap = (ui: React.ReactElement) =>
 const closedIssue: TimelineItem = {
   type: "issue", number: 1, title: "Fix bug",
   url: "https://github.com/o/r/issues/1", author: "alice",
-  createdAt: "2025-01-01T00:00:00Z", closedAt: "2025-01-10T00:00:00Z",
+  createdAt: "2025-01-01T00:00:00Z", updatedAt: "2025-01-10T00:00:00Z", closedAt: "2025-01-10T00:00:00Z",
   linkedPRs: [], milestoneNumber: 1,
   labels: [{ name: "bug", color: "#d73a4a" }], assignees: [], reopenedCount: 0,
 };
@@ -20,8 +20,9 @@ const closedIssue: TimelineItem = {
 const mergedPR: TimelineItem = {
   type: "pr", number: 2, title: "Fix",
   url: "https://github.com/o/r/pull/2", author: "bob",
-  createdAt: "2025-01-01T00:00:00Z", mergedAt: "2025-01-10T00:00:00Z",
-  closedAt: "2025-01-10T00:00:00Z", linkedIssue: null, milestoneNumber: 1,
+  createdAt: "2025-01-01T00:00:00Z", updatedAt: "2025-01-10T00:00:00Z", mergedAt: "2025-01-10T00:00:00Z",
+  closedAt: "2025-01-10T00:00:00Z", isDraft: false, reviewDecision: "APPROVED", additions: 50, deletions: 10,
+  linkedIssue: null, milestoneNumber: 1,
   labels: [], assignees: [], firstReviewAt: null,
 };
 

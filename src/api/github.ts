@@ -9,6 +9,7 @@ type RawMilestone = {
   state: "open" | "closed";
   open_issues: number;
   closed_issues: number;
+  due_on: string | null;
 };
 
 const mapMilestone = (raw: RawMilestone): Milestone => ({
@@ -17,6 +18,7 @@ const mapMilestone = (raw: RawMilestone): Milestone => ({
   state: raw.state,
   openIssues: raw.open_issues,
   closedIssues: raw.closed_issues,
+  dueOn: raw.due_on ?? null,
 });
 
 const authHeaders = (token: string): Record<string, string> => ({
@@ -95,6 +97,7 @@ const MILESTONE_QUERY = `
             url
             author { login }
             createdAt
+            updatedAt
             closedAt
             ${LABEL_ASSIGNEE_FIELDS}
             timelineItems(first: 1, itemTypes: [REOPENED_EVENT]) {
@@ -107,8 +110,13 @@ const MILESTONE_QUERY = `
                 url
                 author { login }
                 createdAt
+                updatedAt
                 mergedAt
                 closedAt
+                isDraft
+                reviewDecision
+                additions
+                deletions
                 ${LABEL_ASSIGNEE_FIELDS}
                 reviews(first: 1, states: [APPROVED, CHANGES_REQUESTED, COMMENTED]) {
                   nodes { submittedAt }
@@ -138,8 +146,13 @@ const MILESTONE_PRS_QUERY = `
             url
             author { login }
             createdAt
+            updatedAt
             mergedAt
             closedAt
+            isDraft
+            reviewDecision
+            additions
+            deletions
             ${LABEL_ASSIGNEE_FIELDS}
             reviews(first: 1, states: [APPROVED, CHANGES_REQUESTED, COMMENTED]) {
               nodes { submittedAt }
@@ -160,8 +173,13 @@ type GQLPRNode = {
   url: string;
   author: { login: string } | null;
   createdAt: string;
+  updatedAt: string;
   mergedAt: string | null;
   closedAt: string | null;
+  isDraft: boolean;
+  reviewDecision: "APPROVED" | "CHANGES_REQUESTED" | "REVIEW_REQUIRED" | null;
+  additions: number;
+  deletions: number;
   labels: { nodes: GQLLabelNode[] };
   assignees: { nodes: GQLUserNode[] };
   reviews: { nodes: Array<{ submittedAt: string }> };
@@ -173,6 +191,7 @@ type GQLIssueNode = {
   url: string;
   author: { login: string } | null;
   createdAt: string;
+  updatedAt: string;
   closedAt: string | null;
   labels: { nodes: GQLLabelNode[] };
   assignees: { nodes: GQLUserNode[] };
@@ -307,8 +326,13 @@ const fetchMilestoneItems = async (
           url: pr.url,
           author: pr.author?.login ?? "ghost",
           createdAt: pr.createdAt,
+          updatedAt: pr.updatedAt,
           mergedAt: pr.mergedAt,
           closedAt: pr.closedAt,
+          isDraft: pr.isDraft,
+          reviewDecision: pr.reviewDecision ?? null,
+          additions: pr.additions,
+          deletions: pr.deletions,
           linkedIssue: issue.number > 0 ? issue.number : null,
           milestoneNumber,
           labels: mapLabels(pr.labels.nodes),
@@ -325,6 +349,7 @@ const fetchMilestoneItems = async (
       url: issue.url,
       author: issue.author?.login ?? "ghost",
       createdAt: issue.createdAt,
+      updatedAt: issue.updatedAt,
       closedAt: issue.closedAt,
       linkedPRs: linkedPRNums,
       milestoneNumber,
@@ -345,8 +370,13 @@ const fetchMilestoneItems = async (
         url: pr.url,
         author: pr.author?.login ?? "ghost",
         createdAt: pr.createdAt,
+        updatedAt: pr.updatedAt,
         mergedAt: pr.mergedAt,
         closedAt: pr.closedAt,
+        isDraft: pr.isDraft,
+        reviewDecision: pr.reviewDecision ?? null,
+        additions: pr.additions,
+        deletions: pr.deletions,
         linkedIssue: null,
         milestoneNumber,
         labels: mapLabels(pr.labels.nodes),

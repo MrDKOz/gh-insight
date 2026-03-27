@@ -30,6 +30,9 @@ type Row = {
   assignees: string;
   labels: string;
   status: string;
+  draft: string;
+  reviewState: string;
+  size: string;
   opened: string;
   closed: string;
   duration: string;
@@ -53,6 +56,15 @@ const buildRows = (items: TimelineItem[]): Row[] =>
           : item.linkedPRs.length > 0
             ? item.linkedPRs.map((n) => `PR #${n}`).join(", ")
             : "—";
+      const draft = item.type === "pr" && item.isDraft ? "Draft" : "";
+      const reviewState =
+        item.type === "pr"
+          ? item.reviewDecision === "APPROVED" ? "Approved"
+          : item.reviewDecision === "CHANGES_REQUESTED" ? "Changes Requested"
+          : item.reviewDecision === "REVIEW_REQUIRED" ? "Review Required"
+          : "—"
+          : "—";
+      const size = item.type === "pr" ? `+${item.additions} / -${item.deletions}` : "—";
       return {
         type: item.type === "issue" ? "Issue" : "PR",
         num: `#${item.number}`,
@@ -61,6 +73,9 @@ const buildRows = (items: TimelineItem[]): Row[] =>
         assignees: item.assignees.join(", ") || "—",
         labels: item.labels.map((l) => l.name).join(", ") || "—",
         status,
+        draft,
+        reviewState,
+        size,
         opened: fmtDate(item.createdAt, true),
         closed: fmtDate(endDate, true),
         duration: days != null ? String(days) : "—",
@@ -69,7 +84,7 @@ const buildRows = (items: TimelineItem[]): Row[] =>
       };
     });
 
-const COLS = ["Type", "Number", "Title", "Author", "Assignees", "Labels", "Status", "Opened", "Closed/Merged", "Duration (days)", "Linked to", "URL"] as const;
+const COLS = ["Type", "Number", "Title", "Author", "Assignees", "Labels", "Status", "Draft", "Review State", "Size (+/-)", "Opened", "Closed/Merged", "Duration (days)", "Linked to", "URL"] as const;
 
 const exportCSV = (items: TimelineItem[], title: string): void => {
   const rows = buildRows(items);
@@ -77,7 +92,7 @@ const exportCSV = (items: TimelineItem[], title: string): void => {
   const lines = [
     COLS.map(esc).join(","),
     ...rows.map((r) =>
-      [r.type, r.num, r.title, r.author, r.assignees, r.labels, r.status, r.opened, r.closed, r.duration, r.linked, r.url].map(esc).join(","),
+      [r.type, r.num, r.title, r.author, r.assignees, r.labels, r.status, r.draft, r.reviewState, r.size, r.opened, r.closed, r.duration, r.linked, r.url].map(esc).join(","),
     ),
   ];
   triggerBlobDownload(lines.join("\r\n"), `${safeFilename(title)}.csv`, "text/csv;charset=utf-8;");
@@ -89,11 +104,11 @@ const exportMarkdown = (items: TimelineItem[], title: string): void => {
   const lines = [
     `# ${title}`,
     "",
-    "| Type | # | Title | Author | Assignees | Labels | Status | Opened | Closed/Merged | Duration | Linked to |",
-    "|------|---|-------|--------|-----------|--------|--------|--------|---------------|----------|-----------|",
+    "| Type | # | Title | Author | Assignees | Labels | Status | Draft | Review State | Size (+/-) | Opened | Closed/Merged | Duration | Linked to |",
+    "|------|---|-------|--------|-----------|--------|--------|-------|--------------|------------|--------|---------------|----------|-----------|",
     ...rows.map(
       (r) =>
-        `| ${r.type} | [${r.num}](${r.url}) | ${pipe(r.title)} | ${r.author} | ${r.assignees} | ${pipe(r.labels)} | ${r.status} | ${r.opened} | ${r.closed} | ${r.duration === "—" ? "—" : `${r.duration} days`} | ${r.linked} |`,
+        `| ${r.type} | [${r.num}](${r.url}) | ${pipe(r.title)} | ${r.author} | ${r.assignees} | ${pipe(r.labels)} | ${r.status} | ${r.draft} | ${r.reviewState} | ${r.size} | ${r.opened} | ${r.closed} | ${r.duration === "—" ? "—" : `${r.duration} days`} | ${r.linked} |`,
     ),
   ];
   triggerBlobDownload(lines.join("\n"), `${safeFilename(title)}.md`, "text/markdown;charset=utf-8;");
@@ -388,23 +403,27 @@ const exportPDF = async (items: TimelineItem[], title: string): Promise<void> =>
   );
 
   // Available width: 297 (A4 landscape) − 14 (left) − 14 (right) = 269 mm
+  // Type(13)+#(14)+Title(58)+Author(18)+Assignees(16)+Labels(15)+Status(17)+Draft(10)+ReviewState(20)+Opened(21)+Closed(21)+Days(12)+Linked(18)+Size(16) = 269
   drawPDFTable(
     doc,
     30,
     [
       { label: "Type",          width: 13  },
       { label: "#",             width: 14  },
-      { label: "Title",         width: 82  },
-      { label: "Author",        width: 22  },
-      { label: "Assignees",     width: 20  },
+      { label: "Title",         width: 58  },
+      { label: "Author",        width: 18  },
+      { label: "Assignees",     width: 16  },
       { label: "Labels",        width: 15  },
       { label: "Status",        width: 17  },
-      { label: "Opened",        width: 24  },
-      { label: "Closed/Merged", width: 24  },
+      { label: "Draft",         width: 10  },
+      { label: "Review State",  width: 20  },
+      { label: "Opened",        width: 21  },
+      { label: "Closed/Merged", width: 21  },
       { label: "Days",          width: 12  },
-      { label: "Linked to",     width: 26  },
+      { label: "Linked to",     width: 18  },
+      { label: "Size (+/-)",    width: 16  },
     ],
-    rows.map((r) => [r.type, r.num, r.title, r.author, r.assignees, r.labels, r.status, r.opened, r.closed, r.duration, r.linked]),
+    rows.map((r) => [r.type, r.num, r.title, r.author, r.assignees, r.labels, r.status, r.draft, r.reviewState, r.opened, r.closed, r.duration, r.linked, r.size]),
     (i) => rows[i]?.url,
     1, // "#" column carries the hyperlink
   );
@@ -433,6 +452,9 @@ const exportXLSX = async (items: TimelineItem[], title: string): Promise<void> =
     { value: r.assignees },
     { value: r.labels },
     { value: r.status },
+    { value: r.draft },
+    { value: r.reviewState },
+    { value: r.size },
     { value: r.opened },
     { value: r.closed },
     { value: r.duration },
@@ -449,6 +471,9 @@ const exportXLSX = async (items: TimelineItem[], title: string): Promise<void> =
       { width: 20 },
       { width: 24 },
       { width: 10 },
+      { width: 10 },
+      { width: 18 },
+      { width: 16 },
       { width: 16 },
       { width: 16 },
       { width: 16 },
@@ -470,14 +495,16 @@ type ReviewWaitRow = {
   assignees: string;
   labels: string;
   status: string;
+  draft: string;
   created: string;
   firstReview: string;
   waitDays: string;
   totalDays: string;
+  size: string;
   url: string;
 };
 
-const RW_COLS = ["#", "Title", "Author", "Assignees", "Labels", "Status", "Created", "First Review", "Wait (days)", "Total (days)", "URL"] as const;
+const RW_COLS = ["#", "Title", "Author", "Assignees", "Labels", "Status", "Draft", "Created", "First Review", "Wait (days)", "Total (days)", "Size (+/-)", "URL"] as const;
 
 const buildReviewWaitRows = (items: TimelineItem[]): ReviewWaitRow[] =>
   items
@@ -498,10 +525,12 @@ const buildReviewWaitRows = (items: TimelineItem[]): ReviewWaitRow[] =>
         assignees: pr.assignees.join(", ") || "—",
         labels: pr.labels.map((l) => l.name).join(", ") || "—",
         status,
+        draft: pr.isDraft ? "Draft" : "",
         created: fmtDate(pr.createdAt, true),
         firstReview: pr.firstReviewAt ? fmtDate(pr.firstReviewAt, true) : "—",
         waitDays: waitDays !== null ? String(waitDays) : "—",
         totalDays: totalDays !== null ? String(totalDays) : "open",
+        size: `+${pr.additions} / -${pr.deletions}`,
         url: pr.url,
       };
     })
@@ -517,7 +546,7 @@ const exportReviewWaitCSV = (items: TimelineItem[], title: string): void => {
   const lines = [
     RW_COLS.map(esc).join(","),
     ...rows.map((r) =>
-      [r.num, r.title, r.author, r.assignees, r.labels, r.status, r.created, r.firstReview, r.waitDays, r.totalDays, r.url].map(esc).join(","),
+      [r.num, r.title, r.author, r.assignees, r.labels, r.status, r.draft, r.created, r.firstReview, r.waitDays, r.totalDays, r.size, r.url].map(esc).join(","),
     ),
   ];
   triggerBlobDownload(lines.join("\r\n"), `${safeFilename(title)}_review_wait.csv`, "text/csv;charset=utf-8;");
@@ -529,10 +558,10 @@ const exportReviewWaitMarkdown = (items: TimelineItem[], title: string): void =>
   const lines = [
     `# ${title} — Review Wait`,
     "",
-    "| # | Title | Author | Assignees | Labels | Status | Created | First Review | Wait (days) | Total (days) |",
-    "|---|-------|--------|-----------|--------|--------|---------|--------------|-------------|--------------|",
+    "| # | Title | Author | Assignees | Labels | Status | Draft | Created | First Review | Wait (days) | Total (days) | Size (+/-) |",
+    "|---|-------|--------|-----------|--------|--------|-------|---------|--------------|-------------|--------------|------------|",
     ...rows.map(
-      (r) => `| [${r.num}](${r.url}) | ${pipe(r.title)} | ${r.author} | ${r.assignees} | ${pipe(r.labels)} | ${r.status} | ${r.created} | ${r.firstReview} | ${r.waitDays} | ${r.totalDays} |`,
+      (r) => `| [${r.num}](${r.url}) | ${pipe(r.title)} | ${r.author} | ${r.assignees} | ${pipe(r.labels)} | ${r.status} | ${r.draft} | ${r.created} | ${r.firstReview} | ${r.waitDays} | ${r.totalDays} | ${r.size} |`,
     ),
   ];
   triggerBlobDownload(lines.join("\n"), `${safeFilename(title)}_review_wait.md`, "text/markdown;charset=utf-8;");
@@ -550,14 +579,16 @@ const exportReviewWaitXLSX = async (items: TimelineItem[], title: string): Promi
     { value: r.assignees },
     { value: r.labels },
     { value: r.status },
+    { value: r.draft },
     { value: r.created },
     { value: r.firstReview },
     { value: r.waitDays },
     { value: r.totalDays },
+    { value: r.size },
     { value: r.url },
   ]);
   await writeXlsxFile([headerRow, ...dataRows], {
-    columns: [{ width: 8 }, { width: 52 }, { width: 18 }, { width: 20 }, { width: 24 }, { width: 10 }, { width: 16 }, { width: 16 }, { width: 14 }, { width: 14 }, { width: 44 }],
+    columns: [{ width: 8 }, { width: 52 }, { width: 18 }, { width: 20 }, { width: 24 }, { width: 10 }, { width: 10 }, { width: 16 }, { width: 16 }, { width: 14 }, { width: 14 }, { width: 16 }, { width: 44 }],
     fileName: `${safeFilename(title)}_review_wait.xlsx`,
   });
 };
@@ -574,22 +605,25 @@ const exportReviewWaitPDF = async (items: TimelineItem[], title: string): Promis
   doc.text(`Generated ${fmtDate(new Date().toISOString(), true)}  ·  ${rows.length} PR${rows.length !== 1 ? "s" : ""}`, 14, 25);
 
   // Available width: 297 (A4 landscape) − 14 (left) − 14 (right) = 269 mm
+  // #(14)+Title(80)+Author(22)+Assignees(20)+Labels(15)+Status(16)+Draft(10)+Created(22)+FirstReview(22)+Wait(16)+Total(16)+Size(16) = 269
   drawPDFTable(
     doc,
     30,
     [
       { label: "#",            width: 14  },
-      { label: "Title",        width: 106 },
+      { label: "Title",        width: 80  },
       { label: "Author",       width: 22  },
       { label: "Assignees",    width: 20  },
       { label: "Labels",       width: 15  },
       { label: "Status",       width: 16  },
+      { label: "Draft",        width: 10  },
       { label: "Created",      width: 22  },
       { label: "First Review", width: 22  },
       { label: "Wait (d)",     width: 16  },
       { label: "Total (d)",    width: 16  },
+      { label: "Size (+/-)",   width: 16  },
     ],
-    rows.map((r) => [r.num, r.title, r.author, r.assignees, r.labels, r.status, r.created, r.firstReview, r.waitDays, r.totalDays]),
+    rows.map((r) => [r.num, r.title, r.author, r.assignees, r.labels, r.status, r.draft, r.created, r.firstReview, r.waitDays, r.totalDays, r.size]),
     (i) => rows[i]?.url,
     0, // "#" column carries the hyperlink
   );

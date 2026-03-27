@@ -159,6 +159,29 @@ const BarHoverCard: FunctionComponent<{ barHover: BarHover; snapMode: "day" | "h
       {item.type === "pr" && item.linkedIssue != null && (
         <Box sx={{ fontSize: FS.sm, color: "text.secondary" }}>Closes #{item.linkedIssue}</Box>
       )}
+      {item.type === "pr" && (item.reviewDecision || item.additions + item.deletions > 0) && (
+        <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "center" }}>
+          {item.reviewDecision && (
+            <Box component="span" sx={{
+              fontSize: FS.sm, fontWeight: 600,
+              color: item.reviewDecision === "APPROVED" ? "success.main"
+                : item.reviewDecision === "CHANGES_REQUESTED" ? "error.main"
+                : "warning.main",
+            }}>
+              {item.reviewDecision === "APPROVED" ? "✓ Approved"
+                : item.reviewDecision === "CHANGES_REQUESTED" ? "Changes requested"
+                : "Review required"}
+            </Box>
+          )}
+          {item.additions + item.deletions > 0 && (
+            <Box component="span" sx={{ fontSize: FS.sm, color: "text.secondary" }}>
+              <Box component="span" sx={{ color: "success.main" }}>+{item.additions}</Box>
+              {" / "}
+              <Box component="span" sx={{ color: "error.main" }}>-{item.deletions}</Box>
+            </Box>
+          )}
+        </Box>
+      )}
       <Box sx={{ fontSize: FS.sm, color: "text.secondary" }}>
         {fmt(item.createdAt)} → {barHover.isOpen ? "ongoing" : fmt(barHover.endDate)}
       </Box>
@@ -234,12 +257,25 @@ const GanttView: FunctionComponent<Props> = ({
     return bands;
   }, [highlightWeekends, minTime, totalMs]);
 
+  const STALE_MS = 7 * MS;
+
   const todayLeftPct = ((todayMs - minTime) / totalMs) * 100;
   const showToday = todayMs >= minTime && todayMs <= minTime + totalMs;
   const numDateLabels = Math.max(4, Math.min(24, Math.floor(trackWidth / 110)));
   const dateLabels = Array.from({ length: numDateLabels }, (_, i) =>
     fmtDate(new Date(minTime + (totalMs * i) / (numDateLabels - 1)).toISOString()),
   );
+
+  const dueMarkers = useMemo(() =>
+    milestones.flatMap((ms) => {
+      if (!ms.dueOn) { return []; }
+      const dueMs = new Date(ms.dueOn).getTime();
+      if (isNaN(dueMs)) { return []; }
+      const leftPct = ((dueMs - minTime) / totalMs) * 100;
+      if (leftPct < -2 || leftPct > 102) { return []; }
+      return [{ key: ms.number, leftPct, label: `Due ${fmtDate(ms.dueOn)}`, color: milestones.length > 1 ? ms.color : "#8250df" }];
+    }),
+  [milestones, minTime, totalMs]);
 
   return (
     <>
@@ -257,6 +293,9 @@ const GanttView: FunctionComponent<Props> = ({
                 : isClosedPR
                   ? "tl-badge tl-badge--pr-closed"
                   : "tl-badge tl-badge--pr";
+            const isStale = isOpen && (Date.now() - new Date(item.updatedAt).getTime()) > STALE_MS;
+            const staleDays = isStale ? Math.floor((Date.now() - new Date(item.updatedAt).getTime()) / MS) : 0;
+            const isDraft = item.type === "pr" && item.isDraft;
             return (
               <Box
                 key={`lbl-${item.type}-${item.number}`}
@@ -270,10 +309,16 @@ const GanttView: FunctionComponent<Props> = ({
                 }}
               >
                 <Box component="span" className={badgeClass}>{item.type.toUpperCase()}</Box>
+                {isDraft && (
+                  <Box component="span" sx={{ fontSize: FS.tiny, fontWeight: 700, color: "text.secondary", bgcolor: "action.selected", borderRadius: "3px", px: "3px", py: "1px", mr: "2px", flexShrink: 0 }}>DRAFT</Box>
+                )}
                 <a href={safeUrl(item.url)} target="_blank" rel="noreferrer" aria-label={`${item.type === "pr" ? "PR" : "Issue"} #${item.number}: ${item.title}`} className={`tl-num tl-num--${item.type}`}>
                   #{item.number}
                 </a>
                 <Box component="span" className="tl-title" title={item.title}>
+                  {isStale && (
+                    <Box component="span" title={`No activity for ${staleDays} days`} sx={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", bgcolor: COLORS.warning, mr: "4px", verticalAlign: "middle", flexShrink: 0 }} />
+                  )}
                   {item.title}
                 </Box>
                 <AuthorTag
@@ -322,6 +367,40 @@ const GanttView: FunctionComponent<Props> = ({
             ))}
           </Box>
           <Box style={{ position: "relative", width: trackWidth }}>
+          {dueMarkers.map((dm) => (
+            <Box
+              key={dm.key}
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                top: 0,
+                left: `${dm.leftPct}%`,
+                width: 2,
+                height: `${sortedItems.length * ROW_HEIGHT}px`,
+                background: dm.color,
+                opacity: 0.65,
+                pointerEvents: "none",
+                zIndex: 3,
+              }}
+            >
+              <Box
+                component="span"
+                style={{
+                  position: "absolute",
+                  top: 2,
+                  left: 4,
+                  fontSize: FS.tiny,
+                  color: dm.color,
+                  whiteSpace: "nowrap",
+                  fontWeight: 700,
+                  lineHeight: 1,
+                  userSelect: "none",
+                }}
+              >
+                {dm.label}
+              </Box>
+            </Box>
+          ))}
           {weekendBands.length > 0 && (
             <Box
               aria-hidden="true"
@@ -403,6 +482,14 @@ const GanttView: FunctionComponent<Props> = ({
               ? item.type === "issue" ? palette.issue : palette.prMerged
               : item.type === "issue" ? palette.issue : isMergedPR ? palette.prMerged : palette.prClosed;
 
+            const reviewBadge = item.type === "pr" && item.reviewDecision && barWidthPx >= 50
+              ? item.reviewDecision === "APPROVED"
+                ? { label: "✓", color: "#1a7f37" }
+                : item.reviewDecision === "CHANGES_REQUESTED"
+                  ? { label: "✕", color: "#cf222e" }
+                  : { label: "…", color: COLORS.warning }
+              : null;
+
             return (
               <Box key={`trk-${item.type}-${item.number}`} className="tl-track-row" style={{ height: ROW_HEIGHT }}>
                 <Box className="tl-track" style={{ width: trackWidth }}>
@@ -418,6 +505,26 @@ const GanttView: FunctionComponent<Props> = ({
                     onMouseEnter={(e) => setBarHover({ clientX: e.clientX, clientY: e.clientY, item, endDate, isOpen, durationText, dotColor, statusWord })}
                     onMouseLeave={() => setBarHover(null)}
                   >
+                    {reviewBadge && (
+                      <Box
+                        component="span"
+                        aria-hidden="true"
+                        style={{
+                          position: "absolute",
+                          right: 4,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          fontSize: 10,
+                          fontWeight: 700,
+                          color: reviewBadge.color,
+                          lineHeight: 1,
+                          opacity: 0.9,
+                          pointerEvents: "none",
+                        }}
+                      >
+                        {reviewBadge.label}
+                      </Box>
+                    )}
                     {barLabel}
                   </a>
                 </Box>

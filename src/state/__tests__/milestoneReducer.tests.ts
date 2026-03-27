@@ -1,13 +1,13 @@
 import type { Milestone, TimelineItem } from "../../types";
 import { initialState, milestoneReducer } from "../milestoneReducer";
 
-const ms1: Milestone = { number: 1, title: "Sprint 1", state: "open", openIssues: 2, closedIssues: 8 };
-const ms2: Milestone = { number: 2, title: "Sprint 2", state: "open", openIssues: 0, closedIssues: 5 };
+const ms1: Milestone = { number: 1, title: "Sprint 1", state: "open", openIssues: 2, closedIssues: 8, dueOn: null };
+const ms2: Milestone = { number: 2, title: "Sprint 2", state: "open", openIssues: 0, closedIssues: 5, dueOn: null };
 
 const item: TimelineItem = {
   type: "issue", number: 42, title: "Fix bug",
   url: "https://github.com/o/r/issues/42", author: "jsmith",
-  createdAt: "2025-01-10T00:00:00Z", closedAt: "2025-01-20T00:00:00Z",
+  createdAt: "2025-01-10T00:00:00Z", updatedAt: "2025-01-20T00:00:00Z", closedAt: "2025-01-20T00:00:00Z",
   linkedPRs: [], milestoneNumber: 1,
   labels: [], assignees: [], reopenedCount: 0,
 };

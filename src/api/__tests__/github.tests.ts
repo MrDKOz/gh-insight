@@ -103,6 +103,7 @@ describe("fetchMilestones", () => {
       state: "open",
       openIssues: 2,
       closedIssues: 8,
+      dueOn: null,
     });
   });
 

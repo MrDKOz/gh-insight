@@ -16,6 +16,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "r
 import { fetchMilestoneItems, fetchMilestones, fetchUserProfile, fetchUserRepos } from "./api/github";
 import { AppHeader } from "./components/AppHeader";
 import { ContextBar } from "./components/ContextBar";
+import { KeyboardShortcuts } from "./components/KeyboardShortcuts";
 import { SplashScreen } from "./components/SplashScreen";
 import { DEFAULT_VIEW, Timeline, readViewFiltersFromUrl } from "./components/Timeline";
 import type { View } from "./components/Timeline";
@@ -385,6 +386,7 @@ const App: FunctionComponent = () => {
       number: ms.number,
       title:  ms.title,
       color:  milestoneColorFor(ms.number),
+      dueOn:  ms.dueOn,
     })),
     [state.selected, milestoneColorFor],
   );
@@ -555,6 +557,7 @@ const App: FunctionComponent = () => {
 
         </Box>
       )}
+      <KeyboardShortcuts />
     </ThemeProvider>
   );
 };

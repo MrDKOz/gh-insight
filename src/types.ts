@@ -4,6 +4,7 @@ type Milestone = {
   state: "open" | "closed";
   openIssues: number;
   closedIssues: number;
+  dueOn: string | null;
 };
 
 type Label = {
@@ -18,8 +19,13 @@ type PRItem = {
   url: string;
   author: string;
   createdAt: string;
+  updatedAt: string;
   mergedAt: string | null;
   closedAt: string | null;
+  isDraft: boolean;
+  reviewDecision: "APPROVED" | "CHANGES_REQUESTED" | "REVIEW_REQUIRED" | null;
+  additions: number;
+  deletions: number;
   linkedIssue: number | null;
   milestoneNumber: number;
   labels: Label[];
@@ -34,6 +40,7 @@ type IssueItem = {
   url: string;
   author: string;
   createdAt: string;
+  updatedAt: string;
   closedAt: string | null;
   linkedPRs: number[];
   milestoneNumber: number;
@@ -48,6 +55,7 @@ type MilestoneMeta = {
   number: number;
   title: string;
   color: string;
+  dueOn: string | null;
 };
 
 type Repo = {

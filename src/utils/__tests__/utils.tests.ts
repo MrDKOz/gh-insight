@@ -4,7 +4,7 @@ import { COLORS, COLORS_CB, MS, MS_HOUR, assigneesOtherThanAuthor, durationDays,
 const issue = (overrides: Partial<{ closedAt: string | null }> = {}): TimelineItem => ({
   type: "issue", number: 1, title: "Test issue",
   url: "https://github.com/o/r/issues/1", author: "jsmith",
-  createdAt: "2025-01-01T00:00:00Z", closedAt: null,
+  createdAt: "2025-01-01T00:00:00Z", updatedAt: "2025-01-01T00:00:00Z", closedAt: null,
   linkedPRs: [], milestoneNumber: 1,
   labels: [], assignees: [], reopenedCount: 0,
   ...overrides,
@@ -13,7 +13,8 @@ const issue = (overrides: Partial<{ closedAt: string | null }> = {}): TimelineIt
 const pr = (overrides: Partial<{ mergedAt: string | null; closedAt: string | null }> = {}): TimelineItem => ({
   type: "pr", number: 2, title: "Test PR",
   url: "https://github.com/o/r/pull/2", author: "a-jones",
-  createdAt: "2025-01-01T00:00:00Z", mergedAt: null, closedAt: null,
+  createdAt: "2025-01-01T00:00:00Z", updatedAt: "2025-01-01T00:00:00Z", mergedAt: null, closedAt: null,
+  isDraft: false, reviewDecision: null, additions: 20, deletions: 5,
   linkedIssue: null, milestoneNumber: 1,
   labels: [], assignees: [], firstReviewAt: null,
   ...overrides,

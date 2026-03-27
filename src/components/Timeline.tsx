@@ -428,7 +428,7 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
       filterSlot,
     )}
     <Paper sx={{ p: 3, display: "flex", flexDirection: "column", gap: 1.5 }} ref={wrapperRef}>
-      <StatsBar items={filteredItems} view={view} colorblindMode={colorblindMode} title={title} />
+      <StatsBar items={filteredItems} milestones={milestones} view={view} colorblindMode={colorblindMode} title={title} />
 
       {noFilteredItems && (
         <Typography color="text.secondary" sx={{ py: 2 }}>
