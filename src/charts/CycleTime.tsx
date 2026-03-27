@@ -5,7 +5,7 @@ import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { AuthorWithAssignees } from "../components/AuthorWithAssignees";
-import { CHART_EMPTY_STATE_SX, MS, fmtDate, hoverCardPos, itemEndDate, makeChartColors, pluralize } from "../utils/utils";
+import { CHART_EMPTY_STATE_SX, MS, fmtDate, fmtDateTime, hoverCardPos, itemEndDate, makeChartColors, pluralize } from "../utils/utils";
 import { ChartLegend } from "./ChartLegend";
 
 type Props = {
@@ -180,7 +180,7 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
             </Box>
           )}
           <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>
-            {fmtDate(hover.pt.item.createdAt)} → {fmtDate(hover.pt.endDate)}
+            {fmtDateTime(hover.pt.item.createdAt)} → {fmtDateTime(hover.pt.endDate)}
           </Box>
         </Paper>
       )}

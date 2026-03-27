@@ -5,7 +5,7 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { COLORS, COLORS_CB, FS, MS, assigneesOtherThanAuthor, durationDays, fmtDate, itemEndDate, pluralize, safeUrl } from "../utils/utils";
+import { COLORS, COLORS_CB, FS, MS, MS_HOUR, assigneesOtherThanAuthor, durationDays, fmtDate, fmtDateTime, itemEndDate, pluralize, safeUrl, snapToHour } from "../utils/utils";
 import { AuthorCard, AuthorTag } from "./AuthorTag";
 import { LabelBadge } from "./LabelBadge";
 
@@ -27,6 +27,7 @@ type Props = {
   onResizeKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void;
   highlightWeekends: boolean;
   colorblindMode: boolean;
+  snapMode: "day" | "hour";
 };
 
 const ROW_HEIGHT = 31;
@@ -102,7 +103,8 @@ const GanttLegend: FunctionComponent<GanttLegendProps> = ({ hasOpenIssues, isMul
   );
 };
 
-const BarHoverCard: FunctionComponent<{ barHover: BarHover }> = ({ barHover }) => {
+const BarHoverCard: FunctionComponent<{ barHover: BarHover; snapMode: "day" | "hour" }> = ({ barHover, snapMode }) => {
+  const fmt = snapMode === "hour" ? fmtDateTime : fmtDate;
   const { item } = barHover;
   const otherAssignees = assigneesOtherThanAuthor(item.assignees, item.author);
   return (
@@ -145,7 +147,7 @@ const BarHoverCard: FunctionComponent<{ barHover: BarHover }> = ({ barHover }) =
         <Box sx={{ fontSize: FS.sm, color: "text.secondary" }}>Closes #{item.linkedIssue}</Box>
       )}
       <Box sx={{ fontSize: FS.sm, color: "text.secondary" }}>
-        {fmtDate(item.createdAt)} → {barHover.isOpen ? "ongoing" : fmtDate(barHover.endDate)}
+        {fmt(item.createdAt)} → {barHover.isOpen ? "ongoing" : fmt(barHover.endDate)}
       </Box>
       <Box sx={{ fontSize: FS.md, fontWeight: 600 }}>{barHover.durationText}</Box>
     </Paper>
@@ -170,6 +172,7 @@ const GanttView: FunctionComponent<Props> = ({
   onResizeKeyDown,
   highlightWeekends,
   colorblindMode,
+  snapMode,
 }) => {
   const [hoverItem, setHoverItem] = useState<TimelineItem | null>(null);
   const [cardPos, setCardPos] = useState({ top: 0, left: 0 });
@@ -199,13 +202,20 @@ const GanttView: FunctionComponent<Props> = ({
   const weekendBands = useMemo(() => {
     if (!highlightWeekends) {return [];}
     const bands: { leftPct: number; widthPct: number }[] = [];
-    for (let d = minTime; d < minTime + totalMs; d += MS) {
-      if (new Date(d).getUTCDay() === 6) { // Saturday
-        const leftPct = ((d - minTime) / totalMs) * 100;
-        const widthPct = (MS * 2) / totalMs * 100;
-        bands.push({ leftPct, widthPct });
-        d += MS; // skip Sunday
+    // Start from the UTC midnight before minTime so bands always cover full
+    // calendar days, even when minTime is mid-day (hour snap mode).
+    const dayFloor = Math.floor(minTime / MS) * MS;
+    for (let d = dayFloor; d < minTime + totalMs; d += MS) {
+      if (new Date(d).getUTCDay() !== 6) { continue; } // Saturday midnight UTC
+      const bandLeft  = Math.max(d, minTime);
+      const bandRight = Math.min(d + 2 * MS, minTime + totalMs);
+      if (bandRight > bandLeft) {
+        bands.push({
+          leftPct:  ((bandLeft  - minTime) / totalMs) * 100,
+          widthPct: ((bandRight - bandLeft) / totalMs) * 100,
+        });
       }
+      d += MS; // skip Sunday
     }
     return bands;
   }, [highlightWeekends, minTime, totalMs]);
@@ -283,7 +293,8 @@ const GanttView: FunctionComponent<Props> = ({
             const rect = e.currentTarget.getBoundingClientRect();
             const x = e.clientX - rect.left + e.currentTarget.scrollLeft;
             const rawMs = minTime + (x / trackWidth) * totalMs;
-            const snappedMs = Math.round(rawMs / MS) * MS;
+            const snapUnit = snapMode === "hour" ? MS_HOUR : MS;
+            const snappedMs = Math.round(rawMs / snapUnit) * snapUnit;
             const pct = Math.max(0, Math.min(100, ((snappedMs - minTime) / totalMs) * 100));
             setCursorInfo({ pct, clientX: e.clientX, clientY: e.clientY });
           }}
@@ -316,21 +327,35 @@ const GanttView: FunctionComponent<Props> = ({
           )}
           {sortedItems.map((item) => {
             const isOpen = item.type === "issue" ? !item.closedAt : !(item.mergedAt || item.closedAt);
-            // Snap to UTC midnight so items created on the same calendar day
-            // share the same left edge regardless of their exact creation time.
-            const startMs = new Date(new Date(item.createdAt).toISOString().slice(0, 10)).getTime();
             const endDate = isOpen ? null : itemEndDate(item);
-            const endMs = isOpen ? todayMs : new Date(endDate!).getTime();
+            const endMs   = isOpen ? todayMs : new Date(endDate!).getTime();
 
-            const duration = durationDays(item.createdAt, isOpen ? null : (endDate ?? null));
+            // Day mode: snap to UTC midnight; hour mode: snap to local hour.
+            const startMs = snapMode === "hour"
+              ? snapToHour(new Date(item.createdAt).getTime())
+              : new Date(new Date(item.createdAt).toISOString().slice(0, 10)).getTime();
 
-            const leftPct = ((startMs - minTime) / totalMs) * 100;
-            // Snap closed bar width to the rounded duration so same-label bars are
-            // always the same width (raw timestamps vary within a rounding bucket).
-            const snapEndMs = isOpen ? endMs : startMs + (duration ?? 0) * MS;
+            // Closed-bar end: day mode snaps to whole-day duration; hour mode snaps to the close hour.
+            const snapEndMs = isOpen ? endMs
+              : snapMode === "hour" ? snapToHour(endMs)
+              : startMs + (durationDays(item.createdAt, endDate) ?? 0) * MS;
+
+            const leftPct  = ((startMs  - minTime) / totalMs) * 100;
             const widthPct = Math.max(((snapEndMs - startMs) / totalMs) * 100, 0.3);
-            const durationText =
-              duration === null ? "ongoing" : duration === 0 ? "Same day" : duration === 1 ? "1 day" : `${duration} days`;
+
+            // Duration text — hours when in hour mode, days otherwise.
+            let durationText: string;
+            if (isOpen) {
+              durationText = "ongoing";
+            } else if (snapMode === "hour" && endDate) {
+              const hrs = Math.round((new Date(endDate).getTime() - new Date(item.createdAt).getTime()) / MS_HOUR);
+              const d   = Math.floor(hrs / 24);
+              const h   = hrs % 24;
+              durationText = hrs === 0 ? "< 1h" : d === 0 ? `${hrs}h` : h === 0 ? `${d}d` : `${d}d ${h}h`;
+            } else {
+              const duration = durationDays(item.createdAt, endDate);
+              durationText = duration === null ? "ongoing" : duration === 0 ? "Same day" : duration === 1 ? "1 day" : `${duration} days`;
+            }
 
             const isMergedPR = item.type === "pr" && !!item.mergedAt;
             const barClass = [
@@ -347,15 +372,16 @@ const GanttView: FunctionComponent<Props> = ({
             ].join(" ");
 
             const barWidthPx = (widthPct / 100) * trackWidth;
+            const fmt = snapMode === "hour" ? fmtDateTime : fmtDate;
             const reopenPrefix = item.type === "issue" && item.reopenedCount > 0 ? "↺ " : "";
             const barLabel =
               barWidthPx < 40
                 ? ""
                 : isOpen
-                  ? `${reopenPrefix}${fmtDate(item.createdAt)} → today (${durationText})`
-                  : duration !== null && duration <= 2
+                  ? `${reopenPrefix}${fmt(item.createdAt)} → today (${durationText})`
+                  : durationText === "Same day" || durationText.match(/^[0-9]+h$/)
                     ? `${reopenPrefix}${durationText}`
-                    : `${reopenPrefix}${fmtDate(item.createdAt)} → ${fmtDate(endDate)} (${durationText})`;
+                    : `${reopenPrefix}${fmt(item.createdAt)} → ${fmt(endDate)} (${durationText})`;
 
             const statusWord = isOpen ? "Open" : item.type === "pr" ? (item.mergedAt ? "Merged" : "Closed") : "Closed";
             const palette = colorblindMode ? COLORS_CB : COLORS;
@@ -400,12 +426,14 @@ const GanttView: FunctionComponent<Props> = ({
       {cursorInfo !== null && barHover === null && (
         <Paper elevation={2} sx={{ position: "fixed", top: cursorInfo.clientY - 34, left: cursorInfo.clientX, transform: "translateX(-50%)", px: 1, py: 0.5, pointerEvents: "none", zIndex: 150, userSelect: "none", whiteSpace: "nowrap" }}>
           <Box sx={{ fontSize: FS.sm, fontWeight: 600, color: "text.secondary" }}>
-            {fmtDate(new Date(minTime + (cursorInfo.pct / 100) * totalMs).toISOString())}
+            {snapMode === "hour"
+              ? fmtDateTime(new Date(minTime + (cursorInfo.pct / 100) * totalMs).toISOString())
+              : fmtDate(new Date(minTime + (cursorInfo.pct / 100) * totalMs).toISOString())}
           </Box>
         </Paper>
       )}
 
-      {barHover && <BarHoverCard barHover={barHover} />}
+      {barHover && <BarHoverCard barHover={barHover} snapMode={snapMode} />}
     </>
   );
 };

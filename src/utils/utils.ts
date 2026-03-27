@@ -1,6 +1,7 @@
 import type { TimelineItem } from "../types";
 
-const MS = 86_400_000;
+const MS      = 86_400_000;
+const MS_HOUR =  3_600_000;
 
 const fmtDate = (iso: string | null | undefined, includeYear = false): string => {
   if (!iso) {return "N/A";}
@@ -11,6 +12,22 @@ const fmtDate = (iso: string | null | undefined, includeYear = false): string =>
     month: "short",
     ...(includeYear ? { year: "numeric" } : {}),
   });
+};
+
+/** "1 Jan 14:00" — local time, hour precision. Safe for null/invalid ISO strings. */
+const fmtDateTime = (iso: string | null | undefined): string => {
+  if (!iso) {return "N/A";}
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) {return "N/A";}
+  const date = d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  return `${date} ${String(d.getHours()).padStart(2, "0")}:00`;
+};
+
+/** Floor a timestamp to the start of its local hour. */
+const snapToHour = (ms: number): number => {
+  const d = new Date(ms);
+  d.setMinutes(0, 0, 0);
+  return d.getTime();
 };
 
 const itemEndDate = (item: TimelineItem): string | null =>
@@ -268,11 +285,13 @@ export {
   FS,
   HOVER_CARD_BASE_SX,
   MS,
+  MS_HOUR,
   RESIZE_HANDLE_SX,
   STAT_ROW_SX,
   assigneesOtherThanAuthor,
   durationDays,
   fmtDate,
+  fmtDateTime,
   hoverCardPos,
   itemEndDate,
   itemStatus,
@@ -281,5 +300,6 @@ export {
   makeStatusChipSx,
   pluralize,
   safeUrl,
+  snapToHour,
   upperBound,
 };

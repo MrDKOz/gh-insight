@@ -8,6 +8,8 @@ import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -18,7 +20,7 @@ import { CumulativeFlow } from "../charts/CumulativeFlow";
 import { CycleTime } from "../charts/CycleTime";
 import { Velocity } from "../charts/Velocity";
 import { exportCSV, exportChartPDF, exportGanttPDF, exportMarkdown, exportPDF, exportPNG, exportReviewWaitCSV, exportReviewWaitMarkdown, exportReviewWaitPDF, exportReviewWaitXLSX, exportSVG, exportXLSX } from "../utils/export";
-import { MS, itemEndDate } from "../utils/utils";
+import { MS, itemEndDate, snapToHour } from "../utils/utils";
 import { FilterBar, applyFilters } from "./FilterBar";
 import { GanttView } from "./GanttView";
 import { ItemList } from "./ItemList";
@@ -123,6 +125,9 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
   const [filters, setFilters] = useState<Filters>(() => readViewFiltersFromUrl().filters);
   const [exportError, setExportError] = useState<string | null>(null);
   const [copyTooltip, setCopyTooltip] = useState<"idle" | "copied">("idle");
+  const [snapMode, setSnapMode] = useState<"day" | "hour">(() =>
+    new URLSearchParams(window.location.search).get("sm") === "h" ? "hour" : "day",
+  );
 
   const [toolbarSlot, setToolbarSlot] = useState<Element | null>(null);
   const [filterSlot, setFilterSlot] = useState<Element | null>(null);
@@ -176,6 +181,13 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
   useEffect(() => {
     syncFiltersToUrl(filters);
   }, [filters]);
+
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    if (snapMode === "hour") { p.set("sm", "h"); } else { p.delete("sm"); }
+    const qs = p.toString();
+    window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
+  }, [snapMode]);
 
   // Read portal target nodes after mount — querying the DOM inline during
   // render returns null on first paint because sibling components haven't
@@ -295,7 +307,10 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
     if (allTimestamps.length === 0) {
       return { todayMs: now, minTime: now, totalMs: 1, totalDays: 1, trackWidth: 500 };
     }
-    const min = new Date(new Date(Math.min(...allTimestamps)).toISOString().slice(0, 10)).getTime();
+    const rawMin = Math.min(...allTimestamps);
+    const min = snapMode === "hour"
+      ? snapToHour(rawMin)
+      : new Date(new Date(rawMin).toISOString().slice(0, 10)).getTime();
     const hasOpenItems = filteredItems.some((item) => !itemEndDate(item));
     const max = hasOpenItems
       ? Math.max(...allTimestamps, now)
@@ -309,7 +324,7 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
       totalDays,
       trackWidth: Math.max(500, Math.round(totalDays * pixelsPerDay)),
     };
-  }, [allTimestamps, filteredItems, pixelsPerDay]);
+  }, [allTimestamps, filteredItems, pixelsPerDay, snapMode]);
 
   // Keep ref values current for the wheel-zoom handler without adding them to its deps
   useLayoutEffect(() => {
@@ -358,7 +373,7 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
   const noFilteredItems = filteredItems.length === 0;
 
   const toolbar = (
-    <Stack direction="row" gap={1} alignItems="center" data-export-exclude>
+    <Stack direction="row" gap={1} alignItems="center" flexWrap="wrap" data-export-exclude>
       <Button
         variant="outlined"
         size="small"
@@ -374,6 +389,19 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
           </MenuItem>
         ))}
       </Menu>
+
+      {view === "Gantt" && (
+        <ToggleButtonGroup
+          value={snapMode}
+          exclusive
+          size="small"
+          onChange={(_, val: "day" | "hour" | null) => { if (val) { setSnapMode(val); } }}
+          aria-label="Bar snap granularity"
+        >
+          <ToggleButton value="day"  aria-label="Snap to day">Day</ToggleButton>
+          <ToggleButton value="hour" aria-label="Snap to hour">Hour</ToggleButton>
+        </ToggleButtonGroup>
+      )}
 
       <Tooltip
         title={copyTooltip === "copied" ? "Copied!" : "Copy shareable link"}
@@ -446,6 +474,7 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
           onResizeKeyDown={handleResizeKeyDown}
           highlightWeekends={highlightWeekends}
           colorblindMode={colorblindMode}
+          snapMode={snapMode}
         />
       )}
     </Paper>
