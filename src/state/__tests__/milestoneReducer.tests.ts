@@ -122,6 +122,20 @@ describe("FETCH_ITEMS_SUCCESS", () => {
     expect(next.emptyMilestoneNums).toContain(99);
     expect(next.error).toBeNull();
   });
+
+  it("does not duplicate milestone number in emptyMilestoneNums when already listed", () => {
+    const state = { ...initialState, loadingNums: [1], emptyMilestoneNums: [1] };
+    const next = milestoneReducer(state, { type: "FETCH_ITEMS_SUCCESS", milestoneNumber: 1, items: [] });
+
+    expect(next.emptyMilestoneNums.filter((n) => n === 1)).toHaveLength(1);
+  });
+
+  it("removes milestone from emptyMilestoneNums when it now has items", () => {
+    const state = { ...initialState, loadingNums: [1], emptyMilestoneNums: [1] };
+    const next = milestoneReducer(state, { type: "FETCH_ITEMS_SUCCESS", milestoneNumber: 1, items: [item] });
+
+    expect(next.emptyMilestoneNums).not.toContain(1);
+  });
 });
 
 describe("FETCH_ITEMS_ERROR", () => {
@@ -148,6 +162,22 @@ describe("REMOVE_MILESTONE", () => {
     const next = milestoneReducer(state, { type: "REMOVE_MILESTONE", milestoneNumber: 1 });
 
     expect(next.selected).toEqual([ms2]);
+  });
+
+  it("also removes the milestone from emptyMilestoneNums", () => {
+    const state = { ...initialState, selected: [ms1], emptyMilestoneNums: [1, 2] };
+    const next = milestoneReducer(state, { type: "REMOVE_MILESTONE", milestoneNumber: 1 });
+
+    expect(next.emptyMilestoneNums).toEqual([2]);
+  });
+});
+
+describe("milestoneReducer — default case", () => {
+  it("returns state unchanged for an unknown action type", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const next = milestoneReducer(initialState, { type: "UNKNOWN_ACTION" } as any);
+
+    expect(next).toBe(initialState);
   });
 });
 

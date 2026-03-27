@@ -124,6 +124,120 @@ describe("applyFilters — createdAt range", () => {
   });
 });
 
+describe("applyFilters — label filter", () => {
+  it("shows all items when no labels are selected", () => {
+    expect(applyFilters(all, DEFAULT_FILTERS)).toHaveLength(all.length);
+  });
+
+  it("keeps only items that carry a matching label", () => {
+    const withBug: TimelineItem  = { ...closedIssue, number: 50, labels: [{ name: "bug", color: "#d73a4a" }] };
+    const withNone: TimelineItem = { ...closedIssue, number: 51, labels: [] };
+    const f: Filters = { ...DEFAULT_FILTERS, activeLabels: ["bug"] };
+
+    expect(applyFilters([withBug, withNone], f)).toEqual([withBug]);
+  });
+
+  it("passes an item that has any one of the selected labels (OR logic)", () => {
+    const bugItem: TimelineItem = { ...closedIssue, number: 52, labels: [{ name: "bug",         color: "#d73a4a" }] };
+    const enhItem: TimelineItem = { ...closedIssue, number: 53, labels: [{ name: "enhancement", color: "#a2eeef" }] };
+    const f: Filters = { ...DEFAULT_FILTERS, activeLabels: ["bug", "enhancement"] };
+
+    expect(applyFilters([bugItem, enhItem], f)).toEqual([bugItem, enhItem]);
+  });
+});
+
+describe("applyFilters — people — author role", () => {
+  const aliceIssue: TimelineItem = { ...closedIssue, number: 60, author: "alice", assignees: ["bob"] };
+  const bobIssue: TimelineItem   = { ...closedIssue, number: 61, author: "bob",   assignees: []      };
+
+  it("matches items authored by the selected person", () => {
+    const f: Filters = { ...DEFAULT_FILTERS, activePeople: ["alice"], peopleRole: "author" };
+    const result = applyFilters([aliceIssue, bobIssue], f);
+
+    expect(result).toContainEqual(aliceIssue);
+    expect(result).not.toContainEqual(bobIssue);
+  });
+
+  it("does not match items where the person is only an assignee, not the author", () => {
+    // bob is an assignee on aliceIssue but alice is the author
+    const f: Filters = { ...DEFAULT_FILTERS, activePeople: ["bob"], peopleRole: "author" };
+    const result = applyFilters([aliceIssue, bobIssue], f);
+
+    expect(result).not.toContainEqual(aliceIssue);
+    expect(result).toContainEqual(bobIssue); // bob IS the author here
+  });
+});
+
+describe("applyFilters — people — assignees role", () => {
+  const aliceIssue: TimelineItem  = { ...closedIssue, number: 70, author: "alice", assignees: ["bob", "carol"] };
+  const selfAssigned: TimelineItem = { ...closedIssue, number: 71, author: "dave",  assignees: ["dave"]         };
+  const unassigned: TimelineItem   = { ...closedIssue, number: 72, author: "eve",   assignees: []               };
+
+  it("matches items where the person is an assignee", () => {
+    const f: Filters = { ...DEFAULT_FILTERS, activePeople: ["bob"], peopleRole: "assignees" };
+
+    expect(applyFilters([aliceIssue, selfAssigned, unassigned], f)).toContainEqual(aliceIssue);
+  });
+
+  it("matches self-assigned items (author is also in assignees)", () => {
+    const f: Filters = { ...DEFAULT_FILTERS, activePeople: ["dave"], peopleRole: "assignees" };
+
+    expect(applyFilters([aliceIssue, selfAssigned, unassigned], f)).toContainEqual(selfAssigned);
+  });
+
+  it("does not match items where the person is only the author and not in assignees", () => {
+    // alice authored aliceIssue but is not in its assignees array
+    const f: Filters = { ...DEFAULT_FILTERS, activePeople: ["alice"], peopleRole: "assignees" };
+
+    expect(applyFilters([aliceIssue, selfAssigned, unassigned], f)).not.toContainEqual(aliceIssue);
+  });
+
+  it("excludes items with no matching assignee", () => {
+    const f: Filters = { ...DEFAULT_FILTERS, activePeople: ["bob"], peopleRole: "assignees" };
+
+    expect(applyFilters([aliceIssue, selfAssigned, unassigned], f)).not.toContainEqual(unassigned);
+  });
+});
+
+describe("applyFilters — people — either role (default)", () => {
+  const authorOnly: TimelineItem   = { ...closedIssue, number: 80, author: "alice", assignees: []        };
+  const assigneeOnly: TimelineItem = { ...closedIssue, number: 81, author: "bob",   assignees: ["alice"] };
+  const neitherItem: TimelineItem  = { ...closedIssue, number: 82, author: "carol", assignees: ["dave"]  };
+
+  it("matches items where the person is the author", () => {
+    const f: Filters = { ...DEFAULT_FILTERS, activePeople: ["alice"], peopleRole: "either" };
+
+    expect(applyFilters([authorOnly, assigneeOnly, neitherItem], f)).toContainEqual(authorOnly);
+  });
+
+  it("matches items where the person is an assignee", () => {
+    const f: Filters = { ...DEFAULT_FILTERS, activePeople: ["alice"], peopleRole: "either" };
+
+    expect(applyFilters([authorOnly, assigneeOnly, neitherItem], f)).toContainEqual(assigneeOnly);
+  });
+
+  it("excludes items where the person is neither author nor assignee", () => {
+    const f: Filters = { ...DEFAULT_FILTERS, activePeople: ["alice"], peopleRole: "either" };
+
+    expect(applyFilters([authorOnly, assigneeOnly, neitherItem], f)).not.toContainEqual(neitherItem);
+  });
+});
+
+describe("applyFilters — people — multiple people selected", () => {
+  const aliceItem: TimelineItem = { ...closedIssue, number: 90, author: "alice", assignees: [] };
+  const bobItem: TimelineItem   = { ...closedIssue, number: 91, author: "bob",   assignees: [] };
+  const carolItem: TimelineItem = { ...closedIssue, number: 92, author: "carol", assignees: [] };
+
+  it("passes items authored by any one of the selected people (OR logic)", () => {
+    const f: Filters = { ...DEFAULT_FILTERS, activePeople: ["alice", "bob"], peopleRole: "author" };
+    const result = applyFilters([aliceItem, bobItem, carolItem], f);
+
+    expect(result).toContainEqual(aliceItem);
+    expect(result).toContainEqual(bobItem);
+    expect(result).not.toContainEqual(carolItem);
+  });
+});
+
 describe("applyFilters — closedAt range", () => {
   it("excludes open items when a closed-date filter is active", () => {
     const f: Filters = { ...DEFAULT_FILTERS, closedStart: "2025-01-01" };

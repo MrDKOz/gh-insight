@@ -1,5 +1,5 @@
 import type { TimelineItem } from "../../types";
-import { COLORS, MS, fmtDate, hoverCardPos, itemEndDate, safeUrl } from "../utils";
+import { COLORS, MS, assigneesOtherThanAuthor, durationDays, fmtDate, hoverCardPos, itemEndDate, labelTextColor, safeUrl } from "../utils";
 
 const issue = (overrides: Partial<{ closedAt: string | null }> = {}): TimelineItem => ({
   type: "issue", number: 1, title: "Test issue",
@@ -116,6 +116,55 @@ describe("safeUrl", () => {
 
   it("passes through a github.com subdomain URL (e.g. gist.github.com)", () => {
     expect(safeUrl("https://gist.github.com/user/abc123")).toBe("https://gist.github.com/user/abc123");
+  });
+});
+
+describe("labelTextColor", () => {
+  it("returns black text on a light background", () => {
+    expect(labelTextColor("#ffffff")).toBe("#000000");
+    expect(labelTextColor("#bfd4f2")).toBe("#000000"); // GitHub light-blue label
+  });
+
+  it("returns white text on a dark background", () => {
+    expect(labelTextColor("#000000")).toBe("#ffffff");
+    expect(labelTextColor("#6f42c1")).toBe("#ffffff"); // GitHub purple label
+  });
+});
+
+describe("durationDays", () => {
+  it("returns the number of days between two dates (rounded)", () => {
+    expect(durationDays("2025-01-01T00:00:00Z", "2025-01-11T00:00:00Z")).toBe(10);
+  });
+
+  it("returns null when end is null (open item)", () => {
+    expect(durationDays("2025-01-01T00:00:00Z", null)).toBeNull();
+  });
+
+  it("returns 0 for same-day open and close", () => {
+    expect(durationDays("2025-01-01T00:00:00Z", "2025-01-01T00:00:00Z")).toBe(0);
+  });
+
+  it("clamps to 0 rather than returning a negative value", () => {
+    // End before start can happen due to timezone jitter on same-day items
+    expect(durationDays("2025-01-01T23:59:59Z", "2025-01-01T00:00:00Z")).toBe(0);
+  });
+});
+
+describe("assigneesOtherThanAuthor", () => {
+  it("removes the author from the assignees list", () => {
+    expect(assigneesOtherThanAuthor(["alice", "bob"], "alice")).toEqual(["bob"]);
+  });
+
+  it("returns all assignees when the author is not among them", () => {
+    expect(assigneesOtherThanAuthor(["bob", "carol"], "alice")).toEqual(["bob", "carol"]);
+  });
+
+  it("returns an empty array when the only assignee is the author", () => {
+    expect(assigneesOtherThanAuthor(["alice"], "alice")).toEqual([]);
+  });
+
+  it("returns an empty array when there are no assignees", () => {
+    expect(assigneesOtherThanAuthor([], "alice")).toEqual([]);
   });
 });
 
