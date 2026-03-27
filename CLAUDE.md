@@ -2,7 +2,7 @@
 
 ## Project overview
 
-React 18 + TypeScript + Vite single-page app that fetches GitHub milestone data via the GitHub GraphQL API and renders it as a Gantt chart with supporting analytics views. Styled with MUI v7 and the Redgate Honeycomb theme.
+React 19 + TypeScript + Vite single-page app that fetches GitHub milestone data via the GitHub GraphQL API and renders it as a Gantt chart with supporting analytics views. Styled with MUI v7 and the Redgate Honeycomb theme.
 
 **Run:** `npm run dev`
 **Test:** `npm test`
@@ -52,6 +52,30 @@ Do **not** use `useEffect` to sync one piece of state from another — derive it
 
 ---
 
+## Security
+
+### Content Security Policy
+
+The CSP lives in `index.html`. The `stripDevCspPlugin` in `vite.config.ts` removes dev-only directives at build time so the production bundle ships without `'unsafe-eval'` or `'unsafe-inline'` in `script-src`.
+
+- `connect-src` governs `fetch()` — GitHub avatar fetches must be listed here (not `img-src`) because `inlineImages` in `export.ts` fetches them via `fetch()` to inline them for PNG export
+- `style-src` must keep `'unsafe-inline'` for Emotion (MUI's CSS-in-JS runtime)
+- Production `script-src` is `'self'` only — no unsafe directives
+
+### URL and input validation
+
+- `safeUrl()` in `src/utils/utils.ts` validates that a URL's hostname is exactly `github.com` or a `*.github.com` subdomain — never accept arbitrary `https:` URLs
+- `fmtDate()` guards against malformed ISO strings with `isNaN(d.getTime())` and returns `"N/A"`
+- `durationDays()` clamps with `Math.max(0, ...)` to prevent timezone-jitter producing negative values
+
+### Token encryption
+
+- `encryptToken` in `src/utils/tokenCrypto.ts` throws `EncryptionUnavailableError` (not silently falls back) when IndexedDB is blocked
+- `EncryptionUnavailableError` carries a `fallbackPayload` (base64 token) so the caller can decide what to do — `App.tsx` stores it and shows a clear warning to the user
+- Tests for `tokenCrypto` require `import "fake-indexeddb/auto"` at the top — jsdom's IndexedDB does not support CryptoKey structured cloning
+
+---
+
 ## Patterns to follow
 
 ### Hover cards
@@ -68,6 +92,7 @@ Do **not** use `useEffect` to sync one piece of state from another — derive it
 - Add a CSS class (e.g. `className="chart-label"`) alongside the hardcoded attribute so dark-mode CSS overrides work at runtime
 - Provide a continuous mouse-tracking cursor line (`onMouseMove` on the wrapper `<div>`, compute SVG-space fraction, snap to nearest data point) rather than per-dot hover targets
 - Empty-state messages use MUI `Typography` with `color="text.secondary"`, not a custom CSS class
+- Interactive SVG elements (clickable dots, etc.) must be wrapped in a `<g role="button" tabIndex={0} aria-label={...} onClick={...} onKeyDown={...}>` — attach `onMouseEnter` to the inner shape, not the `<g>`, so hover and keyboard activation are independent
 
 ### Gantt bar rendering
 
@@ -97,7 +122,9 @@ When adding a new field:
 1. Add to both `IssueItem` and `PRItem` in `src/types.ts`
 2. Fetch it in `src/api/github.ts` (GraphQL query + mapping)
 3. Add it to all demo items in `src/data/demo.ts`
-4. Include it in exports (`src/utils/export.ts`) — CSV, Markdown, PDF, XLSX
+4. Include it in **both** export groups in `src/utils/export.ts`:
+   - List view: `Row` type, `buildRows`, `COLS`, `exportCSV`, `exportMarkdown`, `exportPDF`, `exportXLSX`
+   - Review-wait view: `ReviewWaitRow` type, `buildReviewWaitRows`, `RW_COLS`, `exportReviewWaitCSV`, `exportReviewWaitMarkdown`, `exportReviewWaitPDF`, `exportReviewWaitXLSX`
 5. Add the field to test fixtures in all three test files
 
 ### Demo data
@@ -114,6 +141,47 @@ When adding a new field:
 - Keep tests up to date whenever types or logic change; if a type gains a new required field, update every fixture that constructs that type
 - Unit-test pure utilities (`utils.ts`, `export.ts`, state reducers) thoroughly
 - Component smoke tests are acceptable for UI components; avoid testing implementation details
+
+---
+
+## Export implementation notes
+
+### PDF tables
+
+PDF list exports use `drawPDFTable` (defined in `src/utils/export.ts`) — a custom jsPDF drawing helper. **Do not add `jspdf-autotable` back** — the replacement was deliberate to reduce bundle size and remove a dependency.
+
+- Page width for landscape A4: 297mm − 14mm (left) − 14mm (right) = **269mm** available
+- When adding columns, reduce other widths to keep the total at 269mm
+
+### PNG / image export
+
+`captureElement` in `export.ts` runs two passes (`toPng` twice) — the first is a warm-up that forces Emotion to inline its styles into the clone. Do not remove the warm-up pass.
+
+`inlineImages` pre-fetches `<img>` tags via `fetch()` and swaps them to data URLs before capture, then restores the originals in a `finally` block. This is needed because `html-to-image`'s cloned document cannot re-fetch cross-origin images.
+
+### `write-excel-file` import path
+
+Always import as `"write-excel-file/browser"` — v3 removed the `"."` root export and split into explicit sub-paths. Using the bare package name will fail in Vite's resolver.
+
+### `html2canvas` stub
+
+`src/utils/html2canvas-stub.ts` is aliased over the real `html2canvas` package in `vite.config.ts`. jsPDF bundles a dynamic import of html2canvas for its unused `.html()` plugin — the stub prevents the ≈200 KB dead chunk from appearing in the build. **Never call `jsPDF.html()`** — it will throw at runtime by design.
+
+---
+
+## React 19 / TypeScript notes
+
+- `useRef<T>(null)` returns `RefObject<T | null>` in React 19 types — prop types that accept a ref must use `RefObject<T | null>`, not `RefObject<T>`
+- `src/vite-env.d.ts` provides `/// <reference types="vite/client" />` so TypeScript recognises CSS side-effect imports (`import "./index.css"`)
+
+### Dependency version constraints
+
+These upgrades are currently blocked by the plugin ecosystem — do not attempt until the listed packages add support:
+
+| Package | Current | Blocked by |
+|---|---|---|
+| TypeScript | 5.x | `@typescript-eslint` requires `<6.0.0` |
+| ESLint | 9.x | `eslint-plugin-import` peer range stops at `^9` |
 
 ---
 
