@@ -1,4 +1,4 @@
-import { decryptToken, encryptToken } from "../tokenCrypto";
+import { EncryptionUnavailableError, decryptToken, encryptToken } from "../tokenCrypto";
 
 // These tests run against the real Web Crypto API (available in jsdom) and a
 // real IndexedDB (also available in jsdom via the structured-clone implementation).
@@ -82,23 +82,37 @@ describe("encryptToken / decryptToken — IndexedDB unavailable (fallback)", () 
     });
   });
 
-  it("encryptToken falls back to base64 (no 'e:' prefix)", async () => {
+  it("encryptToken throws EncryptionUnavailableError with a valid base64 fallbackPayload", async () => {
     const token = "ghp_fallback";
-    const stored = await encryptToken(token);
+    let caughtError: unknown;
+    try {
+      await encryptToken(token);
+    } catch (err) {
+      caughtError = err;
+    }
 
-    expect(stored.startsWith("e:")).toBe(false);
+    expect(caughtError).toBeInstanceOf(EncryptionUnavailableError);
+    const fallback = (caughtError as EncryptionUnavailableError).fallbackPayload;
+    expect(fallback.startsWith("e:")).toBe(false);
 
-    // The stored value should be valid base64 containing the original token
-    const roundTrip = decodeURIComponent(atob(stored).split("").map((c) => `%${c.charCodeAt(0).toString(16).padStart(2, "0")}`).join(""));
-
+    // The fallbackPayload must be valid base64 encoding of the original token
+    const roundTrip = decodeURIComponent(
+      atob(fallback).split("").map((c) => `%${c.charCodeAt(0).toString(16).padStart(2, "0")}`).join(""),
+    );
     expect(roundTrip).toBe(token);
   });
 
   it("decryptToken handles the fallback base64 payload without IndexedDB", async () => {
     const token = "ghp_fallback";
-    const stored = await encryptToken(token);
+    let fallbackPayload = "";
+    try {
+      await encryptToken(token);
+    } catch (err) {
+      expect(err).toBeInstanceOf(EncryptionUnavailableError);
+      fallbackPayload = (err as EncryptionUnavailableError).fallbackPayload;
+    }
     // Decrypting a non-'e:' prefixed payload does not need IndexedDB
-    const result = await decryptToken(stored);
+    const result = await decryptToken(fallbackPayload);
 
     expect(result).toBe(token);
   });

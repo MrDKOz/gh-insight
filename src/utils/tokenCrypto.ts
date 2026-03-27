@@ -54,15 +54,31 @@ const getOrCreateKey = async (): Promise<CryptoKey> => {
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
+/**
+ * Thrown by encryptToken when IndexedDB is unavailable (private browsing,
+ * enterprise policy, etc.). The fallbackPayload field contains a base64
+ * encoding of the plaintext that can still be persisted and later decoded by
+ * decryptToken — but with no encryption. Callers must decide whether to store
+ * it and must warn the user that storage is unencrypted.
+ */
+class EncryptionUnavailableError extends Error {
+  readonly fallbackPayload: string;
+  constructor(fallbackPayload: string) {
+    super("IndexedDB unavailable — token cannot be encrypted");
+    this.name = "EncryptionUnavailableError";
+    this.fallbackPayload = fallbackPayload;
+  }
+}
+
 const encryptToken = async (plaintext: string): Promise<string> => {
   let key: CryptoKey;
   try {
     key = await getOrCreateKey();
   } catch {
-    // IndexedDB unavailable (e.g. private browsing, enterprise policy) — fall back
-    // to storing the token as base64 without encryption.  This is clearly weaker
-    // than AES-GCM but better than silently failing to save the token at all.
-    return btoa(String.fromCharCode(...encoder.encode(plaintext)));
+    // IndexedDB unavailable — throw so callers can warn the user rather than
+    // silently storing an unencrypted token without their knowledge.
+    const fallback = btoa(String.fromCharCode(...encoder.encode(plaintext)));
+    throw new EncryptionUnavailableError(fallback);
   }
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encoder.encode(plaintext));
@@ -95,4 +111,4 @@ const decryptToken = async (stored: string): Promise<string> => {
   return decoder.decode(pt);
 };
 
-export { decryptToken, encryptToken };
+export { EncryptionUnavailableError, decryptToken, encryptToken };

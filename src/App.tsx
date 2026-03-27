@@ -24,7 +24,7 @@ import {   DEMO_ITEMS, DEMO_ITEMS_2, DEMO_ITEMS_3,
 import { useSettings } from "./hooks/useSettings";
 import { initialState, milestoneReducer } from "./state/milestoneReducer";
 import { muiDarkTheme, muiLightTheme } from "./theme";
-import { decryptToken, encryptToken } from "./utils/tokenCrypto";
+import { EncryptionUnavailableError, decryptToken, encryptToken } from "./utils/tokenCrypto";
 
 const LS_TOKEN = "gmt_token";
 const LS_OWNER = "gmt_owner";
@@ -277,10 +277,19 @@ const App: FunctionComponent = () => {
       encryptToken(v)
         .then((ct) => localStorage.setItem(LS_TOKEN, ct))
         .catch((err: unknown) => {
-          console.error("Failed to encrypt token:", err);
-          setTokenError(
-            "Your token could not be saved to storage — it will work for this session but will not persist after reload.",
-          );
+          if (err instanceof EncryptionUnavailableError) {
+            // Store the unencrypted fallback so the session persists, but warn clearly.
+            localStorage.setItem(LS_TOKEN, err.fallbackPayload);
+            setTokenError(
+              "Your browser's IndexedDB is unavailable (private browsing or enterprise policy). " +
+              "Your token is stored without encryption — avoid using this on shared devices.",
+            );
+          } else {
+            console.error("Failed to encrypt token:", err);
+            setTokenError(
+              "Your token could not be saved to storage — it will work for this session but will not persist after reload.",
+            );
+          }
         });
     } else {
       localStorage.removeItem(LS_TOKEN);
