@@ -201,7 +201,7 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                   {item.labels.length > 0 && (
                     <Box sx={{ display: "flex", flexWrap: "wrap", gap: "3px", mt: "3px" }}>
                       {item.labels.map((l) => (
-                        <LabelBadge key={l.name} name={l.name} color={l.color} fontSize="0.5rem" />
+                        <LabelBadge key={l.name} name={l.name} color={l.color} />
                       ))}
                     </Box>
                   )}

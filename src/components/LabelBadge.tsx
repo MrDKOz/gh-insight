@@ -1,30 +1,26 @@
 import type { FunctionComponent } from "react";
-import Box from "@mui/material/Box";
+import Chip from "@mui/material/Chip";
 import { labelTextColor } from "../utils/utils";
 
 type Props = {
   name: string;
   color: string;
-  fontSize?: string;
 };
 
-const LabelBadge: FunctionComponent<Props> = ({ name, color, fontSize = "0.5625rem" }) => (
-  <Box
-    component="span"
+const LabelBadge: FunctionComponent<Props> = ({ name, color }) => (
+  <Chip
+    label={name}
+    size="small"
     sx={{
-      display: "inline-block",
-      px: "5px",
-      py: "1px",
-      borderRadius: "10px",
-      fontSize,
-      fontWeight: 600,
+      height: 22,
       bgcolor: color,
       color: labelTextColor(color),
-      lineHeight: 1.6,
+      border: "1px solid",
+      borderColor: `${color}99`,
+      fontWeight: 500,
+      fontSize: "0.625rem",
     }}
-  >
-    {name}
-  </Box>
+  />
 );
 
 export { LabelBadge };
