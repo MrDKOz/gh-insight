@@ -42,9 +42,9 @@ type Hover = {
   latestDate: string | null;
 };
 
-const L = 110, R = 40, T = 16, B = 32, W = 800;
-const ROW_H = 28;
-const BAR_H = 16;
+const L = 150, R = 48, T = 20, B = 36, W = 1200;
+const ROW_H = 36;
+const BAR_H = 22;
 
 const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) => {
   const COL = makeCOL(colorblindMode);
@@ -233,7 +233,7 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
                 y={cy + BAR_H / 2 + 4}
                 textAnchor="end"
                 fill={COL.label}
-                fontSize={11}
+                fontSize={10}
                 fontFamily="inherit"
                 className="chart-label"
               >
@@ -267,7 +267,7 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
                 x={(barX(row.total) + 5).toFixed(1)}
                 y={cy + BAR_H / 2 + 4}
                 fill={COL.label}
-                fontSize={10}
+                fontSize={9}
                 fontFamily="inherit"
                 className="chart-label"
               >
@@ -288,7 +288,7 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
             y={T + rows.length * ROW_H + 18}
             textAnchor="middle"
             fill={COL.label}
-            fontSize={10}
+            fontSize={9}
             fontFamily="inherit"
             className="chart-label"
           >
@@ -304,7 +304,7 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
         ]).map(({ seg, label }, i) => (
           <g key={seg} transform={`translate(${L + CW - 160}, ${T + i * 15})`}>
             <rect x={0} y={-8} width={10} height={10} fill={segColor(seg)} rx={2} />
-            <text x={14} y={0} fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">
+            <text x={14} y={0} fill={COL.label} fontSize={9} fontFamily="inherit" className="chart-label">
               {label}
             </text>
           </g>

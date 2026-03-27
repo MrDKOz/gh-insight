@@ -14,7 +14,7 @@ type Props = {
   colorblindMode: boolean;
 };
 
-const L = 52, R = 16, T = 28, B = 44, W = 800, H = 280;
+const L = 56, R = 20, T = 32, B = 48, W = 1200, H = 320;
 const CW = W - L - R;
 const CH = H - T - B;
 
@@ -246,7 +246,7 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
           x1={L} y1={pyFn(median).toFixed(1)} x2={L + CW} y2={pyFn(median).toFixed(1)}
           stroke={COL.median} strokeWidth={1.5} strokeDasharray="6 4" />
         <text x={L + 4} y={pyFn(median) - 4} textAnchor="start"
-          fill={COL.median} fontSize={10} fontFamily="inherit">
+          fill={COL.median} fontSize={9} fontFamily="inherit">
           median {median}d
         </text>
 
@@ -256,7 +256,7 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
               x1={L} y1={pyFn(mean).toFixed(1)} x2={L + CW} y2={pyFn(mean).toFixed(1)}
               stroke={COL.mean} strokeWidth={1.5} strokeDasharray="6 4" />
             <text x={L + 4} y={pyFn(mean) - 4} textAnchor="start"
-              fill={COL.mean} fontSize={10} fontFamily="inherit">
+              fill={COL.mean} fontSize={9} fontFamily="inherit">
               mean {mean}d
             </text>
           </>
@@ -285,7 +285,7 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
 
         {yLabels.map((d) => (
           <text key={d} x={L - 6} y={pyFn(d) + 4} textAnchor="end"
-            fill={COL.label} fontSize={11} fontFamily="inherit" className="chart-label">
+            fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">
             {d}d
           </text>
         ))}
@@ -293,13 +293,13 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
         {xTimes.map((t, i) => (
           <text key={t} x={pxFn(t)} y={T + CH + 20}
             textAnchor={i === 0 ? "start" : i === numX - 1 ? "end" : "middle"}
-            fill={COL.label} fontSize={11} fontFamily="inherit" className="chart-label">
+            fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">
             {fmtDate(new Date(t).toISOString())}
           </text>
         ))}
 
         <text x={12} y={T + CH / 2} textAnchor="middle"
-          fill={COL.label} fontSize={11} fontFamily="inherit" className="chart-label"
+          fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label"
           transform={`rotate(-90 12 ${T + CH / 2})`}>
           Days to close
         </text>
@@ -309,7 +309,7 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
           ? milestones.map((ms, i) => (
               <g key={ms.number} transform={`translate(${L + CW - 160}, ${T + i * 15})`}>
                 <circle cx={5} cy={-3} r={4} fill={ms.color} opacity={0.82} />
-                <text x={14} y={0} fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">{ms.title}</text>
+                <text x={14} y={0} fill={COL.label} fontSize={9} fontFamily="inherit" className="chart-label">{ms.title}</text>
               </g>
             ))
           : ([
@@ -319,7 +319,7 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
             ]).map(({ col, label }, i) => (
               <g key={label} transform={`translate(${L + CW - 160}, ${T + i * 15})`}>
                 <circle cx={5} cy={-3} r={4} fill={col} opacity={0.82} />
-                <text x={14} y={0} fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">{label}</text>
+                <text x={14} y={0} fill={COL.label} fontSize={9} fontFamily="inherit" className="chart-label">{label}</text>
               </g>
             ))
         }

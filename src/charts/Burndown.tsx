@@ -13,12 +13,12 @@ type Props = {
   colorblindMode: boolean;
 };
 
-const L = 48; // left padding (y-axis labels)
-const R = 16;
-const T = 24;
-const B = 36;
-const W = 800;
-const H = 280;
+const L = 52; // left padding (y-axis labels)
+const R = 20;
+const T = 28;
+const B = 40;
+const W = 1200;
+const H = 320;
 const CW = W - L - R;
 const CH = H - T - B;
 
@@ -278,7 +278,7 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
               x={todayFlipLeft ? todayXNum - 4 : todayXNum + 4}
               y={T + 11}
               textAnchor={todayFlipLeft ? "end" : "start"}
-              fill={C.todayLabel} fontSize={11} fontFamily="inherit"
+              fill={C.todayLabel} fontSize={10} fontFamily="inherit"
             >
               Today
             </text>
@@ -290,7 +290,7 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
 
         {yLabels.map((count) => (
           <text key={count} x={L - 6} y={pyFn(count) + 4} textAnchor="end"
-            fill={C.label} fontSize={11} fontFamily="inherit" className="chart-label">
+            fill={C.label} fontSize={10} fontFamily="inherit" className="chart-label">
             {count}
           </text>
         ))}
@@ -300,7 +300,7 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
             x={(L + ((t - minTime) / (maxTime - minTime)) * CW).toFixed(1)}
             y={T + CH + 22}
             textAnchor={li === 0 ? "start" : li === numXLabels - 1 ? "end" : "middle"}
-            fill={C.label} fontSize={11} fontFamily="inherit" className="chart-label">
+            fill={C.label} fontSize={10} fontFamily="inherit" className="chart-label">
             {fmtDate(new Date(t).toISOString())}
           </text>
         ))}
@@ -309,7 +309,7 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
         {isMulti && milestones.map((ms, i) => (
           <g key={ms.number} transform={`translate(${L + CW - 160}, ${T + i * 15})`}>
             <line x1={0} y1={-4} x2={10} y2={-4} stroke={ms.color} strokeWidth={2} />
-            <text x={14} y={0} fill={C.label} fontSize={10} fontFamily="inherit" className="chart-label">{ms.title}</text>
+            <text x={14} y={0} fill={C.label} fontSize={9} fontFamily="inherit" className="chart-label">{ms.title}</text>
           </g>
         ))}
 
@@ -320,7 +320,7 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
             y={T - 6}
             textAnchor="end"
             fill={C.callout}
-            fontSize={12}
+            fontSize={11}
             fontWeight="bold"
             fontFamily="inherit"
             className="bd-callout-text"

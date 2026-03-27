@@ -12,7 +12,7 @@ type Props = {
   colorblindMode: boolean;
 };
 
-const L = 48, R = 16, T = 20, B = 44, W = 800, H = 280;
+const L = 52, R = 20, T = 24, B = 48, W = 1200, H = 320;
 const CW = W - L - R;
 const CH = H - T - B;
 
@@ -209,7 +209,7 @@ const pts: DayPt[] = Array.from({ length: totalDays + 1 }, (_, i) => {
 
         {yLabels.map((c) => (
           <text key={c} x={L - 6} y={pyFn(c) + 4} textAnchor="end"
-            fill={COL.label} fontSize={11} fontFamily="inherit" className="chart-label">
+            fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">
             {c}
           </text>
         ))}
@@ -217,7 +217,7 @@ const pts: DayPt[] = Array.from({ length: totalDays + 1 }, (_, i) => {
         {xIndices.map((pi, li) => (
           <text key={pi} x={pxFn(pi)} y={T + CH + 20}
             textAnchor={li === 0 ? "start" : li === numX - 1 ? "end" : "middle"}
-            fill={COL.label} fontSize={11} fontFamily="inherit" className="chart-label">
+            fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">
             {fmtDate(new Date(pts[pi]!.t).toISOString())}
           </text>
         ))}
@@ -228,7 +228,7 @@ const pts: DayPt[] = Array.from({ length: totalDays + 1 }, (_, i) => {
         ].map(({ col, label }, i) => (
           <g key={label} transform={`translate(${L + 4}, ${T + i * 15})`}>
             <line x1={0} y1={-3} x2={16} y2={-3} stroke={col} strokeWidth={i === 0 ? 2 : 1.5} />
-            <text x={20} y={0} fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">{label}</text>
+            <text x={20} y={0} fill={COL.label} fontSize={9} fontFamily="inherit" className="chart-label">{label}</text>
           </g>
         ))}
       </svg>

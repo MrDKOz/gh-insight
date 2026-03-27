@@ -20,7 +20,7 @@ const weekStart = (ms: number): number => {
   return midnight.getTime();
 };
 
-const L = 48, R = 16, T = 20, B = 44, W = 800, H = 280;
+const L = 52, R = 20, T = 24, B = 48, W = 1200, H = 320;
 const CW = W - L - R;
 const CH = H - T - B;
 
@@ -231,12 +231,12 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
           <line x1={L} y1={T}      x2={L}       y2={T + CH} stroke={COL.axis} strokeWidth={1} className="chart-axis" />
 
           {yLabels.map((c) => (
-            <text key={c} x={L - 6} y={pyFn(c) + 4} textAnchor="end" fill={COL.label} fontSize={11} fontFamily="inherit" className="chart-label">{c}</text>
+            <text key={c} x={L - 6} y={pyFn(c) + 4} textAnchor="end" fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">{c}</text>
           ))}
           {xIndices.map((wi, li) => (
             <text key={wi} x={(barX(wi) + barW / 2).toFixed(1)} y={T + CH + 20}
               textAnchor={li === 0 ? "start" : li === numX - 1 ? "end" : "middle"}
-              fill={COL.label} fontSize={11} fontFamily="inherit" className="chart-label">
+              fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">
               {fmtDate(new Date(weeks[wi]!.startMs).toISOString())}
             </text>
           ))}
@@ -247,7 +247,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
           ].map(({ col, label }, i) => (
             <g key={label} transform={`translate(${L + CW - 160}, ${T + i * 15})`}>
               <rect x={0} y={-8} width={10} height={10} fill={col} rx={2} />
-              <text x={14} y={0} fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">{label}</text>
+              <text x={14} y={0} fill={COL.label} fontSize={9} fontFamily="inherit" className="chart-label">{label}</text>
             </g>
           ))}
         </svg>
@@ -349,7 +349,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
         <line x1={L} y1={T}      x2={L}       y2={T + CH} stroke={COL.axis} strokeWidth={1} className="chart-axis" />
 
         {yLabels.map((c) => (
-          <text key={c} x={L - 6} y={pyFn(c) + 4} textAnchor="end" fill={COL.label} fontSize={11} fontFamily="inherit" className="chart-label">{c}</text>
+          <text key={c} x={L - 6} y={pyFn(c) + 4} textAnchor="end" fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">{c}</text>
         ))}
         {xIndices.map((wi, li) => {
           // wi comes from xIndices which are clamped to allWeekStarts bounds
@@ -358,7 +358,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
           return (
             <text key={wi} x={cx.toFixed(1)} y={T + CH + 20}
               textAnchor={li === 0 ? "start" : li === numX - 1 ? "end" : "middle"}
-              fill={COL.label} fontSize={11} fontFamily="inherit" className="chart-label">
+              fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">
               {fmtDate(new Date(xs).toISOString())}
             </text>
           );
@@ -368,7 +368,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
         {milestones.map((ms, i) => (
           <g key={ms.number} transform={`translate(${L + CW - 160}, ${T + i * 15})`}>
             <rect x={0} y={-8} width={10} height={10} fill={ms.color} rx={2} />
-            <text x={14} y={0} fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">{ms.title}</text>
+            <text x={14} y={0} fill={COL.label} fontSize={9} fontFamily="inherit" className="chart-label">{ms.title}</text>
           </g>
         ))}
       </svg>
