@@ -5,7 +5,8 @@ import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { AuthorWithAssignees } from "../components/AuthorWithAssignees";
-import { CHART_EMPTY_STATE_SX, FS, MS, fmtDate, hoverCardPos, itemEndDate, makeChartColors, pluralize } from "../utils/utils";
+import { CHART_EMPTY_STATE_SX, MS, fmtDate, hoverCardPos, itemEndDate, makeChartColors, pluralize } from "../utils/utils";
+import { ChartLegend } from "./ChartLegend";
 
 type Props = {
   items: TimelineItem[];
@@ -184,22 +185,6 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
         </Paper>
       )}
 
-      <Box sx={{ display: "flex", gap: 2, mb: 1 }}>
-        {(isMulti
-          ? milestones.map((ms) => ({ color: ms.color, label: ms.title }))
-          : [
-              { color: COL.issue,    label: "Issues" },
-              { color: COL.prMerged, label: "PRs merged" },
-              { color: COL.prClosed, label: "PRs closed" },
-            ]
-        ).map(({ color, label }) => (
-          <Box key={label} sx={{ display: "flex", alignItems: "center", gap: "5px" }}>
-            <Box sx={{ width: 10, height: 10, borderRadius: "2px", bgcolor: color, opacity: 0.88, flexShrink: 0 }} />
-            <Typography sx={{ fontSize: FS.sm, color: "text.secondary" }}>{label}</Typography>
-          </Box>
-        ))}
-      </Box>
-
       <table className="sr-only" aria-label="Cycle time data">
         <caption>Cycle time in days for each completed item</caption>
         <thead>
@@ -305,6 +290,20 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
           transform={`rotate(-90 12 ${T + CH / 2})`}>
           Days to close
         </text>
+
+        <ChartLegend
+          items={isMulti
+            ? milestones.map((ms) => ({ color: ms.color, label: ms.title }))
+            : [
+                { color: COL.issue,    label: "Issues" },
+                { color: COL.prMerged, label: "PRs merged" },
+                { color: COL.prClosed, label: "PRs closed" },
+              ]
+          }
+          cx={L + CW / 2}
+          y={T - 8}
+          fill={COL.label}
+        />
 
       </svg>
     </Box>

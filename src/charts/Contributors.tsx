@@ -6,6 +6,7 @@ import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { AuthorTag } from "../components/AuthorTag";
 import { CHART_EMPTY_STATE_SX, FS, HOVER_CARD_BASE_SX, fmtDate, hoverCardPos, itemEndDate, makeChartColors, safeUrl } from "../utils/utils";
+import { ChartLegend } from "./ChartLegend";
 
 type Props = {
   items: TimelineItem[];
@@ -168,16 +169,6 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
         </Paper>
       )}
 
-      {/* Legend — outside the SVG so it never overlaps bars */}
-      <Box sx={{ display: "flex", gap: 2, mb: 1 }}>
-        {LEGEND_ITEMS.map(({ seg, label }) => (
-          <Box key={seg} sx={{ display: "flex", alignItems: "center", gap: "5px" }}>
-            <Box sx={{ width: 10, height: 10, borderRadius: "2px", bgcolor: segColor(seg), opacity: 0.88, flexShrink: 0 }} />
-            <Typography sx={{ fontSize: FS.sm, color: "text.secondary" }}>{label}</Typography>
-          </Box>
-        ))}
-      </Box>
-
       <table className="sr-only" aria-label="Contributor breakdown data">
         <caption>Completed items per contributor</caption>
         <thead>
@@ -316,6 +307,13 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
             {v}
           </text>
         ))}
+
+        <ChartLegend
+          items={LEGEND_ITEMS.map(({ seg, label }) => ({ color: segColor(seg), label }))}
+          cx={L + CW / 2}
+          y={T - 4}
+          fill={COL.label}
+        />
       </svg>
     </Box>
   );

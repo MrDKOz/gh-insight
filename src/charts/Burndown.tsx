@@ -4,7 +4,8 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useMemo, useRef, useState } from "react";
-import { CHART_EMPTY_STATE_SX, FS, HOVER_CARD_BASE_SX, MS, fmtDate, hoverCardPos, makeChartColors, pluralize, upperBound } from "../utils/utils";
+import { CHART_EMPTY_STATE_SX, HOVER_CARD_BASE_SX, MS, fmtDate, hoverCardPos, makeChartColors, pluralize, upperBound } from "../utils/utils";
+import { ChartLegend } from "./ChartLegend";
 
 type Props = {
   items: TimelineItem[];
@@ -175,17 +176,6 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
         </Paper>
       )}
 
-      {isMulti && (
-        <Box sx={{ display: "flex", gap: 2, mb: 1 }}>
-          {milestones.map((ms) => (
-            <Box key={ms.number} sx={{ display: "flex", alignItems: "center", gap: "5px" }}>
-              <Box sx={{ width: 10, height: 10, borderRadius: "2px", bgcolor: ms.color, opacity: 0.88, flexShrink: 0 }} />
-              <Typography sx={{ fontSize: FS.sm, color: "text.secondary" }}>{ms.title}</Typography>
-            </Box>
-          ))}
-        </Box>
-      )}
-
       <table className="sr-only" aria-label="Burndown chart data">
         <caption>Open issue count over time{isMulti ? " by milestone" : ""}</caption>
         <thead>
@@ -299,6 +289,15 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
             {fmtDate(new Date(t).toISOString())}
           </text>
         ))}
+
+        {isMulti && (
+          <ChartLegend
+            items={milestones.map((ms) => ({ color: ms.color, label: ms.title }))}
+            cx={L + CW / 2}
+            y={T - 8}
+            fill={COL.label}
+          />
+        )}
 
         {/* Single milestone: "N open" callout */}
         {!isMulti && singleSeries && (

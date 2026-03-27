@@ -4,7 +4,8 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
-import { CHART_EMPTY_STATE_SX, FS, HOVER_CARD_BASE_SX, fmtDate, hoverCardPos, itemEndDate, makeChartColors, pluralize } from "../utils/utils";
+import { CHART_EMPTY_STATE_SX, HOVER_CARD_BASE_SX, fmtDate, hoverCardPos, itemEndDate, makeChartColors, pluralize } from "../utils/utils";
+import { ChartLegend } from "./ChartLegend";
 
 type Props = {
   items: TimelineItem[];
@@ -139,19 +140,6 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
 
     return (
       <Box className="chart-wrap" ref={wrapRef} style={{ position: "relative" }}>
-        <Box sx={{ display: "flex", gap: 2, mb: 1 }}>
-          {[
-            { color: COL.issue,    label: "Issues closed" },
-            { color: COL.prMerged, label: "PRs merged" },
-            { color: COL.prClosed, label: "PRs closed" },
-          ].map(({ color, label }) => (
-            <Box key={label} sx={{ display: "flex", alignItems: "center", gap: "5px" }}>
-              <Box sx={{ width: 10, height: 10, borderRadius: "2px", bgcolor: color, opacity: 0.88, flexShrink: 0 }} />
-              <Typography sx={{ fontSize: FS.sm, color: "text.secondary" }}>{label}</Typography>
-            </Box>
-          ))}
-        </Box>
-
         {hover && (
           <Paper elevation={2} sx={{ ...HOVER_CARD_BASE_SX, ...cardStyle }}>
             <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>
@@ -242,6 +230,17 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
               {fmtDate(new Date(weeks[wi]!.startMs).toISOString())}
             </text>
           ))}
+
+          <ChartLegend
+            items={[
+              { color: COL.issue,    label: "Issues closed" },
+              { color: COL.prMerged, label: "PRs merged" },
+              { color: COL.prClosed, label: "PRs closed" },
+            ]}
+            cx={L + CW / 2}
+            y={T - 8}
+            fill={COL.label}
+          />
         </svg>
       </Box>
     );
@@ -288,15 +287,6 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
           </Box>
         </Paper>
       )}
-
-      <Box sx={{ display: "flex", gap: 2, mb: 1 }}>
-        {milestones.map((ms) => (
-          <Box key={ms.number} sx={{ display: "flex", alignItems: "center", gap: "5px" }}>
-            <Box sx={{ width: 10, height: 10, borderRadius: "2px", bgcolor: ms.color, opacity: 0.88, flexShrink: 0 }} />
-            <Typography sx={{ fontSize: FS.sm, color: "text.secondary" }}>{ms.title}</Typography>
-          </Box>
-        ))}
-      </Box>
 
       <table className="sr-only" aria-label="Velocity data by milestone">
         <caption>Items completed per week per milestone</caption>
@@ -364,6 +354,13 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
             </text>
           );
         })}
+
+        <ChartLegend
+          items={milestones.map((ms) => ({ color: ms.color, label: ms.title }))}
+          cx={L + CW / 2}
+          y={T - 8}
+          fill={COL.label}
+        />
 
       </svg>
     </Box>
