@@ -229,7 +229,7 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
     const hasOpen = items.some((item) => !itemEndDate(item));
     const max = hasOpen ? Math.max(...allTs, Date.now()) : Math.max(...allTs) + 3 * MS;
     const days = Math.max(1, (max - min) / MS);
-    setPixelsPerDay(Math.max(3, Math.min(200, el.clientWidth / days)));
+    setPixelsPerDay(Math.min(200, el.clientWidth / days));
   }, [items, view]);
 
   // Non-passive wheel listener so we can call preventDefault for vertical scroll-zoom

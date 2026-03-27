@@ -1,6 +1,5 @@
 import type { MilestoneMeta, TimelineItem } from "../types";
 import type { FunctionComponent, MouseEvent, RefObject } from "react";
-import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
@@ -113,10 +112,6 @@ const GanttLegend: FunctionComponent<GanttLegendProps> = ({ hasOpenIssues, isMul
         ))}
       </Box>
     )}
-
-    <Alert icon={false} severity="info" sx={{ fontSize: FS.base, py: "6px" }}>
-      Click issue/PR numbers to open in GitHub &nbsp;·&nbsp; Drag handle to resize labels &nbsp;·&nbsp; Scroll wheel to zoom
-    </Alert>
   </>
   );
 };
