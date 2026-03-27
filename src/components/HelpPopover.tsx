@@ -124,7 +124,7 @@ const HelpPopover: FunctionComponent = () => {
 
         <Divider sx={{ mt: 1.5 }} />
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1.5 }}>
-          Made by{" "}
+          v{__APP_VERSION__} · Made by{" "}
           <Link href="https://github.com/MrDKOz" target="_blank" rel="noreferrer" variant="caption">
             @MrDKOz
           </Link>

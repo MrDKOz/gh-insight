@@ -24,6 +24,7 @@ import {   DEMO_ITEMS, DEMO_ITEMS_2, DEMO_ITEMS_3,
   DEMO_MILESTONE_2,
   DEMO_MILESTONE_3,
 } from "./data/demo";
+import { useNewVersionAvailable } from "./hooks/useNewVersionAvailable";
 import { useSettings } from "./hooks/useSettings";
 import { initialState, milestoneReducer } from "./state/milestoneReducer";
 import { muiDarkTheme, muiLightTheme } from "./theme";
@@ -86,6 +87,7 @@ const App: FunctionComponent = () => {
   );
   const [settingsAnchor, setSettingsAnchor] = useState<HTMLElement | null>(null);
   const { settings, updateSetting } = useSettings();
+  const newVersionAvailable = useNewVersionAvailable();
 
   const [configError, setConfigError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -364,6 +366,19 @@ const App: FunctionComponent = () => {
     <ThemeProvider theme={dark ? muiDarkTheme : muiLightTheme}>
       <CssBaseline />
       <Box sx={{ maxWidth: settings.fullWidth ? "none" : 1400, mx: "auto", px: 3, py: 3, display: "flex", flexDirection: "column", gap: 2 }}>
+
+        {newVersionAvailable && (
+          <Alert
+            severity="info"
+            action={
+              <Button size="small" color="inherit" onClick={() => window.location.reload()}>
+                Reload
+              </Button>
+            }
+          >
+            A new version is available.
+          </Alert>
+        )}
 
         <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Typography variant="h5" fontWeight={700}>GitHub Work Visualiser</Typography>
