@@ -12,6 +12,7 @@ import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Burndown } from "../charts/Burndown";
 import { Contributors } from "../charts/Contributors";
 import { CumulativeFlow } from "../charts/CumulativeFlow";
@@ -337,79 +338,72 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
 
   const noFilteredItems = filteredItems.length === 0;
 
+  const toolbarSlot = document.getElementById("timeline-toolbar");
+
+  const toolbar = (
+    <Stack direction="row" gap={1} alignItems="center" data-export-exclude>
+      <Button variant="outlined" size="small" onClick={(e) => setViewAnchor(e.currentTarget)}>
+        {view} ▾
+      </Button>
+      <Menu anchorEl={viewAnchor} open={Boolean(viewAnchor)} onClose={() => setViewAnchor(null)}>
+        {VIEWS.map((v) => (
+          <MenuItem key={v} selected={v === view} dense onClick={() => { setView(v); setViewAnchor(null); }}>
+            {v}
+          </MenuItem>
+        ))}
+      </Menu>
+
+      <Button
+        variant="outlined"
+        size="small"
+        onClick={(e) => setExportAnchor(e.currentTarget)}
+        disabled={exporting !== null}
+      >
+        {exporting ? `Exporting ${exporting}…` : "Export ▾"}
+      </Button>
+      <Menu anchorEl={exportAnchor} open={Boolean(exportAnchor)} onClose={() => setExportAnchor(null)}>
+        {visibleFormats.map((fmt) => (
+          <MenuItem key={fmt} dense onClick={() => handleExport(fmt)}>
+            {fmt}
+          </MenuItem>
+        ))}
+      </Menu>
+
+      <Tooltip
+        title={copyTooltip === "copied" ? "Copied!" : "Copy shareable link"}
+        placement="bottom"
+        onClose={() => setCopyTooltip("idle")}
+      >
+        <Button
+          variant="outlined"
+          size="small"
+          aria-label="Copy shareable link to clipboard"
+          onClick={() => {
+            void navigator.clipboard
+              .writeText(window.location.href)
+              .then(() => { setCopyTooltip("copied"); })
+              .catch(() => { setExportError("Could not copy link — please copy it from the address bar."); });
+          }}
+        >
+          Share
+        </Button>
+      </Tooltip>
+    </Stack>
+  );
+
   return (
     <>
+    {toolbarSlot && createPortal(toolbar, toolbarSlot)}
     <Paper sx={{ p: 3, display: "flex", flexDirection: "column", gap: 1.5 }} ref={wrapperRef}>
-      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={2}>
-        <Box>
-          <Typography variant="h6" fontWeight={700}>
-            {title}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            {pluralize(issueItems.length, "issue")} ({closedIssues.length} closed),{" "}
-            {pluralize(prItems.length, "PR")} ({mergedPRs.length} merged)
-          </Typography>
-        </Box>
-
-        <Stack direction="row" gap={1} alignItems="center" flexShrink={0} data-export-exclude>
-          <Button variant="outlined" size="small" onClick={(e) => setViewAnchor(e.currentTarget)}>
-            {view} ▾
-          </Button>
-          <Menu anchorEl={viewAnchor} open={Boolean(viewAnchor)} onClose={() => setViewAnchor(null)}>
-            {VIEWS.map((v) => (
-              <MenuItem
-                key={v}
-                selected={v === view}
-                dense
-                onClick={() => {
-                  setView(v);
-                  setViewAnchor(null);
-                }}
-              >
-                {v}
-              </MenuItem>
-            ))}
-          </Menu>
-
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={(e) => setExportAnchor(e.currentTarget)}
-            disabled={exporting !== null}
-          >
-            {exporting ? `Exporting ${exporting}…` : "Export ▾"}
-          </Button>
-          <Menu anchorEl={exportAnchor} open={Boolean(exportAnchor)} onClose={() => setExportAnchor(null)}>
-            {visibleFormats.map((fmt) => (
-              <MenuItem key={fmt} dense onClick={() => handleExport(fmt)}>
-                {fmt}
-              </MenuItem>
-            ))}
-          </Menu>
-
-          <Tooltip
-            title={copyTooltip === "copied" ? "Copied!" : "Copy shareable link"}
-            placement="bottom"
-            onClose={() => setCopyTooltip("idle")}
-          >
-            <Button
-              variant="outlined"
-              size="small"
-              aria-label="Copy shareable link to clipboard"
-              onClick={() => {
-                void navigator.clipboard
-                  .writeText(window.location.href)
-                  .then(() => { setCopyTooltip("copied"); })
-                  .catch(() => {
-                    setExportError("Could not copy link — please copy it from the address bar.");
-                  });
-              }}
-            >
-              Share
-            </Button>
-          </Tooltip>
-        </Stack>
-      </Stack>
+      <Box>
+        <Typography variant="h6" fontWeight={700}>
+          {title}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          {pluralize(issueItems.length, "issue")} ({closedIssues.length} closed),{" "}
+          {pluralize(prItems.length, "PR")} ({mergedPRs.length} merged)
+        </Typography>
+      </Box>
 
       <StatsBar items={filteredItems} view={view} colorblindMode={colorblindMode} />
 

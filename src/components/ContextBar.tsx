@@ -101,6 +101,9 @@ const ContextBar: FunctionComponent<Props> = memo(({
       />
     )}
 
+    {/* Portal target — Timeline renders view/export/share buttons here */}
+    <Box id="timeline-toolbar" sx={{ ml: "auto", display: "flex", alignItems: "center", gap: 1 }} />
+
     {selected.length > 0 && !isDemo && (
       <Button
         variant="outlined"
@@ -109,7 +112,6 @@ const ContextBar: FunctionComponent<Props> = memo(({
         disabled={loadingNums.length > 0}
         title="Refetch data for selected milestones"
         aria-label="Refresh milestone data"
-        sx={{ ml: "auto" }}
       >
         ↻ Refresh
       </Button>
