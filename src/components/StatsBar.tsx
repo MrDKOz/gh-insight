@@ -10,7 +10,8 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
 import { useMemo } from "react";
-import { COLORS, COLORS_CB, MS, pluralize } from "../utils/utils";
+import Tooltip from "@mui/material/Tooltip";
+import { COLORS, COLORS_CB, MS, fmtDate, forecastCompletion, pluralize } from "../utils/utils";
 
 const STALE_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
@@ -98,6 +99,16 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
 
   const { closedIssues, openIssues, mergedPRs, closedPRs, cycleStats, staleCount } = general;
 
+  const forecastTooltip = (f: NonNullable<typeof singleForecast>) =>
+    f.method === "regression"
+      ? `Estimated by linear regression over recent issue close rate (${f.closedCount} closed over ${f.totalDays} days). The trend line projects when open issues reach zero.`
+      : `Estimated by average close rate: ${f.closedCount} issue${f.closedCount !== 1 ? "s" : ""} closed over ${f.totalDays} day${f.totalDays !== 1 ? "s" : ""} → ~${(f.totalDays / f.closedCount).toFixed(1)} days per issue. ${f.openCount} issue${f.openCount !== 1 ? "s" : ""} remaining.`;
+
+  const singleForecast = useMemo(() => {
+    if (milestones.length !== 1) { return null; }
+    return forecastCompletion(items);
+  }, [milestones.length, items]);
+
   const milestoneComparison = useMemo(() => {
     if (milestones.length <= 1) { return null; }
     const now = Date.now();
@@ -120,7 +131,8 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
         const isOpen = i.type === "issue" ? i.closedAt === null : (i.mergedAt === null && i.closedAt === null);
         return isOpen && (now - new Date(i.updatedAt).getTime()) > STALE_THRESHOLD_MS;
       }).length;
-      return { ms, openCount, closedMergedCount, avgCycle, stale: msStale };
+      const forecast = forecastCompletion(items, ms.number);
+      return { ms, openCount, closedMergedCount, avgCycle, stale: msStale, forecast };
     });
   }, [milestones, items]);
 
@@ -203,6 +215,21 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
                 />
               </>
             )}
+            {singleForecast !== null && (
+              <>
+                <Divider orientation="vertical" flexItem />
+                <Tooltip title={forecastTooltip(singleForecast)} placement="bottom" arrow>
+                  <Box sx={{ textAlign: "center", cursor: "help" }}>
+                    <Typography variant="h6" fontWeight={700} lineHeight={1} sx={(theme) => ({ color: theme.palette.mode === "dark" ? COLORS.successDark : COLORS.success })}>
+                      ~{fmtDate(singleForecast.projectedDate.toISOString())}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" display="block" sx={{ whiteSpace: "nowrap", mt: 0.25 }}>
+                      Est. completion
+                    </Typography>
+                  </Box>
+                </Tooltip>
+              </>
+            )}
           </>
         )}
       </Stack>
@@ -216,11 +243,12 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
                 <TableCell align="right" sx={{ fontWeight: 700, color: "text.secondary", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.06em", border: 0 }}>Open</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 700, color: "text.secondary", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.06em", border: 0 }}>Closed/Merged</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 700, color: "text.secondary", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.06em", border: 0 }}>Avg cycle</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700, color: "text.secondary", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.06em", border: 0 }}>Est. completion</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 700, color: "text.secondary", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.06em", border: 0 }}>Stale</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {milestoneComparison.map(({ ms, openCount, closedMergedCount, avgCycle, stale }) => (
+              {milestoneComparison.map(({ ms, openCount, closedMergedCount, avgCycle, stale, forecast }) => (
                 <TableRow key={ms.number} sx={{ "&:last-child td": { border: 0 } }}>
                   <TableCell>
                     <Stack direction="row" alignItems="center" gap={0.75}>
@@ -242,6 +270,21 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
                   </TableCell>
                   <TableCell align="right">
                     <Typography variant="caption" color="text.secondary">{avgCycle !== null ? `${avgCycle}d` : "—"}</Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    {forecast !== null ? (
+                      <Tooltip title={forecastTooltip(forecast)} placement="left" arrow>
+                        <Typography
+                          variant="caption"
+                          fontWeight={600}
+                          sx={(theme) => ({ color: theme.palette.mode === "dark" ? COLORS.successDark : COLORS.success, cursor: "help" })}
+                        >
+                          ~{fmtDate(forecast.projectedDate.toISOString())}
+                        </Typography>
+                      </Tooltip>
+                    ) : (
+                      <Typography variant="caption" color="text.secondary">—</Typography>
+                    )}
                   </TableCell>
                   <TableCell align="right">
                     <Typography
