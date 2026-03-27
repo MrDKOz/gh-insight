@@ -506,12 +506,12 @@ const GanttView: FunctionComponent<Props> = ({
               ? item.type === "issue" ? palette.issue : palette.prMerged
               : item.type === "issue" ? palette.issue : isMergedPR ? palette.prMerged : palette.prClosed;
 
-            const reviewBadge = item.type === "pr" && item.reviewDecision && barWidthPx >= 50
+            const reviewBadge = item.type === "pr" && item.reviewDecision && barWidthPx >= 60
               ? item.reviewDecision === "APPROVED"
-                ? { label: "✓", color: "#1a7f37" }
+                ? { label: "✓", bg: "#1a7f37" }
                 : item.reviewDecision === "CHANGES_REQUESTED"
-                  ? { label: "✕", color: "#cf222e" }
-                  : { label: "…", color: COLORS.warning }
+                  ? { label: "✕", bg: "#cf222e" }
+                  : { label: "?", bg: "#9a6700" }
               : null;
 
             return (
@@ -538,12 +538,15 @@ const GanttView: FunctionComponent<Props> = ({
                           right: 4,
                           top: "50%",
                           transform: "translateY(-50%)",
-                          fontSize: 10,
+                          background: reviewBadge.bg,
+                          color: "#ffffff",
+                          fontSize: 9,
                           fontWeight: 700,
-                          color: reviewBadge.color,
                           lineHeight: 1,
-                          opacity: 0.9,
+                          padding: "2px 4px",
+                          borderRadius: 3,
                           pointerEvents: "none",
+                          userSelect: "none",
                         }}
                       >
                         {reviewBadge.label}
