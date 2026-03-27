@@ -1,7 +1,12 @@
+// fake-indexeddb provides a full IDBFactory/IDBDatabase implementation with
+// proper structured-clone support for CryptoKey objects, which jsdom's built-in
+// IndexedDB does not fully implement.
+import "fake-indexeddb/auto";
+
 import { EncryptionUnavailableError, decryptToken, encryptToken } from "../tokenCrypto";
 
-// These tests run against the real Web Crypto API (available in jsdom) and a
-// real IndexedDB (also available in jsdom via the structured-clone implementation).
+// These tests run against the real Web Crypto API (available in jsdom) and
+// fake-indexeddb (installed as a dev dependency) for IndexedDB.
 
 describe("encryptToken / decryptToken — happy path (IndexedDB available)", () => {
   it("round-trips a token correctly", async () => {
