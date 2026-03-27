@@ -4,7 +4,7 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useRef, useState } from "react";
-import { CHART_EMPTY_STATE_SX, HOVER_CARD_BASE_SX, MS, fmtDate, hoverCardPos, itemEndDate, makeChartColors, upperBound } from "../utils/utils";
+import { CHART_EMPTY_STATE_SX, FS, HOVER_CARD_BASE_SX, MS, fmtDate, hoverCardPos, itemEndDate, makeChartColors, upperBound } from "../utils/utils";
 
 type Props = {
   items: TimelineItem[];
@@ -157,6 +157,18 @@ const pts: DayPt[] = Array.from({ length: totalDays + 1 }, (_, i) => {
         </tbody>
       </table>
 
+      <Box sx={{ display: "flex", gap: 2, mb: 1 }}>
+        {[
+          { color: closedLine, label: "Completed (cumulative)" },
+          { color: openedLine, label: "Created (cumulative)" },
+        ].map(({ color, label }) => (
+          <Box key={label} sx={{ display: "flex", alignItems: "center", gap: "5px" }}>
+            <Box sx={{ width: 10, height: 10, borderRadius: "2px", bgcolor: color, opacity: 0.88, flexShrink: 0 }} />
+            <Typography sx={{ fontSize: FS.sm, color: "text.secondary" }}>{label}</Typography>
+          </Box>
+        ))}
+      </Box>
+
       <svg
         viewBox={`0 0 ${W} ${H}`}
         style={{ width: "100%", height: "auto", display: "block", cursor: "crosshair" }}
@@ -213,15 +225,6 @@ const pts: DayPt[] = Array.from({ length: totalDays + 1 }, (_, i) => {
           </text>
         ))}
 
-        {[
-          { col: closedLine, label: "Completed (cumulative)" },
-          { col: openedLine, label: "Created (cumulative)" },
-        ].map(({ col, label }, i) => (
-          <g key={label} transform={`translate(${L + 4}, ${T + i * 15})`}>
-            <line x1={0} y1={-3} x2={16} y2={-3} stroke={col} strokeWidth={i === 0 ? 2 : 1.5} />
-            <text x={20} y={0} fill={COL.label} fontSize={9} fontFamily="inherit" className="chart-label">{label}</text>
-          </g>
-        ))}
       </svg>
     </Box>
   );

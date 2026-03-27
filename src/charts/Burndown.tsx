@@ -4,7 +4,7 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useMemo, useRef, useState } from "react";
-import { CHART_EMPTY_STATE_SX, HOVER_CARD_BASE_SX, MS, fmtDate, hoverCardPos, makeChartColors, pluralize, upperBound } from "../utils/utils";
+import { CHART_EMPTY_STATE_SX, FS, HOVER_CARD_BASE_SX, MS, fmtDate, hoverCardPos, makeChartColors, pluralize, upperBound } from "../utils/utils";
 
 type Props = {
   items: TimelineItem[];
@@ -175,6 +175,17 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
         </Paper>
       )}
 
+      {isMulti && (
+        <Box sx={{ display: "flex", gap: 2, mb: 1 }}>
+          {milestones.map((ms) => (
+            <Box key={ms.number} sx={{ display: "flex", alignItems: "center", gap: "5px" }}>
+              <Box sx={{ width: 10, height: 10, borderRadius: "2px", bgcolor: ms.color, opacity: 0.88, flexShrink: 0 }} />
+              <Typography sx={{ fontSize: FS.sm, color: "text.secondary" }}>{ms.title}</Typography>
+            </Box>
+          ))}
+        </Box>
+      )}
+
       <table className="sr-only" aria-label="Burndown chart data">
         <caption>Open issue count over time{isMulti ? " by milestone" : ""}</caption>
         <thead>
@@ -287,14 +298,6 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
             fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">
             {fmtDate(new Date(t).toISOString())}
           </text>
-        ))}
-
-        {/* Legend in multi-milestone mode */}
-        {isMulti && milestones.map((ms, i) => (
-          <g key={ms.number} transform={`translate(${L + CW - 160}, ${T + i * 15})`}>
-            <line x1={0} y1={-4} x2={10} y2={-4} stroke={ms.color} strokeWidth={2} />
-            <text x={14} y={0} fill={COL.label} fontSize={9} fontFamily="inherit" className="chart-label">{ms.title}</text>
-          </g>
         ))}
 
         {/* Single milestone: "N open" callout */}

@@ -5,7 +5,7 @@ import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { AuthorWithAssignees } from "../components/AuthorWithAssignees";
-import { CHART_EMPTY_STATE_SX, MS, fmtDate, hoverCardPos, itemEndDate, makeChartColors, pluralize } from "../utils/utils";
+import { CHART_EMPTY_STATE_SX, FS, MS, fmtDate, hoverCardPos, itemEndDate, makeChartColors, pluralize } from "../utils/utils";
 
 type Props = {
   items: TimelineItem[];
@@ -184,6 +184,22 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
         </Paper>
       )}
 
+      <Box sx={{ display: "flex", gap: 2, mb: 1 }}>
+        {(isMulti
+          ? milestones.map((ms) => ({ color: ms.color, label: ms.title }))
+          : [
+              { color: COL.issue,    label: "Issues" },
+              { color: COL.prMerged, label: "PRs merged" },
+              { color: COL.prClosed, label: "PRs closed" },
+            ]
+        ).map(({ color, label }) => (
+          <Box key={label} sx={{ display: "flex", alignItems: "center", gap: "5px" }}>
+            <Box sx={{ width: 10, height: 10, borderRadius: "2px", bgcolor: color, opacity: 0.88, flexShrink: 0 }} />
+            <Typography sx={{ fontSize: FS.sm, color: "text.secondary" }}>{label}</Typography>
+          </Box>
+        ))}
+      </Box>
+
       <table className="sr-only" aria-label="Cycle time data">
         <caption>Cycle time in days for each completed item</caption>
         <thead>
@@ -290,25 +306,6 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
           Days to close
         </text>
 
-        {/* Legend: milestone colors in multi mode, item types in single mode */}
-        {isMulti
-          ? milestones.map((ms, i) => (
-              <g key={ms.number} transform={`translate(${L + CW - 160}, ${T + i * 15})`}>
-                <circle cx={5} cy={-3} r={4} fill={ms.color} opacity={0.82} />
-                <text x={14} y={0} fill={COL.label} fontSize={9} fontFamily="inherit" className="chart-label">{ms.title}</text>
-              </g>
-            ))
-          : ([
-              { col: COL.issue,    label: "Issues" },
-              { col: COL.prMerged, label: "PRs merged" },
-              { col: COL.prClosed, label: "PRs closed" },
-            ]).map(({ col, label }, i) => (
-              <g key={label} transform={`translate(${L + CW - 160}, ${T + i * 15})`}>
-                <circle cx={5} cy={-3} r={4} fill={col} opacity={0.82} />
-                <text x={14} y={0} fill={COL.label} fontSize={9} fontFamily="inherit" className="chart-label">{label}</text>
-              </g>
-            ))
-        }
       </svg>
     </Box>
   );
