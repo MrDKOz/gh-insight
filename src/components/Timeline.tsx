@@ -17,7 +17,7 @@ import { Contributors } from "../charts/Contributors";
 import { CumulativeFlow } from "../charts/CumulativeFlow";
 import { CycleTime } from "../charts/CycleTime";
 import { Velocity } from "../charts/Velocity";
-import { exportCSV, exportChartPDF, exportMarkdown, exportPDF, exportPNG, exportXLSX } from "../utils/export";
+import { exportCSV, exportChartPDF, exportMarkdown, exportPDF, exportPNG, exportReviewWaitCSV, exportReviewWaitMarkdown, exportReviewWaitPDF, exportReviewWaitXLSX, exportXLSX } from "../utils/export";
 import { MS, itemEndDate } from "../utils/utils";
 import { FilterBar, applyFilters } from "./FilterBar";
 import { GanttView } from "./GanttView";
@@ -35,14 +35,17 @@ type Props = {
 type ExportFormat = "CSV" | "XLSX" | "Markdown" | "PNG — Current view" | "PNG — Full timeline" | "PDF";
 
 // Only show export formats whose output visually matches what is on screen:
-//   Gantt       — PNG only; a data table is not a Gantt chart
-//   Chart views — PNG (current) + PDF (embeds the chart as an image)
-//   List        — CSV / XLSX / Markdown / PDF; the list IS a data table so all four match
-const CHART_VIEWS = new Set<View>(["Burndown", "Cycle Time", "Velocity", "Cumulative Flow", "Contributors", "Review Wait"]);
+//   Gantt        — PNG only; a data table is not a Gantt chart
+//   Chart views  — PNG (current) + PDF (embeds the chart as an image)
+//   List         — CSV / XLSX / Markdown / PDF; the list IS a data table so all four match
+//   Review Wait  — same as List but routed to dedicated review-wait export functions that
+//                  include the PR-specific columns (first review date, wait days, total days)
+const CHART_VIEWS = new Set<View>(["Burndown", "Cycle Time", "Velocity", "Cumulative Flow", "Contributors"]);
 
 const formatsForView = (v: View): ExportFormat[] => {
-  if (v === "Gantt") {return ["PNG — Current view", "PNG — Full timeline"];}
-  if (v === "List")  {return ["CSV", "XLSX", "Markdown", "PDF"];}
+  if (v === "Gantt")        {return ["PNG — Current view", "PNG — Full timeline"];}
+  if (v === "List")         {return ["CSV", "XLSX", "Markdown", "PDF"];}
+  if (v === "Review Wait")  {return ["CSV", "XLSX", "Markdown", "PNG — Current view", "PDF"];}
   return ["PNG — Current view", "PDF"];
 };
 
@@ -233,7 +236,14 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
       setExportAnchor(null);
       setExporting(fmt);
       try {
-        if (fmt === "CSV")                  {exportCSV(filteredCompletedItems, title);}
+        if (view === "Review Wait") {
+          if (fmt === "CSV")      {exportReviewWaitCSV(filteredItems, title);}
+          else if (fmt === "Markdown") {exportReviewWaitMarkdown(filteredItems, title);}
+          else if (fmt === "XLSX")     {await exportReviewWaitXLSX(filteredItems, title);}
+          else if (fmt === "PDF")      {await exportReviewWaitPDF(filteredItems, title);}
+          else if (fmt === "PNG — Current view")
+            {await exportPNG(wrapperRef.current!, trackColRef.current, title, "current");}
+        } else if (fmt === "CSV")                  {exportCSV(filteredCompletedItems, title);}
         else if (fmt === "Markdown")        {exportMarkdown(filteredCompletedItems, title);}
         else if (fmt === "XLSX")            {await exportXLSX(filteredCompletedItems, title);}
         else if (fmt === "PNG — Current view")

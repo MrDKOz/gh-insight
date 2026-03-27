@@ -318,4 +318,139 @@ const exportXLSX = async (items: TimelineItem[], title: string): Promise<void> =
   });
 };
 
-export { buildRows, exportCSV, exportChartPDF, exportMarkdown, exportPDF, exportPNG, exportXLSX, safeFilename };
+// ── Review Wait exports ────────────────────────────────────────────────────
+// These mirror the columns visible in the ReviewWaitList component:
+// #, Title, Author, Status, Created, First Review, Wait (days), Total (days)
+
+type ReviewWaitRow = {
+  num: string;
+  title: string;
+  author: string;
+  status: string;
+  created: string;
+  firstReview: string;
+  waitDays: string;
+  totalDays: string;
+  url: string;
+};
+
+const RW_COLS = ["#", "Title", "Author", "Status", "Created", "First Review", "Wait (days)", "Total (days)", "URL"] as const;
+
+const buildReviewWaitRows = (items: TimelineItem[]): ReviewWaitRow[] =>
+  items
+    .filter((i): i is Extract<TimelineItem, { type: "pr" }> => i.type === "pr")
+    .map((pr) => {
+      const createdMs = new Date(pr.createdAt).getTime();
+      const endMs = pr.mergedAt
+        ? new Date(pr.mergedAt).getTime()
+        : pr.closedAt ? new Date(pr.closedAt).getTime() : null;
+      const reviewMs = pr.firstReviewAt ? new Date(pr.firstReviewAt).getTime() : null;
+      const waitDays = reviewMs !== null ? Math.max(0, Math.round((reviewMs - createdMs) / MS)) : null;
+      const totalDays = endMs !== null ? Math.max(0, Math.round((endMs - createdMs) / MS)) : null;
+      const status = pr.mergedAt ? "Merged" : pr.closedAt ? "Closed" : "Open";
+      return {
+        num: `#${pr.number}`,
+        title: pr.title,
+        author: pr.author,
+        status,
+        created: fmtDate(pr.createdAt, true),
+        firstReview: pr.firstReviewAt ? fmtDate(pr.firstReviewAt, true) : "—",
+        waitDays: waitDays !== null ? String(waitDays) : "—",
+        totalDays: totalDays !== null ? String(totalDays) : "open",
+        url: pr.url,
+      };
+    })
+    .sort((a, b) => {
+      const wa = a.waitDays === "—" ? -1 : Number(a.waitDays);
+      const wb = b.waitDays === "—" ? -1 : Number(b.waitDays);
+      return wb - wa; // descending wait, matching default sort in the component
+    });
+
+const exportReviewWaitCSV = (items: TimelineItem[], title: string): void => {
+  const rows = buildReviewWaitRows(items);
+  const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
+  const lines = [
+    RW_COLS.map(esc).join(","),
+    ...rows.map((r) =>
+      [r.num, r.title, r.author, r.status, r.created, r.firstReview, r.waitDays, r.totalDays, r.url].map(esc).join(","),
+    ),
+  ];
+  triggerBlobDownload(lines.join("\r\n"), `${safeFilename(title)}_review_wait.csv`, "text/csv;charset=utf-8;");
+};
+
+const exportReviewWaitMarkdown = (items: TimelineItem[], title: string): void => {
+  const rows = buildReviewWaitRows(items);
+  const pipe = (s: string) => s.replace(/\|/g, "\\|");
+  const lines = [
+    `# ${title} — Review Wait`,
+    "",
+    "| # | Title | Author | Status | Created | First Review | Wait (days) | Total (days) |",
+    "|---|-------|--------|--------|---------|--------------|-------------|--------------|",
+    ...rows.map(
+      (r) => `| [${r.num}](${r.url}) | ${pipe(r.title)} | ${r.author} | ${r.status} | ${r.created} | ${r.firstReview} | ${r.waitDays} | ${r.totalDays} |`,
+    ),
+  ];
+  triggerBlobDownload(lines.join("\n"), `${safeFilename(title)}_review_wait.md`, "text/markdown;charset=utf-8;");
+};
+
+const exportReviewWaitXLSX = async (items: TimelineItem[], title: string): Promise<void> => {
+  const { default: writeXlsxFile } = await import("write-excel-file");
+  const rows = buildReviewWaitRows(items);
+  const HEADER = { fontWeight: "bold" as const, backgroundColor: "#0969DA", color: "#FFFFFF" };
+  const headerRow = RW_COLS.map((value) => ({ value, ...HEADER }));
+  const dataRows = rows.map((r) => [
+    { value: r.num },
+    { value: r.title },
+    { value: r.author },
+    { value: r.status },
+    { value: r.created },
+    { value: r.firstReview },
+    { value: r.waitDays },
+    { value: r.totalDays },
+    { value: r.url },
+  ]);
+  await writeXlsxFile([headerRow, ...dataRows], {
+    columns: [{ width: 8 }, { width: 52 }, { width: 18 }, { width: 10 }, { width: 16 }, { width: 16 }, { width: 14 }, { width: 14 }, { width: 44 }],
+    fileName: `${safeFilename(title)}_review_wait.xlsx`,
+  });
+};
+
+const exportReviewWaitPDF = async (items: TimelineItem[], title: string): Promise<void> => {
+  const { jsPDF } = await import("jspdf");
+  const { default: autoTable } = await import("jspdf-autotable");
+  const rows = buildReviewWaitRows(items);
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  doc.setFontSize(16);
+  doc.setTextColor(36, 47, 47);
+  doc.text(`${title} — Review Wait`, 14, 18);
+  doc.setFontSize(9);
+  doc.setTextColor(87, 96, 106);
+  doc.text(`Generated ${fmtDate(new Date().toISOString(), true)}  ·  ${rows.length} PR${rows.length !== 1 ? "s" : ""}`, 14, 25);
+  autoTable(doc, {
+    startY: 30,
+    head: [["#", "Title", "Author", "Status", "Created", "First Review", "Wait (d)", "Total (d)"]],
+    body: rows.map((r) => [r.num, r.title, r.author, r.status, r.created, r.firstReview, r.waitDays, r.totalDays]),
+    styles: { fontSize: 8, cellPadding: 2.5 },
+    headStyles: { fillColor: [9, 105, 218], textColor: 255, fontStyle: "bold" },
+    alternateRowStyles: { fillColor: [248, 249, 250] },
+    columnStyles: {
+      0: { cellWidth: 14 },
+      1: { cellWidth: "auto" },
+      2: { cellWidth: 22 },
+      3: { cellWidth: 16 },
+      4: { cellWidth: 22 },
+      5: { cellWidth: 22 },
+      6: { cellWidth: 16 },
+      7: { cellWidth: 16 },
+    },
+    didDrawCell: (data) => {
+      if (data.section === "body" && data.column.index === 0) {
+        const url = rows[data.row.index]?.url;
+        if (url) { doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url }); }
+      }
+    },
+  });
+  doc.save(`${safeFilename(title)}_review_wait.pdf`);
+};
+
+export { buildRows, exportCSV, exportChartPDF, exportMarkdown, exportPDF, exportPNG, exportReviewWaitCSV, exportReviewWaitMarkdown, exportReviewWaitPDF, exportReviewWaitXLSX, exportXLSX, safeFilename };
