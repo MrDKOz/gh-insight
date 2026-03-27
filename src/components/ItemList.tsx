@@ -298,23 +298,23 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                     />
                     {item.type === "pr" && item.reviewDecision === "APPROVED" && (
                       <Chip
-                        label="✓ Approved"
+                        label="Approved"
                         size="small"
-                        sx={{ bgcolor: `${COLORS.success}1f`, color: COLORS.success, fontSize: FS.tiny, fontWeight: 600, height: 18, borderRadius: 0.5, ml: 0.5 }}
+                        sx={{ bgcolor: `${COLORS.success}22`, color: COLORS.success, border: `1px solid ${COLORS.success}66`, fontSize: FS.sm, fontWeight: 700, height: 20, borderRadius: 0.5, ml: 0.5 }}
                       />
                     )}
                     {item.type === "pr" && item.reviewDecision === "CHANGES_REQUESTED" && (
                       <Chip
-                        label="Changes"
+                        label="Changes requested"
                         size="small"
-                        sx={{ bgcolor: `${COLORS.prClosed}1f`, color: COLORS.prClosed, fontSize: FS.tiny, fontWeight: 600, height: 18, borderRadius: 0.5, ml: 0.5 }}
+                        sx={{ bgcolor: `${COLORS.prClosed}22`, color: COLORS.prClosed, border: `1px solid ${COLORS.prClosed}66`, fontSize: FS.sm, fontWeight: 700, height: 20, borderRadius: 0.5, ml: 0.5 }}
                       />
                     )}
                     {item.type === "pr" && item.reviewDecision === "REVIEW_REQUIRED" && (
                       <Chip
-                        label="Review needed"
+                        label="Awaiting review"
                         size="small"
-                        sx={{ bgcolor: `${COLORS.warning}26`, color: COLORS.warning, fontSize: FS.tiny, fontWeight: 600, height: 18, borderRadius: 0.5, ml: 0.5 }}
+                        sx={{ bgcolor: `${COLORS.warning}22`, color: COLORS.warning, border: `1px solid ${COLORS.warning}66`, fontSize: FS.sm, fontWeight: 700, height: 20, borderRadius: 0.5, ml: 0.5 }}
                       />
                     )}
                   </Box>
