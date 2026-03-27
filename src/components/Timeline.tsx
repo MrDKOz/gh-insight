@@ -324,7 +324,7 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
       minTime: min,
       totalMs,
       totalDays,
-      trackWidth: Math.max(500, Math.round(totalDays * pixelsPerDay)),
+      trackWidth: Math.max(500, Math.floor(totalDays * pixelsPerDay)),
     };
   }, [allTimestamps, filteredItems, pixelsPerDay, snapMode]);
 
