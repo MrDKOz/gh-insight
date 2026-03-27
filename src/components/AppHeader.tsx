@@ -1,6 +1,7 @@
 import type { FunctionComponent } from "react";
 import type { UserProfile } from "../types";
 import Box from "@mui/material/Box";
+import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -13,6 +14,14 @@ type Props = {
   onToggleDark: () => void;
   onSettingsClick: (e: React.MouseEvent<HTMLElement>) => void;
 };
+
+const BrandIcon: FunctionComponent = () => (
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+    <rect x="1" y="3"   width="10" height="3"  rx="1.5" fill="currentColor" opacity="0.9" />
+    <rect x="1" y="8.5" width="15" height="3"  rx="1.5" fill="currentColor" opacity="0.7" />
+    <rect x="1" y="14"  width="7"  height="3"  rx="1.5" fill="currentColor" opacity="0.5" />
+  </svg>
+);
 
 const SunIcon: FunctionComponent = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
@@ -45,27 +54,27 @@ const AppHeader: FunctionComponent<Props> = ({ userProfile, dark, onToggleDark, 
       borderBottom: 1,
       borderColor: "divider",
       px: 3,
-      py: 1,
+      height: 48,
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
       bgcolor: "background.paper",
+      flexShrink: 0,
     }}
   >
-    <Typography variant="subtitle1" fontWeight={700} sx={{ letterSpacing: "-0.01em" }}>
-      GitHub Work Visualiser
-    </Typography>
+    {/* Brand */}
+    <Stack direction="row" alignItems="center" gap={1.25}>
+      <Box sx={{ color: "primary.main", display: "flex", alignItems: "center" }}>
+        <BrandIcon />
+      </Box>
+      <Typography variant="subtitle1" fontWeight={700} sx={{ letterSpacing: "-0.02em" }}>
+        GitHub Work Visualiser
+      </Typography>
+    </Stack>
 
-    <Stack direction="row" alignItems="center" gap={0.5}>
+    {/* Actions */}
+    <Stack direction="row" alignItems="center" gap={0.25}>
       <HelpPopover />
-      <IconButton
-        size="small"
-        onClick={onSettingsClick}
-        title="Settings"
-        aria-label="Settings"
-      >
-        <GearIcon />
-      </IconButton>
       <IconButton
         size="small"
         onClick={onToggleDark}
@@ -74,17 +83,31 @@ const AppHeader: FunctionComponent<Props> = ({ userProfile, dark, onToggleDark, 
       >
         {dark ? <SunIcon /> : <MoonIcon />}
       </IconButton>
+      <IconButton
+        size="small"
+        onClick={onSettingsClick}
+        title="Settings"
+        aria-label="Settings"
+      >
+        <GearIcon />
+      </IconButton>
 
-      <Stack direction="row" alignItems="center" gap={0.75} sx={{ ml: 0.5, pl: 1, borderLeft: 1, borderColor: "divider" }}>
+      <Divider orientation="vertical" flexItem sx={{ mx: 1, my: 0.75 }} />
+
+      <Stack direction="row" alignItems="center" gap={0.75}>
         <Box
           component="img"
           src={`${userProfile.avatarUrl}?size=48`}
           alt={userProfile.login}
-          width={22}
-          height={22}
+          width={24}
+          height={24}
           sx={{ borderRadius: "50%", display: "block" }}
         />
-        <Typography variant="body2" sx={{ maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <Typography
+          variant="body2"
+          fontWeight={500}
+          sx={{ maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+        >
           {userProfile.name ?? userProfile.login}
         </Typography>
       </Stack>

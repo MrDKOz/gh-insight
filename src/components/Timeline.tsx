@@ -194,8 +194,18 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
   }, [view]);
 
   useEffect(() => {
-    setPixelsPerDay(30);
-  }, [items]);
+    if (view !== "Gantt") { return; }
+    const el = trackColRef.current;
+    if (!el || items.length === 0) { setPixelsPerDay(30); return; }
+    const allTs = items.flatMap((item) => {
+      const end = itemEndDate(item);
+      return [new Date(item.createdAt).getTime(), ...(end ? [new Date(end).getTime()] : [])];
+    });
+    const min = Math.min(...allTs);
+    const max = Math.max(...allTs, Date.now());
+    const days = Math.max(1, (max - min) / MS);
+    setPixelsPerDay(Math.max(3, Math.min(200, el.clientWidth / days)));
+  }, [items, view]);
 
   // Non-passive wheel listener so we can call preventDefault for vertical scroll-zoom
   useEffect(() => {

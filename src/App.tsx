@@ -488,46 +488,70 @@ const App: FunctionComponent = () => {
             hasItems={allItems.length > 0}
           />
 
-          <Box sx={{ flex: 1, px: 3, py: 2, display: "flex", flexDirection: "column", gap: 2 }}>
-            {tokenError && (
-              <Alert severity="warning" onClose={() => setTokenError(null)}>{tokenError}</Alert>
-            )}
-            {configError && (
-              <Alert severity="error" onClose={() => setConfigError(null)}>{configError}</Alert>
-            )}
-            {state.error && <Alert severity="error">{state.error}</Alert>}
-            {state.emptyMilestoneNums.length > 0 && (
-              <Alert severity="warning">
-                {state.emptyMilestoneNums.length === 1
-                  ? `Milestone #${state.emptyMilestoneNums[0]!} has no items.`
-                  : `${state.emptyMilestoneNums.length} milestones have no items.`}
-              </Alert>
-            )}
-            {state.loadingNums.length > 0 && (
-              <Alert severity="info" role="status" aria-live="polite">Loading milestone data…</Alert>
+          <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
+            {/* Notification strip — only rendered when something needs attention */}
+            {(tokenError || configError || state.error || state.emptyMilestoneNums.length > 0 || state.loadingNums.length > 0) && (
+              <Box sx={{ px: 3, pt: 2, display: "flex", flexDirection: "column", gap: 1 }}>
+                {tokenError && (
+                  <Alert severity="warning" onClose={() => setTokenError(null)}>{tokenError}</Alert>
+                )}
+                {configError && (
+                  <Alert severity="error" onClose={() => setConfigError(null)}>{configError}</Alert>
+                )}
+                {state.error && <Alert severity="error">{state.error}</Alert>}
+                {state.emptyMilestoneNums.length > 0 && (
+                  <Alert severity="warning">
+                    {state.emptyMilestoneNums.length === 1
+                      ? `Milestone #${state.emptyMilestoneNums[0]!} has no items.`
+                      : `${state.emptyMilestoneNums.length} milestones have no items.`}
+                  </Alert>
+                )}
+                {state.loadingNums.length > 0 && (
+                  <Alert severity="info" role="status" aria-live="polite">Loading milestone data…</Alert>
+                )}
+              </Box>
             )}
 
+            {/* Empty state: no repo selected */}
             {!activeRepo && (
-              <Box sx={{ textAlign: "center", py: 10 }}>
-                <Typography color="text.secondary">Select a repository to get started</Typography>
+              <Box sx={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1 }}>
+                <Box sx={{ color: "text.disabled" }}>
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M3 7a2 2 0 0 1 2-2h2.5l2 2H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
+                  </svg>
+                </Box>
+                <Typography variant="body1" fontWeight={500} color="text.secondary">Select a repository</Typography>
+                <Typography variant="body2" color="text.disabled">Choose a repository from the dropdown above to load its milestones</Typography>
               </Box>
             )}
 
+            {/* Empty state: repo has no milestones */}
             {activeRepo && state.milestones.length === 0 && !state.loadingList && !state.error && (
-              <Box sx={{ textAlign: "center", py: 10 }}>
-                <Typography color="text.secondary">No milestones found for this repository</Typography>
+              <Box sx={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1 }}>
+                <Box sx={{ color: "text.disabled" }}>
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                    <line x1="4" y1="22" x2="4" y2="15" />
+                  </svg>
+                </Box>
+                <Typography variant="body1" fontWeight={500} color="text.secondary">No milestones found</Typography>
+                <Typography variant="body2" color="text.disabled">This repository has no open or closed milestones</Typography>
               </Box>
             )}
 
+            {/* Main content */}
             {allItems.length > 0 && milestonesMeta.length > 0 && (
-              <Timeline
-                items={allItems}
-                milestones={milestonesMeta}
-                highlightWeekends={settings.highlightWeekends}
-                colorblindMode={settings.colorblindMode}
-                view={view}
-                onViewChange={setView}
-              />
+              <Box sx={{ flex: 1, px: 2, pt: 1.5, pb: 2, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <Timeline
+                  items={allItems}
+                  milestones={milestonesMeta}
+                  highlightWeekends={settings.highlightWeekends}
+                  colorblindMode={settings.colorblindMode}
+                  view={view}
+                  onViewChange={setView}
+                />
+              </Box>
             )}
           </Box>
 

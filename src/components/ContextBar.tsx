@@ -5,6 +5,7 @@ import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
+import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
@@ -47,10 +48,21 @@ const ContextBar: FunctionComponent<Props> = memo(({
   colorFor, onAdd, onRemove, onRefresh,
   view, onViewChange, hasItems,
 }) => (
-  <Box sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "background.paper" }}>
+  <Box sx={{ bgcolor: "background.paper" }}>
 
-    {/* Row 1: repo selector, milestone picker, actions */}
-    <Box sx={{ px: 3, py: 1.25, display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
+    {/* Row 1: workspace controls */}
+    <Box sx={{
+      px: 2,
+      py: 1,
+      minHeight: 52,
+      display: "flex",
+      alignItems: "center",
+      gap: 1,
+      borderBottom: hasItems ? 0 : 1,
+      borderColor: "divider",
+    }}>
+
+      {/* Repo selector */}
       <Autocomplete<Repo>
         options={repos}
         value={activeRepo}
@@ -73,18 +85,21 @@ const ContextBar: FunctionComponent<Props> = memo(({
         renderInput={(params) => (
           <TextField {...params} label="Repository" size="small" placeholder="Search repos…" />
         )}
-        sx={{ width: 300 }}
+        sx={{ width: 280, flexShrink: 0 }}
         noOptionsText={isDemo ? "No demo repos" : "No repositories found"}
       />
 
+      <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+
+      {/* Milestone area */}
       {loadingList && (
-        <Stack direction="row" alignItems="center" gap={1}>
-          <CircularProgress size={16} />
+        <Stack direction="row" alignItems="center" gap={1} sx={{ flexShrink: 0 }}>
+          <CircularProgress size={14} />
           <Typography variant="caption" color="text.secondary">Loading milestones…</Typography>
         </Stack>
       )}
 
-      {milestones.length > 0 && (
+      {!loadingList && milestones.length > 0 && (
         <MilestonePicker
           milestones={milestones}
           selected={selected}
@@ -95,21 +110,23 @@ const ContextBar: FunctionComponent<Props> = memo(({
         />
       )}
 
-      {/* Portal target — Timeline renders Export + Share buttons here */}
-      <Box id="timeline-toolbar" sx={{ ml: "auto", display: "flex", alignItems: "center", gap: 1 }} />
-
+      {/* Refresh — lives next to milestones, not at the far end */}
       {selected.length > 0 && !isDemo && (
         <Button
-          variant="outlined"
+          variant="text"
           size="small"
           onClick={onRefresh}
           disabled={loadingNums.length > 0}
           title="Refetch data for selected milestones"
           aria-label="Refresh milestone data"
+          sx={{ flexShrink: 0, color: "text.secondary", minWidth: "auto", px: 0.75 }}
         >
           ↻ Refresh
         </Button>
       )}
+
+      {/* Portal target — Timeline renders Export + Share buttons here */}
+      <Box id="timeline-toolbar" sx={{ ml: "auto", display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }} />
     </Box>
 
     {/* Row 2: view tabs — only shown when data is loaded */}
@@ -119,7 +136,13 @@ const ContextBar: FunctionComponent<Props> = memo(({
         onChange={(_, v: View) => onViewChange(v)}
         variant="scrollable"
         scrollButtons="auto"
-        sx={{ px: 2, minHeight: 38, "& .MuiTab-root": { minHeight: 38, py: 0.5, fontSize: "0.8125rem" } }}
+        sx={{
+          px: 2,
+          minHeight: 40,
+          borderBottom: 1,
+          borderColor: "divider",
+          "& .MuiTab-root": { minHeight: 40, py: 0.5, fontSize: "0.8125rem" },
+        }}
       >
         {VIEWS.map((v) => (
           <Tab key={v} label={v} value={v} />

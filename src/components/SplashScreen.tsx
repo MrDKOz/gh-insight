@@ -16,6 +16,14 @@ type Props = {
   error: string | null;
 };
 
+const GanttIcon: FunctionComponent = () => (
+  <svg width="40" height="40" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+    <rect x="1" y="3"   width="10" height="3"  rx="1.5" fill="currentColor" opacity="0.9" />
+    <rect x="1" y="8.5" width="15" height="3"  rx="1.5" fill="currentColor" opacity="0.7" />
+    <rect x="1" y="14"  width="7"  height="3"  rx="1.5" fill="currentColor" opacity="0.5" />
+  </svg>
+);
+
 const SplashScreen: FunctionComponent<Props> = ({ onConnect, onDemo, loading, error }) => {
   const [token, setToken] = useState("");
 
@@ -26,19 +34,22 @@ const SplashScreen: FunctionComponent<Props> = ({ onConnect, onDemo, loading, er
 
   return (
     <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", p: 3 }}>
-      <Box sx={{ width: "100%", maxWidth: 420 }}>
-        <Typography variant="h5" fontWeight={700} sx={{ mb: 0.5 }}>
-          GitHub Work Visualiser
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
-          Milestone insights for engineering leads
-        </Typography>
+      <Box sx={{ width: "100%", maxWidth: 400 }}>
 
-        <Paper sx={{ p: 3 }}>
-          <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2 }}>
-            Connect with GitHub
+        {/* Brand mark */}
+        <Stack alignItems="center" sx={{ mb: 4 }}>
+          <Box sx={{ color: "primary.main", mb: 1.5 }}>
+            <GanttIcon />
+          </Box>
+          <Typography variant="h5" fontWeight={700} sx={{ letterSpacing: "-0.02em", mb: 0.5 }}>
+            GitHub Work Visualiser
           </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Milestone insights for engineering leads
+          </Typography>
+        </Stack>
 
+        <Paper elevation={0} variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
@@ -63,20 +74,23 @@ const SplashScreen: FunctionComponent<Props> = ({ onConnect, onDemo, loading, er
               onClick={submit}
               disabled={!token.trim() || loading}
               fullWidth
+              disableElevation
             >
-              {loading ? "Connecting…" : "Connect"}
+              {loading ? "Connecting…" : "Connect to GitHub"}
             </Button>
           </Stack>
 
-          <Divider sx={{ my: 2 }} />
+          <Divider sx={{ my: 2 }}>
+            <Typography variant="caption" color="text.secondary">or</Typography>
+          </Divider>
 
-          <Button variant="text" onClick={onDemo} fullWidth disabled={loading} size="small">
-            Try demo →
+          <Button variant="outlined" onClick={onDemo} fullWidth disabled={loading} size="small">
+            Explore with demo data
           </Button>
         </Paper>
 
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2, textAlign: "center" }}>
-          Your token is encrypted locally and never sent to any server other than api.github.com.
+          Your token is encrypted locally and never sent anywhere other than api.github.com
         </Typography>
       </Box>
     </Box>
