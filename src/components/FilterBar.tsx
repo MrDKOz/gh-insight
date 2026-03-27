@@ -1,13 +1,19 @@
+import type { TimelineItem } from "../types";
 import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
-import TextField from "@mui/material/TextField";
-import InputAdornment from "@mui/material/InputAdornment";
+import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
+import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
-import type { TimelineItem } from "../types";
-import { itemEndDate, COLORS } from "../utils/utils";
+import InputAdornment from "@mui/material/InputAdornment";
+import Popover from "@mui/material/Popover";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
+import { useMemo, useState } from "react";
+import { COLORS, COLORS_CB, itemEndDate, labelTextColor } from "../utils/utils";
+
+type PeopleRole = "author" | "assignees" | "either";
 
 type Filters = {
   createdStart: string;
@@ -19,6 +25,9 @@ type Filters = {
   showOpenPRs: boolean;
   showMergedPRs: boolean;
   showClosedPRs: boolean;
+  activeLabels: string[];  // label names; empty = all
+  activePeople: string[];  // logins; empty = all
+  peopleRole: PeopleRole;  // which role(s) to match against
 };
 
 const DEFAULT_FILTERS: Filters = {
@@ -31,34 +40,52 @@ const DEFAULT_FILTERS: Filters = {
   showOpenPRs: true,
   showMergedPRs: true,
   showClosedPRs: true,
+  activeLabels: [],
+  activePeople: [],
+  peopleRole: "either",
 };
 
-function applyFilters(items: TimelineItem[], filters: Filters): TimelineItem[] {
-  return items.filter((item) => {
-    if (filters.createdStart && item.createdAt.slice(0, 10) < filters.createdStart) return false;
-    if (filters.createdEnd && item.createdAt.slice(0, 10) > filters.createdEnd) return false;
+const applyFilters = (items: TimelineItem[], filters: Filters): TimelineItem[] =>
+  items.filter((item) => {
+    if (filters.createdStart && item.createdAt.slice(0, 10) < filters.createdStart) {return false;}
+    if (filters.createdEnd && item.createdAt.slice(0, 10) > filters.createdEnd) {return false;}
 
     const end = itemEndDate(item);
     if (filters.closedStart || filters.closedEnd) {
-      if (!end) return false; // open items have no close date — exclude when filtering by closed
-      if (filters.closedStart && end.slice(0, 10) < filters.closedStart) return false;
-      if (filters.closedEnd && end.slice(0, 10) > filters.closedEnd) return false;
+      if (!end) {return false;} // open items have no close date — exclude when filtering by closed
+      if (filters.closedStart && end.slice(0, 10) < filters.closedStart) {return false;}
+      if (filters.closedEnd && end.slice(0, 10) > filters.closedEnd) {return false;}
     }
 
     if (item.type === "issue") {
-      if (!item.closedAt && !filters.showOpenIssues) return false;
-      if (item.closedAt && !filters.showClosedIssues) return false;
+      if (!item.closedAt && !filters.showOpenIssues) {return false;}
+      if (item.closedAt && !filters.showClosedIssues) {return false;}
     } else {
       const isMerged = !!item.mergedAt;
       const isClosed = !item.mergedAt && !!item.closedAt;
       const isOpen   = !item.mergedAt && !item.closedAt;
-      if (isOpen   && !filters.showOpenPRs)   return false;
-      if (isMerged && !filters.showMergedPRs) return false;
-      if (isClosed && !filters.showClosedPRs) return false;
+      if (isOpen   && !filters.showOpenPRs)   {return false;}
+      if (isMerged && !filters.showMergedPRs) {return false;}
+      if (isClosed && !filters.showClosedPRs) {return false;}
     }
+
+    if (filters.activeLabels.length > 0) {
+      const itemLabels = new Set(item.labels.map((l) => l.name));
+      if (!filters.activeLabels.some((l) => itemLabels.has(l))) {return false;}
+    }
+
+    if (filters.activePeople.length > 0) {
+      const matchAuthor    = filters.peopleRole === "author"    || filters.peopleRole === "either";
+      const matchAssignees = filters.peopleRole === "assignees" || filters.peopleRole === "either";
+      const itemAssignees  = new Set(item.assignees);
+      const passes =
+        (matchAuthor    && filters.activePeople.includes(item.author)) ||
+        (matchAssignees && filters.activePeople.some((p) => itemAssignees.has(p)));
+      if (!passes) {return false;}
+    }
+
     return true;
   });
-}
 
 type Counts = {
   openIssues: number;
@@ -69,9 +96,11 @@ type Counts = {
 };
 
 type Props = {
+  items: TimelineItem[];
   filters: Filters;
   counts: Counts;
   onChange: (f: Filters) => void;
+  colorblindMode: boolean;
 };
 
 const IconX = () => (
@@ -109,8 +138,8 @@ const IconReset = () => (
 
 type DateFieldProps = {
   value: string;
-  min?: string;
-  max?: string;
+  min?: string | undefined;
+  max?: string | undefined;
   onChange: (v: string) => void;
   onClear: () => void;
 };
@@ -125,7 +154,7 @@ const DateField: FunctionComponent<DateFieldProps> = ({ value, min, max, onChang
       input: {
         endAdornment: value ? (
           <InputAdornment position="end">
-            <IconButton size="small" onClick={onClear} title="Clear date" sx={{ p: 0.25 }}>
+            <IconButton size="small" onClick={onClear} title="Clear date" aria-label="Clear date" sx={{ p: 0.25 }}>
               <IconX />
             </IconButton>
           </InputAdornment>
@@ -137,8 +166,69 @@ const DateField: FunctionComponent<DateFieldProps> = ({ value, min, max, onChang
   />
 );
 
-const FilterBar: FunctionComponent<Props> = ({ filters, counts, onChange }) => {
+type DateRangeFilterProps = {
+  label: string;
+  startValue: string;
+  endValue: string;
+  onStartChange: (v: string) => void;
+  onStartClear: () => void;
+  onEndChange: (v: string) => void;
+  onEndClear: () => void;
+};
+
+const DateRangeFilter: FunctionComponent<DateRangeFilterProps> = ({
+  label,
+  startValue,
+  endValue,
+  onStartChange,
+  onStartClear,
+  onEndChange,
+  onEndClear,
+}) => (
+  <Stack direction="row" alignItems="center" gap={0.75}>
+    <Typography variant="caption" fontWeight={600} color="text.secondary">
+      {label}
+    </Typography>
+    <Stack direction="row" alignItems="center" gap={0.5}>
+      <DateField
+        value={startValue}
+        max={endValue || undefined}
+        onChange={onStartChange}
+        onClear={onStartClear}
+      />
+      <Typography variant="caption" color="text.secondary" sx={{ userSelect: "none" }}>
+        –
+      </Typography>
+      <DateField
+        value={endValue}
+        min={startValue || undefined}
+        onChange={onEndChange}
+        onClear={onEndClear}
+      />
+    </Stack>
+  </Stack>
+);
+
+const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange, colorblindMode }) => {
+  const palette = colorblindMode ? COLORS_CB : COLORS;
   const set = (patch: Partial<Filters>) => onChange({ ...filters, ...patch });
+
+  const [labelsAnchor, setLabelsAnchor] = useState<HTMLElement | null>(null);
+  const [labelsSearch, setLabelsSearch] = useState("");
+  const [peopleAnchor, setPeopleAnchor] = useState<HTMLElement | null>(null);
+  const [peopleSearch, setPeopleSearch] = useState("");
+
+  // Derive unique labels and people (authors + assignees) from the full (unfiltered) item list
+  const { labelMap, allPeople } = useMemo(() => {
+    const lm = new Map<string, string>(); // name → color
+    const peopleSet = new Set<string>();
+    for (const item of items) {
+      for (const l of item.labels) {lm.set(l.name, l.color);}
+      peopleSet.add(item.author);
+      for (const a of item.assignees) {peopleSet.add(a);}
+    }
+    return { labelMap: lm, allPeople: [...peopleSet].sort() };
+  }, [items]);
 
   const isActive =
     !!filters.createdStart ||
@@ -149,17 +239,39 @@ const FilterBar: FunctionComponent<Props> = ({ filters, counts, onChange }) => {
     !filters.showClosedIssues ||
     !filters.showOpenPRs ||
     !filters.showMergedPRs ||
-    !filters.showClosedPRs;
+    !filters.showClosedPRs ||
+    filters.activeLabels.length > 0 ||
+    filters.activePeople.length > 0;
 
   const toggles: Array<{ key: keyof Filters; label: string; count: number; color: string }> = (
     [
-      { key: "showOpenIssues", label: "Open issues", count: counts.openIssues, color: COLORS.issue },
-      { key: "showClosedIssues", label: "Closed issues", count: counts.closedIssues, color: COLORS.issue },
-      { key: "showOpenPRs", label: "Open PRs", count: counts.openPRs, color: COLORS.prMerged },
-      { key: "showMergedPRs", label: "Merged PRs", count: counts.mergedPRs, color: COLORS.prMerged },
-      { key: "showClosedPRs", label: "Closed PRs", count: counts.closedPRs, color: COLORS.prClosed },
+      { key: "showOpenIssues", label: "Open issues", count: counts.openIssues, color: palette.issue },
+      { key: "showClosedIssues", label: "Closed issues", count: counts.closedIssues, color: palette.issue },
+      { key: "showOpenPRs", label: "Open PRs", count: counts.openPRs, color: palette.prMerged },
+      { key: "showMergedPRs", label: "Merged PRs", count: counts.mergedPRs, color: palette.prMerged },
+      { key: "showClosedPRs", label: "Closed PRs", count: counts.closedPRs, color: palette.prClosed },
     ] as Array<{ key: keyof Filters; label: string; count: number; color: string }>
   ).filter((t) => t.count > 0);
+
+  const toggleLabel = (name: string) => {
+    const next = filters.activeLabels.includes(name)
+      ? filters.activeLabels.filter((l) => l !== name)
+      : [...filters.activeLabels, name];
+    set({ activeLabels: next });
+  };
+
+  const togglePerson = (login: string) => {
+    const next = filters.activePeople.includes(login)
+      ? filters.activePeople.filter((p) => p !== login)
+      : [...filters.activePeople, login];
+    set({ activePeople: next });
+  };
+
+  const ROLE_OPTIONS: Array<{ value: PeopleRole; label: string; title: string }> = [
+    { value: "author",    label: "Author",    title: "Match selected people as issue/PR authors" },
+    { value: "assignees", label: "Assignees", title: "Match selected people as assignees" },
+    { value: "either",    label: "Either",    title: "Match selected people in either role" },
+  ];
 
   return (
     <Box
@@ -176,51 +288,25 @@ const FilterBar: FunctionComponent<Props> = ({ filters, counts, onChange }) => {
         bgcolor: "background.paper",
       }}
     >
-      <Stack direction="row" alignItems="center" gap={0.75}>
-        <Typography variant="caption" fontWeight={600} color="text.secondary">
-          Created
-        </Typography>
-        <Stack direction="row" alignItems="center" gap={0.5}>
-          <DateField
-            value={filters.createdStart}
-            max={filters.createdEnd || undefined}
-            onChange={(v) => set({ createdStart: v })}
-            onClear={() => set({ createdStart: "" })}
-          />
-          <Typography variant="caption" color="text.secondary" sx={{ userSelect: "none" }}>
-            –
-          </Typography>
-          <DateField
-            value={filters.createdEnd}
-            min={filters.createdStart || undefined}
-            onChange={(v) => set({ createdEnd: v })}
-            onClear={() => set({ createdEnd: "" })}
-          />
-        </Stack>
-      </Stack>
+      <DateRangeFilter
+        label="Created"
+        startValue={filters.createdStart}
+        endValue={filters.createdEnd}
+        onStartChange={(v) => set({ createdStart: v })}
+        onStartClear={() => set({ createdStart: "" })}
+        onEndChange={(v) => set({ createdEnd: v })}
+        onEndClear={() => set({ createdEnd: "" })}
+      />
 
-      <Stack direction="row" alignItems="center" gap={0.75}>
-        <Typography variant="caption" fontWeight={600} color="text.secondary">
-          Closed
-        </Typography>
-        <Stack direction="row" alignItems="center" gap={0.5}>
-          <DateField
-            value={filters.closedStart}
-            max={filters.closedEnd || undefined}
-            onChange={(v) => set({ closedStart: v })}
-            onClear={() => set({ closedStart: "" })}
-          />
-          <Typography variant="caption" color="text.secondary" sx={{ userSelect: "none" }}>
-            –
-          </Typography>
-          <DateField
-            value={filters.closedEnd}
-            min={filters.closedStart || undefined}
-            onChange={(v) => set({ closedEnd: v })}
-            onClear={() => set({ closedEnd: "" })}
-          />
-        </Stack>
-      </Stack>
+      <DateRangeFilter
+        label="Closed"
+        startValue={filters.closedStart}
+        endValue={filters.closedEnd}
+        onStartChange={(v) => set({ closedStart: v })}
+        onStartClear={() => set({ closedStart: "" })}
+        onEndChange={(v) => set({ closedEnd: v })}
+        onEndClear={() => set({ closedEnd: "" })}
+      />
 
       <Stack direction="row" alignItems="center" gap={0.75} flexWrap="wrap">
         {toggles.map(({ key, label, count, color }) => (
@@ -253,8 +339,221 @@ const FilterBar: FunctionComponent<Props> = ({ filters, counts, onChange }) => {
         ))}
       </Stack>
 
+      {labelMap.size > 0 && (() => {
+        const activeCount = filters.activeLabels.length;
+        const query = labelsSearch.trim().toLowerCase();
+        const filtered = [...labelMap.entries()].filter(([name]) =>
+          !query || name.toLowerCase().includes(query),
+        );
+        return (
+          <>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={(e) => setLabelsAnchor(e.currentTarget)}
+              aria-haspopup="true"
+              aria-expanded={Boolean(labelsAnchor)}
+              sx={{
+                fontSize: "0.6875rem",
+                height: 26,
+                borderColor: activeCount > 0 ? "primary.main" : undefined,
+                color: activeCount > 0 ? "primary.main" : "text.secondary",
+                fontWeight: activeCount > 0 ? 700 : 500,
+              }}
+            >
+              Labels{activeCount > 0 ? ` (${activeCount})` : ""} ▾
+            </Button>
+
+            <Popover
+              open={Boolean(labelsAnchor)}
+              anchorEl={labelsAnchor}
+              onClose={() => { setLabelsAnchor(null); setLabelsSearch(""); }}
+              anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+              transformOrigin={{ vertical: "top", horizontal: "left" }}
+              slotProps={{ paper: { sx: { width: 280, display: "flex", flexDirection: "column" } } }}
+            >
+              <Box sx={{ p: 1 }}>
+                <TextField
+                  size="small"
+                  placeholder="Search labels…"
+                  value={labelsSearch}
+                  onChange={(e) => setLabelsSearch(e.target.value)}
+                  autoFocus
+                  fullWidth
+                  slotProps={{ htmlInput: { "aria-label": "Search labels" } }}
+                  sx={{ "& .MuiInputBase-input": { fontSize: "0.8125rem", py: 0.625 } }}
+                />
+              </Box>
+              <Divider />
+              <Box sx={{ p: 1, maxHeight: 260, overflowY: "auto", display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                {filtered.length === 0 ? (
+                  <Typography variant="caption" color="text.disabled" sx={{ p: 0.5 }}>
+                    No labels match
+                  </Typography>
+                ) : filtered.map(([name, color]) => {
+                  const active = filters.activeLabels.includes(name);
+                  const textCol = labelTextColor(color);
+                  return (
+                    <Chip
+                      key={name}
+                      label={name}
+                      size="small"
+                      onClick={() => toggleLabel(name)}
+                      aria-pressed={active}
+                      sx={{
+                        height: 22,
+                        cursor: "pointer",
+                        bgcolor: active ? color : `${color}33`,
+                        color: active ? textCol : "text.secondary",
+                        border: "1px solid",
+                        borderColor: `${color}99`,
+                        fontWeight: 500,
+                        fontSize: "0.625rem",
+                        opacity: active ? 1 : 0.65,
+                        "&:hover": { bgcolor: color, color: textCol, opacity: 1 },
+                      }}
+                    />
+                  );
+                })}
+              </Box>
+              {activeCount > 0 && (
+                <>
+                  <Divider />
+                  <Box sx={{ p: 0.75, display: "flex", justifyContent: "flex-end" }}>
+                    <Button size="small" sx={{ fontSize: "0.6875rem" }} onClick={() => set({ activeLabels: [] })}>
+                      Clear
+                    </Button>
+                  </Box>
+                </>
+              )}
+            </Popover>
+          </>
+        );
+      })()}
+
+      {allPeople.length > 0 && (() => {
+        const activeCount = filters.activePeople.length;
+        const query = peopleSearch.trim().toLowerCase();
+        const filteredPeople = allPeople.filter((p) => !query || p.toLowerCase().includes(query));
+        return (
+          <>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={(e) => setPeopleAnchor(e.currentTarget)}
+              aria-haspopup="true"
+              aria-expanded={Boolean(peopleAnchor)}
+              sx={{
+                fontSize: "0.6875rem",
+                height: 26,
+                borderColor: activeCount > 0 ? "primary.main" : undefined,
+                color: activeCount > 0 ? "primary.main" : "text.secondary",
+                fontWeight: activeCount > 0 ? 700 : 500,
+              }}
+            >
+              People{activeCount > 0 ? ` (${activeCount})` : ""} ▾
+            </Button>
+
+            <Popover
+              open={Boolean(peopleAnchor)}
+              anchorEl={peopleAnchor}
+              onClose={() => { setPeopleAnchor(null); setPeopleSearch(""); }}
+              anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+              transformOrigin={{ vertical: "top", horizontal: "left" }}
+              slotProps={{ paper: { sx: { width: 280, display: "flex", flexDirection: "column" } } }}
+            >
+              {/* Role toggle */}
+              <Box sx={{ p: 1 }}>
+                <Box
+                  sx={{ display: "flex", border: 1, borderColor: "divider", borderRadius: 0.75, overflow: "hidden" }}
+                  role="group"
+                  aria-label="Match people by role"
+                >
+                  {ROLE_OPTIONS.map(({ value, label, title }, i) => (
+                    <Box
+                      key={value}
+                      component="button"
+                      onClick={() => set({ peopleRole: value })}
+                      title={title}
+                      aria-pressed={filters.peopleRole === value}
+                      sx={{
+                        flex: 1, px: 1, py: 0.5,
+                        fontSize: "0.6875rem", fontWeight: 500, lineHeight: 1.4,
+                        border: "none",
+                        borderRight: i < ROLE_OPTIONS.length - 1 ? 1 : 0,
+                        borderColor: "divider",
+                        cursor: "pointer",
+                        bgcolor: filters.peopleRole === value ? "primary.main" : "transparent",
+                        color: filters.peopleRole === value ? "primary.contrastText" : "text.secondary",
+                        transition: "background-color 0.15s, color 0.15s",
+                        "&:hover": {
+                          bgcolor: filters.peopleRole === value ? "primary.dark" : "action.hover",
+                          color: filters.peopleRole === value ? "primary.contrastText" : "text.primary",
+                        },
+                      }}
+                    >
+                      {label}
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
+              <Divider />
+              <Box sx={{ p: 1 }}>
+                <TextField
+                  size="small"
+                  placeholder="Search people…"
+                  value={peopleSearch}
+                  onChange={(e) => setPeopleSearch(e.target.value)}
+                  autoFocus
+                  fullWidth
+                  slotProps={{ htmlInput: { "aria-label": "Search people" } }}
+                  sx={{ "& .MuiInputBase-input": { fontSize: "0.8125rem", py: 0.625 } }}
+                />
+              </Box>
+              <Divider />
+              <Box sx={{ p: 1, maxHeight: 220, overflowY: "auto", display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                {filteredPeople.length === 0 ? (
+                  <Typography variant="caption" color="text.disabled" sx={{ p: 0.5 }}>
+                    No people match
+                  </Typography>
+                ) : filteredPeople.map((login) => {
+                  const active = filters.activePeople.includes(login);
+                  return (
+                    <Chip
+                      key={login}
+                      label={login}
+                      size="small"
+                      onClick={() => togglePerson(login)}
+                      aria-pressed={active}
+                      sx={{
+                        height: 22,
+                        cursor: "pointer",
+                        fontWeight: 500,
+                        fontSize: "0.625rem",
+                        opacity: active ? 1 : 0.6,
+                        "&:hover": { opacity: 1 },
+                      }}
+                    />
+                  );
+                })}
+              </Box>
+              {activeCount > 0 && (
+                <>
+                  <Divider />
+                  <Box sx={{ p: 0.75, display: "flex", justifyContent: "flex-end" }}>
+                    <Button size="small" sx={{ fontSize: "0.6875rem" }} onClick={() => set({ activePeople: [] })}>
+                      Clear
+                    </Button>
+                  </Box>
+                </>
+              )}
+            </Popover>
+          </>
+        );
+      })()}
+
       {isActive && (
-        <IconButton size="small" onClick={() => onChange(DEFAULT_FILTERS)} title="Reset all filters" sx={{ ml: "auto" }}>
+        <IconButton size="small" onClick={() => onChange(DEFAULT_FILTERS)} title="Reset all filters" aria-label="Reset all filters" sx={{ ml: "auto" }}>
           <IconReset />
         </IconButton>
       )}
@@ -262,5 +561,5 @@ const FilterBar: FunctionComponent<Props> = ({ filters, counts, onChange }) => {
   );
 };
 
-export { FilterBar, DEFAULT_FILTERS, applyFilters };
+export { DEFAULT_FILTERS, FilterBar, applyFilters };
 export type { Filters };

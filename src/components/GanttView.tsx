@@ -1,12 +1,13 @@
-import { useState, useRef, useMemo } from "react";
+import type { MilestoneMeta, TimelineItem } from "../types";
 import type { FunctionComponent, MouseEvent, RefObject } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
-import type { TimelineItem, MilestoneMeta } from "../types";
-import { fmtDate, itemEndDate, COLORS, MS } from "../utils/utils";
-import { AuthorTag, AuthorCard } from "./AuthorTag";
+import { useMemo, useRef, useState } from "react";
+import { COLORS, COLORS_CB, MS, assigneesOtherThanAuthor, durationDays, fmtDate, itemEndDate, safeUrl } from "../utils/utils";
+import { AuthorCard, AuthorTag } from "./AuthorTag";
+import { LabelBadge } from "./LabelBadge";
 
 type Props = {
   sortedItems: TimelineItem[];
@@ -23,7 +24,9 @@ type Props = {
   trackColRef: RefObject<HTMLDivElement>;
   axisRef: RefObject<HTMLDivElement>;
   onResizeStart: (e: MouseEvent<HTMLDivElement>) => void;
+  onResizeKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void;
   highlightWeekends: boolean;
+  colorblindMode: boolean;
 };
 
 const ROW_HEIGHT = 31;
@@ -41,33 +44,39 @@ type BarHover = {
   statusWord: string;
 };
 
-function barCardStyle(clientX: number, clientY: number) {
+const barCardStyle = (clientX: number, clientY: number) => {
   const cardW = 240;
   const cardH = 170;
   const left = clientX + 14 + cardW > window.innerWidth ? clientX - cardW - 14 : clientX + 14;
   const top = Math.max(8, Math.min(clientY - cardH / 2, window.innerHeight - cardH - 8));
   return { position: "fixed" as const, left, top, zIndex: 200 };
-}
+};
 
 type GanttLegendProps = {
   hasOpenIssues: boolean;
   isMultiMilestone: boolean;
   milestones: MilestoneMeta[];
+  colorblindMode: boolean;
 };
 
-const GanttLegend: FunctionComponent<GanttLegendProps> = ({ hasOpenIssues, isMultiMilestone, milestones }) => (
+const GanttLegend: FunctionComponent<GanttLegendProps> = ({ hasOpenIssues, isMultiMilestone, milestones, colorblindMode }) => {
+  const issueClosed  = colorblindMode ? "linear-gradient(135deg, #0072B2 0%, #005a8e 100%)" : "linear-gradient(135deg, #0969da 0%, #0550ae 100%)";
+  const issueOpen    = colorblindMode ? "linear-gradient(135deg, rgba(0,114,178,0.45) 0%, rgba(0,90,142,0.45) 100%)" : "linear-gradient(135deg, rgba(9,105,218,0.45) 0%, rgba(5,80,174,0.45) 100%)";
+  const prMergedBg   = colorblindMode ? "linear-gradient(135deg, #009E73 0%, #007a58 100%)" : "linear-gradient(135deg, #8250df 0%, #6639ba 100%)";
+  const prClosedBg   = colorblindMode ? "linear-gradient(135deg, #E69F00 0%, #b87e00 100%)" : "linear-gradient(135deg, #dc3545 0%, #c82333 100%)";
+  return (
   <>
     <Box sx={{ display: "flex", gap: 2.5, flexWrap: "wrap" }}>
       {[
-        { bg: "linear-gradient(135deg, #0969da 0%, #0550ae 100%)", label: "Issues (closed)" },
+        { bg: issueClosed, label: "Issues (closed)" },
         ...(hasOpenIssues
-          ? [{ bg: "linear-gradient(135deg, rgba(9,105,218,0.45) 0%, rgba(5,80,174,0.45) 100%)", label: "Issues (open)", dashed: true }]
+          ? [{ bg: issueOpen, label: "Issues (open)", dashed: true, borderColor: colorblindMode ? "#0072B2" : "#0969da" }]
           : []),
-        { bg: "linear-gradient(135deg, #8250df 0%, #6639ba 100%)", label: "PRs (merged)" },
-        { bg: "linear-gradient(135deg, #dc3545 0%, #c82333 100%)", label: "PRs (closed)" },
-      ].map(({ bg, label, dashed }) => (
+        { bg: prMergedBg, label: "PRs (merged)" },
+        { bg: prClosedBg, label: "PRs (closed)" },
+      ].map(({ bg, label, dashed, borderColor }) => (
         <Box key={label} sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem" }}>
-          <Box sx={{ width: 20, height: 14, borderRadius: "3px", flexShrink: 0, background: bg, ...(dashed ? { border: "1.5px dashed #0969da" } : {}) }} />
+          <Box sx={{ width: 20, height: 14, borderRadius: "3px", flexShrink: 0, background: bg, ...(dashed ? { border: `1.5px dashed ${borderColor ?? "#0969da"}` } : {}) }} />
           {label}
         </Box>
       ))}
@@ -88,33 +97,58 @@ const GanttLegend: FunctionComponent<GanttLegendProps> = ({ hasOpenIssues, isMul
       Click issue/PR numbers to open in GitHub &nbsp;·&nbsp; Drag handle to resize labels &nbsp;·&nbsp; Scroll wheel to zoom
     </Alert>
   </>
-);
+  );
+};
 
-const BarHoverCard: FunctionComponent<{ barHover: BarHover }> = ({ barHover }) => (
-  <Paper elevation={2} sx={{ display: "flex", flexDirection: "column", gap: "6px", minWidth: 200, maxWidth: 260, px: 1.5, py: 1.25, pointerEvents: "none", ...barCardStyle(barHover.clientX, barHover.clientY) }}>
-    <Box sx={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>
-      <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: barHover.dotColor, flexShrink: 0, opacity: barHover.isOpen ? 0.55 : 1 }} />
-      {barHover.item.type === "pr" ? "PR" : "Issue"} #{barHover.item.number}
-      <Box component="span" sx={{ ml: "auto", fontWeight: 500 }}>{barHover.statusWord}</Box>
-    </Box>
-    <Typography sx={{ fontSize: "0.8125rem", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-      {barHover.item.title}
-    </Typography>
-    <AuthorTag login={barHover.item.author} prefix="@" />
-    {barHover.item.type === "pr" && barHover.item.linkedIssue != null && (
-      <Box sx={{ fontSize: "0.6875rem", color: "text.secondary" }}>Closes #{barHover.item.linkedIssue}</Box>
-    )}
-    <Box sx={{ fontSize: "0.6875rem", color: "text.secondary" }}>
-      {fmtDate(barHover.item.createdAt)} → {barHover.isOpen ? "ongoing" : fmtDate(barHover.endDate)}
-    </Box>
-    <Box sx={{ fontSize: "0.8125rem", fontWeight: 600 }}>{barHover.durationText}</Box>
-  </Paper>
-);
-
-function durationDays(start: string, end: string | null): number | null {
-  if (!end) return null;
-  return Math.round((new Date(end).getTime() - new Date(start).getTime()) / MS);
-}
+const BarHoverCard: FunctionComponent<{ barHover: BarHover }> = ({ barHover }) => {
+  const { item } = barHover;
+  const otherAssignees = assigneesOtherThanAuthor(item.assignees, item.author);
+  return (
+    <Paper elevation={2} sx={{ display: "flex", flexDirection: "column", gap: "6px", minWidth: 200, maxWidth: 280, px: 1.5, py: 1.25, pointerEvents: "none", ...barCardStyle(barHover.clientX, barHover.clientY) }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>
+        <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: barHover.dotColor, flexShrink: 0, opacity: barHover.isOpen ? 0.55 : 1 }} />
+        {item.type === "pr" ? "PR" : "Issue"} #{item.number}
+        {item.type === "issue" && item.reopenedCount > 0 && (
+          <Box component="span" title={`Reopened ${item.reopenedCount} time${item.reopenedCount !== 1 ? "s" : ""}`} sx={{ color: "#d97706", ml: "2px" }}>
+            ↺{item.reopenedCount}
+          </Box>
+        )}
+        <Box component="span" sx={{ ml: "auto", fontWeight: 500 }}>{barHover.statusWord}</Box>
+      </Box>
+      <Typography sx={{ fontSize: "0.8125rem", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        {item.title}
+      </Typography>
+      <Box>
+        <Typography sx={{ fontSize: "0.5625rem", color: "text.disabled", fontWeight: 600, lineHeight: 1, mb: "3px", textTransform: "uppercase", letterSpacing: "0.04em" }}>Author</Typography>
+        <AuthorTag login={item.author} prefix="@" />
+      </Box>
+      {otherAssignees.length > 0 && (
+        <Box>
+          <Typography sx={{ fontSize: "0.5625rem", color: "text.disabled", fontWeight: 600, lineHeight: 1, mb: "3px", textTransform: "uppercase", letterSpacing: "0.04em" }}>Assignees</Typography>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+            {otherAssignees.map((a) => (
+              <AuthorTag key={a} login={a} prefix="@" />
+            ))}
+          </Box>
+        </Box>
+      )}
+      {item.labels.length > 0 && (
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: "3px" }}>
+          {item.labels.map((l) => (
+            <LabelBadge key={l.name} name={l.name} color={l.color} />
+          ))}
+        </Box>
+      )}
+      {item.type === "pr" && item.linkedIssue != null && (
+        <Box sx={{ fontSize: "0.6875rem", color: "text.secondary" }}>Closes #{item.linkedIssue}</Box>
+      )}
+      <Box sx={{ fontSize: "0.6875rem", color: "text.secondary" }}>
+        {fmtDate(item.createdAt)} → {barHover.isOpen ? "ongoing" : fmtDate(barHover.endDate)}
+      </Box>
+      <Box sx={{ fontSize: "0.8125rem", fontWeight: 600 }}>{barHover.durationText}</Box>
+    </Paper>
+  );
+};
 
 const GanttView: FunctionComponent<Props> = ({
   sortedItems,
@@ -131,7 +165,9 @@ const GanttView: FunctionComponent<Props> = ({
   trackColRef,
   axisRef,
   onResizeStart,
+  onResizeKeyDown,
   highlightWeekends,
+  colorblindMode,
 }) => {
   const [hoverItem, setHoverItem] = useState<TimelineItem | null>(null);
   const [cardPos, setCardPos] = useState({ top: 0, left: 0 });
@@ -140,7 +176,7 @@ const GanttView: FunctionComponent<Props> = ({
   const [cursorInfo, setCursorInfo] = useState<CursorInfo | null>(null);
 
   const showCard = (item: TimelineItem, e: MouseEvent<HTMLSpanElement>) => {
-    if (hideTimer.current) clearTimeout(hideTimer.current);
+    if (hideTimer.current) {clearTimeout(hideTimer.current);}
     const rect = e.currentTarget.getBoundingClientRect();
     setCardPos({ top: rect.top + rect.height / 2, left: rect.right + 8 });
     setHoverItem(item);
@@ -151,11 +187,11 @@ const GanttView: FunctionComponent<Props> = ({
   };
 
   const cancelHide = () => {
-    if (hideTimer.current) clearTimeout(hideTimer.current);
+    if (hideTimer.current) {clearTimeout(hideTimer.current);}
   };
 
   const weekendBands = useMemo(() => {
-    if (!highlightWeekends) return [];
+    if (!highlightWeekends) {return [];}
     const bands: { leftPct: number; widthPct: number }[] = [];
     for (let d = minTime; d < minTime + totalMs; d += MS) {
       if (new Date(d).getUTCDay() === 6) { // Saturday
@@ -177,11 +213,11 @@ const GanttView: FunctionComponent<Props> = ({
 
   return (
     <>
-      <GanttLegend hasOpenIssues={hasOpenIssues} isMultiMilestone={isMultiMilestone} milestones={milestones} />
+      <GanttLegend hasOpenIssues={hasOpenIssues} isMultiMilestone={isMultiMilestone} milestones={milestones} colorblindMode={colorblindMode} />
 
-      <div className="tl-body">
-        <div className="tl-label-col" style={{ width: labelWidth }}>
-          <div style={{ height: axisHeight, flexShrink: 0 }} />
+      <Box className="tl-body">
+        <Box className="tl-label-col" style={{ width: labelWidth }}>
+          <Box style={{ height: axisHeight, flexShrink: 0 }} />
           {sortedItems.map((item) => {
             const isOpen = item.type === "issue" ? !item.closedAt : !(item.mergedAt || item.closedAt);
             const isClosedPR = item.type === "pr" && !item.mergedAt && !!item.closedAt;
@@ -192,7 +228,7 @@ const GanttView: FunctionComponent<Props> = ({
                   ? "tl-badge tl-badge--pr-closed"
                   : "tl-badge tl-badge--pr";
             return (
-              <div
+              <Box
                 key={`lbl-${item.type}-${item.number}`}
                 className="tl-label"
                 style={{
@@ -203,26 +239,37 @@ const GanttView: FunctionComponent<Props> = ({
                     : undefined,
                 }}
               >
-                <span className={badgeClass}>{item.type.toUpperCase()}</span>
-                <a href={item.url} target="_blank" rel="noreferrer" className={`tl-num tl-num--${item.type}`}>
+                <Box component="span" className={badgeClass}>{item.type.toUpperCase()}</Box>
+                <a href={safeUrl(item.url)} target="_blank" rel="noreferrer" aria-label={`${item.type === "pr" ? "PR" : "Issue"} #${item.number}: ${item.title}`} className={`tl-num tl-num--${item.type}`}>
                   #{item.number}
                 </a>
-                <span className="tl-title" title={item.title}>
+                <Box component="span" className="tl-title" title={item.title}>
                   {item.title}
-                </span>
+                </Box>
                 <AuthorTag
                   login={item.author}
                   showName={false}
                   onMouseEnter={(e) => showCard(item, e)}
                   onMouseLeave={scheduleHide}
                 />
-                <div className="tl-resize-handle" onMouseDown={onResizeStart} />
-              </div>
+                <Box
+                  className="tl-resize-handle"
+                  role="separator"
+                  aria-orientation="vertical"
+                  aria-label="Resize label column"
+                  aria-valuenow={labelWidth}
+                  aria-valuemin={200}
+                  aria-valuemax={800}
+                  tabIndex={0}
+                  onMouseDown={onResizeStart}
+                  onKeyDown={onResizeKeyDown}
+                />
+              </Box>
             );
           })}
-        </div>
+        </Box>
 
-        <div
+        <Box
           className="tl-track-col"
           ref={trackColRef}
           onMouseMove={(e) => {
@@ -235,13 +282,31 @@ const GanttView: FunctionComponent<Props> = ({
           }}
           onMouseLeave={() => setCursorInfo(null)}
         >
-          <div className="tl-date-axis" ref={axisRef} style={{ width: trackWidth }}>
+          <Box className="tl-date-axis" ref={axisRef} style={{ width: trackWidth }}>
             {dateLabels.map((label, i) => (
-              <span key={i} className="tl-date-label">
+              <Box component="span" key={i} className="tl-date-label">
                 {label}
-              </span>
+              </Box>
             ))}
-          </div>
+          </Box>
+          <Box style={{ position: "relative", width: trackWidth }}>
+          {weekendBands.length > 0 && (
+            <Box
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: `${sortedItems.length * ROW_HEIGHT}px`,
+                pointerEvents: "none",
+              }}
+            >
+              {weekendBands.map((b) => (
+                <Box key={b.leftPct} className="tl-weekend-band" style={{ left: `${b.leftPct}%`, width: `${b.widthPct}%` }} />
+              ))}
+            </Box>
+          )}
           {sortedItems.map((item) => {
             const isOpen = item.type === "issue" ? !item.closedAt : !(item.mergedAt || item.closedAt);
             // Snap to UTC midnight so items created on the same calendar day
@@ -275,32 +340,32 @@ const GanttView: FunctionComponent<Props> = ({
             ].join(" ");
 
             const barWidthPx = (widthPct / 100) * trackWidth;
+            const reopenPrefix = item.type === "issue" && item.reopenedCount > 0 ? "↺ " : "";
             const barLabel =
               barWidthPx < 40
                 ? ""
                 : isOpen
-                  ? `${fmtDate(item.createdAt)} → today (${durationText})`
+                  ? `${reopenPrefix}${fmtDate(item.createdAt)} → today (${durationText})`
                   : duration !== null && duration <= 2
-                    ? durationText
-                    : `${fmtDate(item.createdAt)} → ${fmtDate(endDate)} (${durationText})`;
+                    ? `${reopenPrefix}${durationText}`
+                    : `${reopenPrefix}${fmtDate(item.createdAt)} → ${fmtDate(endDate)} (${durationText})`;
 
             const statusWord = isOpen ? "Open" : item.type === "pr" ? (item.mergedAt ? "Merged" : "Closed") : "Closed";
+            const palette = colorblindMode ? COLORS_CB : COLORS;
             const dotColor = isOpen
-              ? item.type === "issue" ? COLORS.issue : COLORS.prMerged
-              : item.type === "issue" ? COLORS.issue : isMergedPR ? COLORS.prMerged : COLORS.prClosed;
+              ? item.type === "issue" ? palette.issue : palette.prMerged
+              : item.type === "issue" ? palette.issue : isMergedPR ? palette.prMerged : palette.prClosed;
 
             return (
-              <div key={`trk-${item.type}-${item.number}`} className="tl-track-row" style={{ height: ROW_HEIGHT }}>
-                <div className="tl-track" style={{ width: trackWidth }}>
-                  {weekendBands.map((b) => (
-                    <div key={b.leftPct} className="tl-weekend-band" style={{ left: `${b.leftPct}%`, width: `${b.widthPct}%` }} />
-                  ))}
-                  {showToday && <div className="tl-today-marker" style={{ left: `${todayLeftPct}%` }} />}
-                  {cursorInfo !== null && <div className="tl-cursor-line" style={{ left: `${cursorInfo.pct}%` }} />}
+              <Box key={`trk-${item.type}-${item.number}`} className="tl-track-row" style={{ height: ROW_HEIGHT }}>
+                <Box className="tl-track" style={{ width: trackWidth }}>
+                  {showToday && <Box className="tl-today-marker" style={{ left: `${todayLeftPct}%` }} />}
+                  {cursorInfo !== null && <Box className="tl-cursor-line" style={{ left: `${cursorInfo.pct}%` }} />}
                   <a
-                    href={item.url}
+                    href={safeUrl(item.url)}
                     target="_blank"
                     rel="noreferrer"
+                    aria-label={`${item.type === "pr" ? "PR" : "Issue"} #${item.number}: ${item.title} — ${statusWord}, ${durationText}`}
                     className={barClass}
                     style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
                     onMouseEnter={(e) => setBarHover({ clientX: e.clientX, clientY: e.clientY, item, endDate, isOpen, durationText, dotColor, statusWord })}
@@ -308,12 +373,13 @@ const GanttView: FunctionComponent<Props> = ({
                   >
                     {barLabel}
                   </a>
-                </div>
-              </div>
+                </Box>
+              </Box>
             );
           })}
-        </div>
-      </div>
+          </Box>
+        </Box>
+      </Box>
 
       {hoverItem && (
         <AuthorCard

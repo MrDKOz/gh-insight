@@ -1,11 +1,11 @@
-import { memo } from "react";
+import type { Milestone } from "../types";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
-import Box from "@mui/material/Box";
-import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
-import Button from "@mui/material/Button";
-import type { Milestone } from "../types";
+import Typography from "@mui/material/Typography";
+import { memo } from "react";
 import { MilestonePicker } from "./MilestonePicker";
 
 type Props = {
@@ -30,17 +30,22 @@ type Props = {
   onRefresh: () => void;
 };
 
+// GitHub owner names: alphanumeric + hyphens only, max 39 chars
+const sanitizeOwner = (value: string): string =>
+  value.replace(/[^a-zA-Z0-9-]/g, "").slice(0, 39);
+
+// GitHub repo names: alphanumeric + hyphens + dots + underscores, max 100 chars
+const sanitizeRepo = (value: string): string =>
+  value.replace(/[^a-zA-Z0-9._-]/g, "").slice(0, 100);
+
 const SettingsPanel = memo<Props>(
-  ({ token, onTokenChange, onTokenBlur, owner, onOwnerChange, repo, onRepoChange, canLoad, loadingList, onLoad, onDemo, milestones, selected, loadingNums, isDemo, colorFor, onAdd, onRemove, onRefresh }) => {
-    return (
+  ({ token, onTokenChange, onTokenBlur, owner, onOwnerChange, repo, onRepoChange, canLoad, loadingList, onLoad, onDemo, milestones, selected, loadingNums, isDemo, colorFor, onAdd, onRemove, onRefresh }) => (
       <Paper sx={{ p: 2.5, display: "flex", flexDirection: "column", gap: 1.75 }}>
         <Stack direction="row" alignItems="flex-end" gap={2} flexWrap="wrap">
           <Box>
-            <Typography variant="caption" fontWeight={600} display="block" sx={{ mb: 0.5 }}>
-              GitHub Token
-            </Typography>
             <TextField
               type="password"
+              label="GitHub Token"
               value={token}
               onChange={(e) => onTokenChange(e.target.value)}
               onBlur={(e) => onTokenBlur(e.target.value)}
@@ -52,28 +57,29 @@ const SettingsPanel = memo<Props>(
           </Box>
 
           <Box>
-            <Typography variant="caption" fontWeight={600} display="block" sx={{ mb: 0.5 }}>
-              Repository
-            </Typography>
             <Stack direction="row" alignItems="center" gap={0.75}>
               <TextField
                 value={owner}
-                onChange={(e) => onOwnerChange(e.target.value)}
+                label="Owner"
+                onChange={(e) => onOwnerChange(sanitizeOwner(e.target.value))}
                 placeholder="owner"
                 size="small"
                 sx={{ width: 130 }}
                 onKeyDown={(e) => e.key === "Enter" && onLoad()}
+                slotProps={{ htmlInput: { maxLength: 39 } }}
               />
-              <Typography color="text.secondary" fontWeight={700}>
+              <Typography color="text.secondary" fontWeight={700} aria-hidden="true">
                 /
               </Typography>
               <TextField
                 value={repo}
-                onChange={(e) => onRepoChange(e.target.value)}
+                label="Repository"
+                onChange={(e) => onRepoChange(sanitizeRepo(e.target.value))}
                 placeholder="repo"
                 size="small"
                 sx={{ width: 130 }}
                 onKeyDown={(e) => e.key === "Enter" && onLoad()}
+                slotProps={{ htmlInput: { maxLength: 100 } }}
               />
             </Stack>
           </Box>
@@ -102,6 +108,7 @@ const SettingsPanel = memo<Props>(
                 onClick={onRefresh}
                 disabled={loadingNums.length > 0}
                 title="Refetch data for selected milestones"
+                aria-label="Refresh milestone data"
               >
                 ↻ Refresh
               </Button>
@@ -109,8 +116,7 @@ const SettingsPanel = memo<Props>(
           </Stack>
         )}
       </Paper>
-    );
-  },
+    ),
 );
 
 export { SettingsPanel };

@@ -1,13 +1,13 @@
-import { useState } from "react";
+import type { Milestone } from "../types";
 import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
-import Chip from "@mui/material/Chip";
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-import type { Milestone } from "../types";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
+import { useState } from "react";
 
 type Props = {
   milestones: Milestone[];

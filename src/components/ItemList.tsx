@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import type { MilestoneMeta, TimelineItem } from "../types";
 import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
@@ -11,26 +11,30 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import TableSortLabel from "@mui/material/TableSortLabel";
 import Typography from "@mui/material/Typography";
-import type { TimelineItem, MilestoneMeta } from "../types";
-import { MS, fmtDate, itemEndDate, COLORS } from "../utils/utils";
-import { AuthorTag } from "./AuthorTag";
+import { memo, useMemo, useState } from "react";
+import { COLORS, COLORS_CB, MS, fmtDate, itemEndDate, safeUrl } from "../utils/utils";
+import { AuthorWithAssignees } from "./AuthorWithAssignees";
+import { LabelBadge } from "./LabelBadge";
+import { MilestonePill } from "./MilestonePill";
 
 type Props = {
   items: TimelineItem[];
   milestones: MilestoneMeta[];
+  colorblindMode: boolean;
 };
 
 type SortCol = "type" | "number" | "title" | "author" | "status" | "milestone" | "created" | "closed" | "days";
 type SortDir = "asc" | "desc";
 
-function itemStatus(item: TimelineItem): "Open" | "Closed" | "Merged" {
-  if (item.type === "issue") return item.closedAt ? "Closed" : "Open";
-  if (item.mergedAt) return "Merged";
-  if (item.closedAt) return "Closed";
+const itemStatus = (item: TimelineItem): "Open" | "Closed" | "Merged" => {
+  if (item.type === "issue") {return item.closedAt ? "Closed" : "Open";}
+  if (item.mergedAt) {return "Merged";}
+  if (item.closedAt) {return "Closed";}
   return "Open";
-}
+};
 
-const ItemList: FunctionComponent<Props> = ({ items, milestones }) => {
+const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblindMode }) => {
+  const palette = colorblindMode ? COLORS_CB : COLORS;
   const [sortCol, setSortCol] = useState<SortCol>("number");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
@@ -47,8 +51,7 @@ const ItemList: FunctionComponent<Props> = ({ items, milestones }) => {
     }
   };
 
-  const sorted = useMemo(() => {
-    return [...items].sort((a, b) => {
+  const sorted = useMemo(() => [...items].sort((a, b) => {
       let cmp = 0;
       switch (sortCol) {
         case "type":
@@ -77,10 +80,10 @@ const ItemList: FunctionComponent<Props> = ({ items, milestones }) => {
         case "closed": {
           const ea = itemEndDate(a),
             eb = itemEndDate(b);
-          if (!ea && !eb) cmp = 0;
-          else if (!ea) cmp = 1;
-          else if (!eb) cmp = -1;
-          else cmp = new Date(ea).getTime() - new Date(eb).getTime();
+          if (!ea && !eb) {cmp = 0;}
+          else if (!ea) {cmp = 1;}
+          else if (!eb) {cmp = -1;}
+          else {cmp = new Date(ea).getTime() - new Date(eb).getTime();}
           break;
         }
         case "days": {
@@ -93,19 +96,22 @@ const ItemList: FunctionComponent<Props> = ({ items, milestones }) => {
         }
       }
       return sortDir === "asc" ? cmp : -cmp;
-    });
-  }, [items, sortCol, sortDir, milestoneMap]);
+    }), [items, sortCol, sortDir, milestoneMap]);
 
   const typeBadgeSx: Record<string, object> = {
-    issue: { bgcolor: COLORS.issue, color: "#fff" },
-    pr: { bgcolor: COLORS.prMerged, color: "#fff" },
-    "pr-closed": { bgcolor: COLORS.prClosed, color: "#fff" },
+    issue: { bgcolor: palette.issue, color: "#fff" },
+    pr: { bgcolor: palette.prMerged, color: "#fff" },
+    "pr-closed": { bgcolor: palette.prClosed, color: colorblindMode ? "#000" : "#fff" },
   };
 
   const statusChipSx: Record<string, object> = {
     open: { bgcolor: "rgba(214,149,0,0.15)", color: "#d97706" },
-    closed: { bgcolor: "rgba(220,53,69,0.12)", color: "#dc3545" },
-    merged: { bgcolor: "rgba(130,80,223,0.12)", color: "#8250df" },
+    closed: colorblindMode
+      ? { bgcolor: `${COLORS_CB.prClosed}22`, color: COLORS_CB.prClosed }
+      : { bgcolor: "rgba(220,53,69,0.12)", color: "#dc3545" },
+    merged: colorblindMode
+      ? { bgcolor: `${COLORS_CB.prMerged}22`, color: COLORS_CB.prMerged }
+      : { bgcolor: "rgba(130,80,223,0.12)", color: "#8250df" },
   };
 
   const Th: FunctionComponent<{ col: SortCol; label: string }> = ({ col, label }) => (
@@ -131,7 +137,7 @@ const ItemList: FunctionComponent<Props> = ({ items, milestones }) => {
             <Th col="type" label="Type" />
             <Th col="number" label="#" />
             <Th col="title" label="Title" />
-            <Th col="author" label="Author" />
+            <Th col="author" label="Author / Assignees" />
             <Th col="status" label="Status" />
             {isMulti && <Th col="milestone" label="Milestone" />}
             <Th col="created" label="Created" />
@@ -172,12 +178,13 @@ const ItemList: FunctionComponent<Props> = ({ items, milestones }) => {
                 </TableCell>
                 <TableCell>
                   <Link
-                    href={item.url}
+                    href={safeUrl(item.url)}
                     target="_blank"
                     rel="noreferrer"
                     underline="hover"
+                    aria-label={`${item.type === "pr" ? "PR" : "Issue"} #${item.number}: ${item.title}`}
                     sx={{
-                      color: item.type === "issue" ? COLORS.issue : COLORS.prMerged,
+                      color: item.type === "issue" ? palette.issue : palette.prMerged,
                       fontWeight: 700,
                       fontSize: "0.75rem",
                     }}
@@ -187,7 +194,7 @@ const ItemList: FunctionComponent<Props> = ({ items, milestones }) => {
                 </TableCell>
                 <TableCell sx={{ maxWidth: 380 }}>
                   <Link
-                    href={item.url}
+                    href={safeUrl(item.url)}
                     target="_blank"
                     rel="noreferrer"
                     underline="hover"
@@ -200,11 +207,21 @@ const ItemList: FunctionComponent<Props> = ({ items, milestones }) => {
                       fontSize: "0.8125rem",
                     }}
                   >
+                    {item.type === "issue" && item.reopenedCount > 0 && (
+                      <Box component="span" title={`Reopened ${item.reopenedCount} time${item.reopenedCount !== 1 ? "s" : ""}`} sx={{ color: "#d97706", mr: "4px", fontSize: "0.75rem" }}>↺</Box>
+                    )}
                     {item.title}
                   </Link>
+                  {item.labels.length > 0 && (
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: "3px", mt: "3px" }}>
+                      {item.labels.map((l) => (
+                        <LabelBadge key={l.name} name={l.name} color={l.color} fontSize="0.5rem" />
+                      ))}
+                    </Box>
+                  )}
                 </TableCell>
                 <TableCell sx={{ whiteSpace: "nowrap", color: "text.secondary", fontSize: "0.75rem" }}>
-                  <AuthorTag login={item.author} size={18} />
+                  <AuthorWithAssignees author={item.author} assignees={item.assignees} />
                 </TableCell>
                 <TableCell>
                   <Chip
@@ -215,21 +232,7 @@ const ItemList: FunctionComponent<Props> = ({ items, milestones }) => {
                 </TableCell>
                 {isMulti && (
                   <TableCell>
-                    {ms && (
-                      <Box
-                        sx={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 0.75,
-                          fontSize: "0.75rem",
-                          color: "text.secondary",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: ms.color, flexShrink: 0 }} />
-                        {ms.title}
-                      </Box>
-                    )}
+                    {ms && <MilestonePill color={ms.color} title={ms.title} />}
                   </TableCell>
                 )}
                 <TableCell sx={{ whiteSpace: "nowrap", color: "text.secondary", fontSize: "0.75rem" }}>
@@ -252,5 +255,7 @@ const ItemList: FunctionComponent<Props> = ({ items, milestones }) => {
     </TableContainer>
   );
 };
+
+const ItemList = memo(ItemListInner);
 
 export { ItemList };

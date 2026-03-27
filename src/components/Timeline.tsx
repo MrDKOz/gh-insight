@@ -1,47 +1,116 @@
-import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
+import type { MilestoneMeta, TimelineItem } from "../types";
+import type { Filters } from "./FilterBar";
 import type { FunctionComponent } from "react";
-import Box from "@mui/material/Box";
-import Paper from "@mui/material/Paper";
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
-import Button from "@mui/material/Button";
+import Alert from "@mui/material/Alert";
 import Badge from "@mui/material/Badge";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-import type { TimelineItem, MilestoneMeta } from "../types";
-import { MS, itemEndDate } from "../utils/utils";
-import { exportCSV, exportMarkdown, exportPNG, exportPDF, exportXLSX } from "../utils/export";
-import { StatsBar } from "./StatsBar";
-import { FilterBar, DEFAULT_FILTERS, applyFilters } from "./FilterBar";
-import type { Filters } from "./FilterBar";
+import Paper from "@mui/material/Paper";
+import Snackbar from "@mui/material/Snackbar";
+import Stack from "@mui/material/Stack";
+import Tooltip from "@mui/material/Tooltip";
+import Typography from "@mui/material/Typography";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Burndown } from "../charts/Burndown";
+import { Contributors } from "../charts/Contributors";
+import { CumulativeFlow } from "../charts/CumulativeFlow";
 import { CycleTime } from "../charts/CycleTime";
 import { Velocity } from "../charts/Velocity";
-import { CumulativeFlow } from "../charts/CumulativeFlow";
-import { ItemList } from "./ItemList";
+import { exportCSV, exportMarkdown, exportPDF, exportPNG, exportXLSX } from "../utils/export";
+import { MS, itemEndDate } from "../utils/utils";
+import { FilterBar, applyFilters } from "./FilterBar";
 import { GanttView } from "./GanttView";
+import { ItemList } from "./ItemList";
+import { ReviewWaitList } from "./ReviewWaitList";
+import { StatsBar } from "./StatsBar";
 
 type Props = {
   items: TimelineItem[];
   milestones: MilestoneMeta[];
   highlightWeekends: boolean;
+  colorblindMode: boolean;
 };
 
 type ExportFormat = "CSV" | "XLSX" | "Markdown" | "PNG — Current view" | "PNG — Full timeline" | "PDF";
 const EXPORT_FORMATS: ExportFormat[] = ["CSV", "XLSX", "Markdown", "PNG — Current view", "PNG — Full timeline", "PDF"];
 
-type View = "Gantt" | "Burndown" | "Cycle Time" | "Velocity" | "Cumulative Flow" | "List";
-const VIEWS: View[] = ["Gantt", "Burndown", "Cycle Time", "Velocity", "Cumulative Flow", "List"];
+type View = "Gantt" | "Burndown" | "Cycle Time" | "Velocity" | "Cumulative Flow" | "Contributors" | "Review Wait" | "List";
+const VIEWS: View[] = ["Gantt", "Burndown", "Cycle Time", "Velocity", "Cumulative Flow", "Contributors", "Review Wait", "List"];
+const DEFAULT_VIEW: View = "Gantt";
 
-const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeekends }) => {
+// ---------------------------------------------------------------------------
+// URL state — view + filters are serialised into search params so the full
+// app state (owner/repo/milestones come from App) is captured in one URL.
+// ---------------------------------------------------------------------------
+
+const readViewFiltersFromUrl = (): { view: View; filters: Filters } => {
+  const p = new URLSearchParams(window.location.search);
+  const rawView = p.get("v") ?? "";
+  const view: View = (VIEWS as readonly string[]).includes(rawView) ? (rawView as View) : DEFAULT_VIEW;
+
+  const hide = new Set((p.get("hide") ?? "").split(",").filter(Boolean));
+  const rawRole = p.get("pr");
+
+  const filters: Filters = {
+    createdStart:     p.get("cs") ?? "",
+    createdEnd:       p.get("ce") ?? "",
+    closedStart:      p.get("xs") ?? "",
+    closedEnd:        p.get("xe") ?? "",
+    showOpenIssues:   !hide.has("oi"),
+    showClosedIssues: !hide.has("ci"),
+    showOpenPRs:      !hide.has("op"),
+    showMergedPRs:    !hide.has("mp"),
+    showClosedPRs:    !hide.has("cp"),
+    // Use "|" as separator so label names containing commas are safe
+    activeLabels: p.get("lb") ? p.get("lb")!.split("|").filter(Boolean) : [],
+    activePeople: p.get("pp") ? p.get("pp")!.split("|").filter(Boolean) : [],
+    peopleRole:   rawRole === "a" ? "author" : rawRole === "s" ? "assignees" : "either",
+  };
+  return { view, filters };
+};
+
+const syncViewFiltersToUrl = (view: View, filters: Filters): void => {
+  // Read the current params so App-owned keys (owner/repo/milestones/demo) are preserved
+  const p = new URLSearchParams(window.location.search);
+
+  if (view !== DEFAULT_VIEW) {p.set("v", view);} else {p.delete("v");}
+
+  if (filters.createdStart) {p.set("cs", filters.createdStart);} else {p.delete("cs");}
+  if (filters.createdEnd)   {p.set("ce", filters.createdEnd);}   else {p.delete("ce");}
+  if (filters.closedStart)  {p.set("xs", filters.closedStart);}  else {p.delete("xs");}
+  if (filters.closedEnd)    {p.set("xe", filters.closedEnd);}    else {p.delete("xe");}
+
+  const hidden: string[] = [];
+  if (!filters.showOpenIssues)   {hidden.push("oi");}
+  if (!filters.showClosedIssues) {hidden.push("ci");}
+  if (!filters.showOpenPRs)      {hidden.push("op");}
+  if (!filters.showMergedPRs)    {hidden.push("mp");}
+  if (!filters.showClosedPRs)    {hidden.push("cp");}
+  if (hidden.length > 0) {p.set("hide", hidden.join(","));} else {p.delete("hide");}
+
+  if (filters.activeLabels.length > 0) {p.set("lb", filters.activeLabels.join("|"));} else {p.delete("lb");}
+  if (filters.activePeople.length > 0) {p.set("pp", filters.activePeople.join("|"));} else {p.delete("pp");}
+
+  const roleAbbr = filters.peopleRole === "author" ? "a" : filters.peopleRole === "assignees" ? "s" : null;
+  if (roleAbbr) {p.set("pr", roleAbbr);} else {p.delete("pr");}
+
+  const qs = p.toString();
+  window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
+};
+
+const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, colorblindMode }) => {
   const [labelWidth, setLabelWidth] = useState(400);
   const [pixelsPerDay, setPixelsPerDay] = useState(30);
   const [axisHeight, setAxisHeight] = useState(36);
   const [exportAnchor, setExportAnchor] = useState<HTMLElement | null>(null);
   const [exporting, setExporting] = useState<ExportFormat | null>(null);
-  const [view, setView] = useState<View>("Gantt");
+  const [view, setView] = useState<View>(() => readViewFiltersFromUrl().view);
   const [viewAnchor, setViewAnchor] = useState<HTMLElement | null>(null);
-  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<Filters>(() => readViewFiltersFromUrl().filters);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [copyTooltip, setCopyTooltip] = useState<"idle" | "copied">("idle");
 
   const wrapperRef = useRef<HTMLDivElement>(null);
   const trackColRef = useRef<HTMLDivElement>(null);
@@ -56,9 +125,9 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
     milestones.length === 0
       ? "Milestone"
       : milestones.length === 1
-        ? milestones[0].title
+        ? milestones[0]!.title
         : milestones.length === 2
-          ? `${milestones[0].title} + ${milestones[1].title}`
+          ? `${milestones[0]!.title} + ${milestones[1]!.title}`
           : `${milestones.length} milestones`;
 
   const { issueItems, closedIssues, openIssues, prItems, mergedPRs } = useMemo(() => {
@@ -93,13 +162,18 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
     [filteredItems],
   );
 
+  // Keep URL in sync with view + filter state
+  useEffect(() => {
+    syncViewFiltersToUrl(view, filters);
+  }, [view, filters]);
+
   useEffect(() => () => {
     dragCleanupRef.current?.();
   }, []);
 
   useEffect(() => {
     const el = axisRef.current;
-    if (!el) return;
+    if (!el) {return;}
     const measure = () => {
       const { height } = el.getBoundingClientRect();
       const marginBottom = parseFloat(getComputedStyle(el).marginBottom) || 0;
@@ -118,9 +192,9 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
   // Non-passive wheel listener so we can call preventDefault for vertical scroll-zoom
   useEffect(() => {
     const el = trackColRef.current;
-    if (!el) return;
+    if (!el) {return;}
     const onWheel = (e: WheelEvent) => {
-      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {return;}
       e.preventDefault();
       const { pixelsPerDay: ppd, totalDays: td, trackWidth: tw } = stateRef.current;
       const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
@@ -153,20 +227,21 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
 
   const handleExport = useCallback(
     async (fmt: ExportFormat) => {
-      if (disabledExports[fmt]) return;
+      if (disabledExports[fmt]) {return;}
       setExportAnchor(null);
       setExporting(fmt);
       try {
-        if (fmt === "CSV") exportCSV(filteredCompletedItems, title);
-        else if (fmt === "Markdown") exportMarkdown(filteredCompletedItems, title);
+        if (fmt === "CSV") {exportCSV(filteredCompletedItems, title);}
+        else if (fmt === "Markdown") {exportMarkdown(filteredCompletedItems, title);}
         else if (fmt === "PNG — Current view")
-          await exportPNG(wrapperRef.current!, trackColRef.current, title, "current");
+          {await exportPNG(wrapperRef.current!, trackColRef.current, title, "current");}
         else if (fmt === "PNG — Full timeline")
-          await exportPNG(wrapperRef.current!, trackColRef.current, title, "full");
-        else if (fmt === "PDF") await exportPDF(filteredCompletedItems, title);
-        else if (fmt === "XLSX") await exportXLSX(filteredCompletedItems, title);
+          {await exportPNG(wrapperRef.current!, trackColRef.current, title, "full");}
+        else if (fmt === "PDF") {await exportPDF(filteredCompletedItems, title);}
+        else if (fmt === "XLSX") {await exportXLSX(filteredCompletedItems, title);}
       } catch (e) {
         console.error(`Export ${fmt} failed:`, e);
+        setExportError(`Export failed: ${e instanceof Error ? e.message : String(e)}`);
       } finally {
         setExporting(null);
       }
@@ -179,7 +254,7 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
       filteredItems.flatMap((item) => {
         const end = itemEndDate(item);
         const ts = [new Date(item.createdAt).getTime()];
-        if (end) ts.push(new Date(end).getTime());
+        if (end) {ts.push(new Date(end).getTime());}
         return ts;
       }),
     [filteredItems],
@@ -210,6 +285,11 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
   useLayoutEffect(() => {
     stateRef.current = { pixelsPerDay, totalDays, trackWidth };
   }, [pixelsPerDay, totalDays, trackWidth]);
+
+  const handleResizeKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "ArrowRight") { e.preventDefault(); setLabelWidth((w) => Math.min(800, w + 10)); }
+    else if (e.key === "ArrowLeft")  { e.preventDefault(); setLabelWidth((w) => Math.max(200, w - 10)); }
+  }, []);
 
   const handleResizeStart = useCallback(
     (e: React.MouseEvent) => {
@@ -248,6 +328,7 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
   const noFilteredItems = filteredItems.length === 0;
 
   return (
+    <>
     <Paper sx={{ p: 3, display: "flex", flexDirection: "column", gap: 1.5 }} ref={wrapperRef}>
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={2}>
         <Box>
@@ -305,23 +386,44 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
               );
             })}
           </Menu>
+
+          <Tooltip
+            title={copyTooltip === "copied" ? "Copied!" : "Copy shareable link"}
+            placement="bottom"
+            onClose={() => setCopyTooltip("idle")}
+          >
+            <Button
+              variant="outlined"
+              size="small"
+              aria-label="Copy shareable link to clipboard"
+              onClick={() => {
+                void navigator.clipboard.writeText(window.location.href).then(() => {
+                  setCopyTooltip("copied");
+                });
+              }}
+            >
+              Share
+            </Button>
+          </Tooltip>
         </Stack>
       </Stack>
 
-      <StatsBar items={filteredItems} />
+      <StatsBar items={filteredItems} view={view} colorblindMode={colorblindMode} />
 
-      <FilterBar filters={filters} counts={counts} onChange={setFilters} />
+      <FilterBar items={items} filters={filters} counts={counts} onChange={setFilters} colorblindMode={colorblindMode} />
 
       {noFilteredItems && (
         <Typography color="text.secondary" sx={{ py: 2 }}>
           No items match the current filters.
         </Typography>
       )}
-      {!noFilteredItems && view === "Burndown" && <Burndown items={filteredItems} highlightWeekends={highlightWeekends} />}
-      {!noFilteredItems && view === "Cycle Time" && <CycleTime items={filteredItems} highlightWeekends={highlightWeekends} />}
-      {!noFilteredItems && view === "Velocity" && <Velocity items={filteredItems} />}
-      {!noFilteredItems && view === "Cumulative Flow" && <CumulativeFlow items={filteredItems} highlightWeekends={highlightWeekends} />}
-      {!noFilteredItems && view === "List" && <ItemList items={filteredItems} milestones={milestones} />}
+      {!noFilteredItems && view === "Burndown" && <Burndown items={filteredItems} milestones={milestones} highlightWeekends={highlightWeekends} colorblindMode={colorblindMode} />}
+      {!noFilteredItems && view === "Cycle Time" && <CycleTime items={filteredItems} milestones={milestones} highlightWeekends={highlightWeekends} colorblindMode={colorblindMode} />}
+      {!noFilteredItems && view === "Velocity" && <Velocity items={filteredItems} milestones={milestones} colorblindMode={colorblindMode} />}
+      {!noFilteredItems && view === "Cumulative Flow" && <CumulativeFlow items={filteredItems} highlightWeekends={highlightWeekends} colorblindMode={colorblindMode} />}
+      {!noFilteredItems && view === "Contributors" && <Contributors items={filteredItems} colorblindMode={colorblindMode} />}
+      {!noFilteredItems && view === "Review Wait" && <ReviewWaitList items={filteredItems} milestones={milestones} colorblindMode={colorblindMode} />}
+      {!noFilteredItems && view === "List" && <ItemList items={filteredItems} milestones={milestones} colorblindMode={colorblindMode} />}
 
       {!noFilteredItems && view === "Gantt" && (
         <GanttView
@@ -339,10 +441,24 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
           trackColRef={trackColRef}
           axisRef={axisRef}
           onResizeStart={handleResizeStart}
+          onResizeKeyDown={handleResizeKeyDown}
           highlightWeekends={highlightWeekends}
+          colorblindMode={colorblindMode}
         />
       )}
     </Paper>
+
+      <Snackbar
+        open={exportError !== null}
+        autoHideDuration={6000}
+        onClose={() => setExportError(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert severity="error" onClose={() => setExportError(null)} sx={{ width: "100%" }}>
+          {exportError}
+        </Alert>
+      </Snackbar>
+    </>
   );
 };
 

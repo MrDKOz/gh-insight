@@ -1,7 +1,8 @@
-import Paper from "@mui/material/Paper";
-import Link from "@mui/material/Link";
-import Box from "@mui/material/Box";
 import type { CSSProperties, FunctionComponent, MouseEvent } from "react";
+import Box from "@mui/material/Box";
+import Link from "@mui/material/Link";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
 
 type TagProps = {
   login: string;
@@ -20,12 +21,14 @@ const AuthorTag: FunctionComponent<TagProps> = ({
   onMouseEnter,
   onMouseLeave,
 }) => (
-  <span
+  <Box
+    component="span"
     style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "inherit" }}
     onMouseEnter={onMouseEnter}
     onMouseLeave={onMouseLeave}
   >
-    <img
+    <Box
+      component="img"
       src={`https://github.com/${login}.png?size=${size * 2}`}
       alt={login}
       style={{
@@ -39,7 +42,7 @@ const AuthorTag: FunctionComponent<TagProps> = ({
       }}
     />
     {showName && `${prefix}${login}`}
-  </span>
+  </Box>
 );
 
 type CardProps = {
@@ -86,4 +89,21 @@ const AuthorCard: FunctionComponent<CardProps> = ({ login, style, onMouseEnter, 
   </Paper>
 );
 
-export { AuthorTag, AuthorCard };
+/** Micro-label ("by" / "assigned") shown above an AuthorTag when both author and assignees are present. */
+const RoleLabel: FunctionComponent<{ text: string }> = ({ text }) => (
+  <Typography
+    sx={{
+      fontSize: "0.5rem",
+      color: "text.disabled",
+      fontWeight: 600,
+      lineHeight: 1,
+      mb: "2px",
+      textTransform: "uppercase",
+      letterSpacing: "0.04em",
+    }}
+  >
+    {text}
+  </Typography>
+);
+
+export { AuthorCard, AuthorTag, RoleLabel };
