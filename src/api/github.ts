@@ -1,4 +1,4 @@
-import type { Label, Milestone, TimelineItem } from "../types";
+import type { Label, Milestone, Repo, TimelineItem, UserProfile } from "../types";
 
 const GH_API = "https://api.github.com";
 const GH_GRAPHQL = "https://api.github.com/graphql";
@@ -359,4 +359,44 @@ const fetchMilestoneItems = async (
   return items;
 };
 
-export { fetchMilestoneItems, fetchMilestones };
+const fetchUserProfile = async (token: string): Promise<UserProfile> => {
+  const res = await fetch(`${GH_API}/user`, { headers: authHeaders(token) });
+  await checkResponse(res);
+  const data = (await res.json()) as { login: string; name: string | null; avatar_url: string };
+  return { login: data.login, name: data.name, avatarUrl: data.avatar_url };
+};
+
+type RawRepo = {
+  id: number;
+  owner: { login: string };
+  name: string;
+  full_name: string;
+  private: boolean;
+  description: string | null;
+};
+
+const fetchUserRepos = async (token: string, signal?: AbortSignal): Promise<Repo[]> => {
+  const results: Repo[] = [];
+  let page = 1;
+  while (true) {
+    const res = await fetch(
+      `${GH_API}/user/repos?per_page=100&page=${page}&sort=updated&affiliation=owner,collaborator,organization_member`,
+      { headers: authHeaders(token), signal: signal ?? null },
+    );
+    await checkResponse(res);
+    const data = (await res.json()) as RawRepo[];
+    results.push(...data.map((r) => ({
+      id: r.id,
+      owner: r.owner.login,
+      name: r.name,
+      fullName: r.full_name,
+      private: r.private,
+      description: r.description,
+    })));
+    if (data.length < 100) { break; }
+    page++;
+  }
+  return results;
+};
+
+export { fetchMilestoneItems, fetchMilestones, fetchUserProfile, fetchUserRepos };

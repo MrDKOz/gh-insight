@@ -50,4 +50,19 @@ type MilestoneMeta = {
   color: string;
 };
 
-export type { IssueItem, Label, Milestone, MilestoneMeta, PRItem, TimelineItem };
+type Repo = {
+  id: number;
+  owner: string;
+  name: string;
+  fullName: string;
+  private: boolean;
+  description: string | null;
+};
+
+type UserProfile = {
+  login: string;
+  name: string | null;
+  avatarUrl: string;
+};
+
+export type { IssueItem, Label, Milestone, MilestoneMeta, PRItem, Repo, TimelineItem, UserProfile };

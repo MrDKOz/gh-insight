@@ -21,7 +21,8 @@ type Action =
   | { type: "FETCH_ITEMS_ERROR"; milestoneNumber: number; error: string }
   | { type: "REMOVE_MILESTONE"; milestoneNumber: number }
   | { type: "REFRESH_ITEMS_ERROR"; milestoneNumber: number; error: string }
-  | { type: "LOAD_DEMO"; milestones: Milestone[]; selected: Milestone[]; itemsCache: Record<number, TimelineItem[]> };
+  | { type: "LOAD_DEMO"; milestones: Milestone[]; selected: Milestone[]; itemsCache: Record<number, TimelineItem[]> }
+  | { type: "RESET" };
 
 const initialState: MilestoneState = {
   milestones: [],
@@ -101,6 +102,9 @@ const milestoneReducer = (state: MilestoneState, action: Action): MilestoneState
         error: null,
         emptyMilestoneNums: [],
       };
+
+    case "RESET":
+      return initialState;
 
     default:
       return state;

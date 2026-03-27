@@ -1,4 +1,4 @@
-import type { Milestone, TimelineItem } from "../types";
+import type { Milestone, Repo, TimelineItem, UserProfile } from "../types";
 
 // All dates are relative to today so open bars never stretch absurdly far
 // and the demo always looks like live, recent work.
@@ -693,4 +693,600 @@ const DEMO_ITEMS_3: TimelineItem[] = [
   },
 ];
 
-export { DEMO_ITEMS, DEMO_ITEMS_2, DEMO_ITEMS_3, DEMO_MILESTONE, DEMO_MILESTONE_2, DEMO_MILESTONE_3 };
+// ── Demo user + repo list ────────────────────────────────────────────────────
+
+const DEMO_USER: UserProfile = {
+  login: "demo-user",
+  name: "Demo Mode",
+  avatarUrl: "https://github.com/ghost.png",
+};
+
+const DEMO_REPOS: Repo[] = [
+  { id: 1, owner: "acme", name: "frontend",  fullName: "acme/frontend",  private: false, description: "React web application" },
+  { id: 2, owner: "acme", name: "backend",   fullName: "acme/backend",   private: true,  description: "Node.js REST + GraphQL API" },
+  { id: 3, owner: "acme", name: "platform",  fullName: "acme/platform",  private: true,  description: "Infrastructure, CI/CD and tooling" },
+  { id: 4, owner: "acme", name: "mobile",    fullName: "acme/mobile",    private: false, description: "React Native iOS + Android app" },
+];
+
+// ── Backend repo milestones ──────────────────────────────────────────────────
+
+const BE_MILESTONE_1: Milestone = {
+  number: 1,
+  title: "API v2.0 — GraphQL Migration",
+  state: "closed",
+  openIssues: 0,
+  closedIssues: 6,
+};
+
+const BE_ITEMS_1: TimelineItem[] = [
+  {
+    type: "issue", number: 201, title: "Design GraphQL schema for user endpoints",
+    url: "https://github.com/acme/backend/issues/201", author: "torvalds",
+    createdAt: d(120), closedAt: d(105, 15), linkedPRs: [310],
+    milestoneNumber: 1, labels: [{ name: "design", color: "#f9d0c4" }, { name: "api", color: "#0052cc" }],
+    assignees: ["torvalds"], reopenedCount: 0,
+  },
+  {
+    type: "pr", number: 310, title: "feat: GraphQL schema v1 for user service",
+    url: "https://github.com/acme/backend/pull/310", author: "torvalds",
+    createdAt: d(112), mergedAt: d(105, 14), closedAt: d(105, 14),
+    linkedIssue: 201, milestoneNumber: 1,
+    labels: [{ name: "api", color: "#0052cc" }], assignees: ["torvalds"], firstReviewAt: d(109, 11),
+  },
+  {
+    type: "issue", number: 202, title: "Migrate /users REST endpoints to GraphQL resolvers",
+    url: "https://github.com/acme/backend/issues/202", author: "gaearon",
+    createdAt: d(110), closedAt: d(95, 16), linkedPRs: [311, 312],
+    milestoneNumber: 1, labels: [{ name: "refactor", color: "#e4e669" }, { name: "api", color: "#0052cc" }],
+    assignees: ["gaearon", "sindresorhus"], reopenedCount: 1,
+  },
+  {
+    type: "pr", number: 311, title: "refactor: users query and mutation resolvers",
+    url: "https://github.com/acme/backend/pull/311", author: "gaearon",
+    createdAt: d(103), mergedAt: d(99, 14), closedAt: d(99, 14),
+    linkedIssue: 202, milestoneNumber: 1,
+    labels: [{ name: "refactor", color: "#e4e669" }], assignees: ["gaearon"], firstReviewAt: d(101, 10),
+  },
+  {
+    type: "pr", number: 312, title: "refactor: subscriptions for real-time user events",
+    url: "https://github.com/acme/backend/pull/312", author: "sindresorhus",
+    createdAt: d(100), mergedAt: d(95, 15), closedAt: d(95, 15),
+    linkedIssue: 202, milestoneNumber: 1,
+    labels: [{ name: "refactor", color: "#e4e669" }], assignees: ["sindresorhus"], firstReviewAt: d(97, 13),
+  },
+  {
+    type: "issue", number: 203, title: "Add DataLoader to batch N+1 database queries",
+    url: "https://github.com/acme/backend/issues/203", author: "tj",
+    createdAt: d(100), closedAt: d(88, 11), linkedPRs: [313],
+    milestoneNumber: 1, labels: [{ name: "performance", color: "#fbca04" }],
+    assignees: ["tj"], reopenedCount: 0,
+  },
+  {
+    type: "pr", number: 313, title: "perf: DataLoader for user and repo batching",
+    url: "https://github.com/acme/backend/pull/313", author: "tj",
+    createdAt: d(94), mergedAt: d(88, 10), closedAt: d(88, 10),
+    linkedIssue: 203, milestoneNumber: 1,
+    labels: [{ name: "performance", color: "#fbca04" }], assignees: ["tj"], firstReviewAt: d(91, 14),
+  },
+  {
+    type: "issue", number: 204, title: "JWT token validation middleware",
+    url: "https://github.com/acme/backend/issues/204", author: "sindresorhus",
+    createdAt: d(95), closedAt: d(82, 14), linkedPRs: [314],
+    milestoneNumber: 1, labels: [{ name: "security", color: "#e11d48" }],
+    assignees: ["sindresorhus"], reopenedCount: 0,
+  },
+  {
+    type: "pr", number: 314, title: "feat: JWT middleware with RS256 verification",
+    url: "https://github.com/acme/backend/pull/314", author: "sindresorhus",
+    createdAt: d(88), mergedAt: d(82, 13), closedAt: d(82, 13),
+    linkedIssue: 204, milestoneNumber: 1,
+    labels: [{ name: "security", color: "#e11d48" }], assignees: ["sindresorhus"], firstReviewAt: d(85, 15),
+  },
+  {
+    type: "issue", number: 205, title: "Integration test suite for all GraphQL resolvers",
+    url: "https://github.com/acme/backend/issues/205", author: "addyosmani",
+    createdAt: d(88), closedAt: d(78, 10), linkedPRs: [315],
+    milestoneNumber: 1, labels: [{ name: "testing", color: "#bfd4f2" }],
+    assignees: ["addyosmani"], reopenedCount: 0,
+  },
+  {
+    type: "pr", number: 315, title: "test: GraphQL integration tests with test DB",
+    url: "https://github.com/acme/backend/pull/315", author: "addyosmani",
+    createdAt: d(82), mergedAt: d(78, 9), closedAt: d(78, 9),
+    linkedIssue: 205, milestoneNumber: 1,
+    labels: [{ name: "testing", color: "#bfd4f2" }], assignees: ["addyosmani"], firstReviewAt: d(80, 11),
+  },
+  {
+    type: "issue", number: 206, title: "OpenAPI spec auto-generation from GraphQL schema",
+    url: "https://github.com/acme/backend/issues/206", author: "torvalds",
+    createdAt: d(82), closedAt: d(72, 16), linkedPRs: [316],
+    milestoneNumber: 1, labels: [{ name: "docs", color: "#c5def5" }],
+    assignees: ["torvalds"], reopenedCount: 0,
+  },
+  {
+    type: "pr", number: 316, title: "feat: auto-generate OpenAPI 3.1 docs from schema",
+    url: "https://github.com/acme/backend/pull/316", author: "torvalds",
+    createdAt: d(76), mergedAt: d(72, 15), closedAt: d(72, 15),
+    linkedIssue: 206, milestoneNumber: 1,
+    labels: [{ name: "docs", color: "#c5def5" }], assignees: ["torvalds"], firstReviewAt: d(74, 12),
+  },
+];
+
+const BE_MILESTONE_2: Milestone = {
+  number: 2,
+  title: "API v2.1 — Rate Limiting & Stability",
+  state: "open",
+  openIssues: 2,
+  closedIssues: 4,
+};
+
+const BE_ITEMS_2: TimelineItem[] = [
+  {
+    type: "issue", number: 207, title: "Token bucket rate limiting per API key",
+    url: "https://github.com/acme/backend/issues/207", author: "gaearon",
+    createdAt: d(70), closedAt: d(58, 14), linkedPRs: [317],
+    milestoneNumber: 2, labels: [{ name: "feature", color: "#0075ca" }],
+    assignees: ["gaearon"], reopenedCount: 0,
+  },
+  {
+    type: "pr", number: 317, title: "feat: Redis-backed rate limiter with per-key config",
+    url: "https://github.com/acme/backend/pull/317", author: "gaearon",
+    createdAt: d(65), mergedAt: d(58, 13), closedAt: d(58, 13),
+    linkedIssue: 207, milestoneNumber: 2,
+    labels: [{ name: "feature", color: "#0075ca" }], assignees: ["gaearon"], firstReviewAt: d(62, 10),
+  },
+  {
+    type: "issue", number: 208, title: "Graceful degradation when Redis is unavailable",
+    url: "https://github.com/acme/backend/issues/208", author: "tj",
+    createdAt: d(62), closedAt: d(50, 11), linkedPRs: [318],
+    milestoneNumber: 2, labels: [{ name: "reliability", color: "#c2e0c6" }],
+    assignees: ["tj"], reopenedCount: 1,
+  },
+  {
+    type: "pr", number: 318, title: "fix: in-memory fallback when Redis connection fails",
+    url: "https://github.com/acme/backend/pull/318", author: "tj",
+    createdAt: d(55), mergedAt: d(50, 10), closedAt: d(50, 10),
+    linkedIssue: 208, milestoneNumber: 2,
+    labels: [{ name: "reliability", color: "#c2e0c6" }], assignees: ["tj"], firstReviewAt: d(53, 14),
+  },
+  {
+    type: "issue", number: 209, title: "Expose rate limit headers (X-RateLimit-*) in responses",
+    url: "https://github.com/acme/backend/issues/209", author: "sindresorhus",
+    createdAt: d(52), closedAt: d(44, 15), linkedPRs: [319],
+    milestoneNumber: 2, labels: [{ name: "api", color: "#0052cc" }],
+    assignees: ["sindresorhus"], reopenedCount: 0,
+  },
+  {
+    type: "pr", number: 319, title: "feat: standard X-RateLimit-* response headers",
+    url: "https://github.com/acme/backend/pull/319", author: "sindresorhus",
+    createdAt: d(47), mergedAt: d(44, 14), closedAt: d(44, 14),
+    linkedIssue: 209, milestoneNumber: 2,
+    labels: [{ name: "api", color: "#0052cc" }], assignees: ["sindresorhus"], firstReviewAt: d(46, 10),
+  },
+  {
+    type: "issue", number: 210, title: "Structured logging with correlation IDs",
+    url: "https://github.com/acme/backend/issues/210", author: "addyosmani",
+    createdAt: d(48), closedAt: d(38, 12), linkedPRs: [320],
+    milestoneNumber: 2, labels: [{ name: "observability", color: "#d4c5f9" }],
+    assignees: ["addyosmani"], reopenedCount: 0,
+  },
+  {
+    type: "pr", number: 320, title: "feat: pino logger with trace ID propagation",
+    url: "https://github.com/acme/backend/pull/320", author: "addyosmani",
+    createdAt: d(43), mergedAt: d(38, 11), closedAt: d(38, 11),
+    linkedIssue: 210, milestoneNumber: 2,
+    labels: [{ name: "observability", color: "#d4c5f9" }], assignees: ["addyosmani"], firstReviewAt: d(41, 9),
+  },
+  {
+    type: "issue", number: 211, title: "Circuit breaker for downstream service calls",
+    url: "https://github.com/acme/backend/issues/211", author: "torvalds",
+    createdAt: d(35), closedAt: null, linkedPRs: [],
+    milestoneNumber: 2, labels: [{ name: "reliability", color: "#c2e0c6" }],
+    assignees: ["torvalds"], reopenedCount: 0,
+  },
+  {
+    type: "issue", number: 212, title: "Health-check endpoint with dependency status",
+    url: "https://github.com/acme/backend/issues/212", author: "gaearon",
+    createdAt: d(28), closedAt: null, linkedPRs: [321],
+    milestoneNumber: 2, labels: [{ name: "ops", color: "#e4e669" }],
+    assignees: ["gaearon"], reopenedCount: 0,
+  },
+  {
+    type: "pr", number: 321, title: "feat: /healthz with Redis, DB, and upstream checks",
+    url: "https://github.com/acme/backend/pull/321", author: "gaearon",
+    createdAt: d(22), mergedAt: null, closedAt: null,
+    linkedIssue: 212, milestoneNumber: 2,
+    labels: [{ name: "ops", color: "#e4e669" }], assignees: ["gaearon"], firstReviewAt: d(20, 14),
+  },
+];
+
+// ── Platform repo milestones ─────────────────────────────────────────────────
+
+const PF_MILESTONE_1: Milestone = {
+  number: 1,
+  title: "Kubernetes Migration",
+  state: "closed",
+  openIssues: 0,
+  closedIssues: 5,
+};
+
+const PF_ITEMS_1: TimelineItem[] = [
+  {
+    type: "issue", number: 401, title: "Containerise all services with Docker",
+    url: "https://github.com/acme/platform/issues/401", author: "tj",
+    createdAt: d(130), closedAt: d(115, 14), linkedPRs: [510],
+    milestoneNumber: 1, labels: [{ name: "infrastructure", color: "#c2e0c6" }],
+    assignees: ["tj"], reopenedCount: 0,
+  },
+  {
+    type: "pr", number: 510, title: "chore: Dockerfile + .dockerignore for all services",
+    url: "https://github.com/acme/platform/pull/510", author: "tj",
+    createdAt: d(122), mergedAt: d(115, 13), closedAt: d(115, 13),
+    linkedIssue: 401, milestoneNumber: 1,
+    labels: [{ name: "infrastructure", color: "#c2e0c6" }], assignees: ["tj"], firstReviewAt: d(119, 10),
+  },
+  {
+    type: "issue", number: 402, title: "Helm charts for staging and production environments",
+    url: "https://github.com/acme/platform/issues/402", author: "torvalds",
+    createdAt: d(118), closedAt: d(100, 16), linkedPRs: [511],
+    milestoneNumber: 1, labels: [{ name: "infrastructure", color: "#c2e0c6" }, { name: "k8s", color: "#0075ca" }],
+    assignees: ["torvalds", "tj"], reopenedCount: 1,
+  },
+  {
+    type: "pr", number: 511, title: "feat: Helm charts with env-specific values files",
+    url: "https://github.com/acme/platform/pull/511", author: "torvalds",
+    createdAt: d(108), mergedAt: d(100, 15), closedAt: d(100, 15),
+    linkedIssue: 402, milestoneNumber: 1,
+    labels: [{ name: "k8s", color: "#0075ca" }], assignees: ["torvalds"], firstReviewAt: d(104, 11),
+  },
+  {
+    type: "issue", number: 403, title: "GitOps pipeline with ArgoCD",
+    url: "https://github.com/acme/platform/issues/403", author: "sindresorhus",
+    createdAt: d(105), closedAt: d(90, 13), linkedPRs: [512],
+    milestoneNumber: 1, labels: [{ name: "ci-cd", color: "#e4e669" }],
+    assignees: ["sindresorhus"], reopenedCount: 0,
+  },
+  {
+    type: "pr", number: 512, title: "feat: ArgoCD app-of-apps setup with auto-sync",
+    url: "https://github.com/acme/platform/pull/512", author: "sindresorhus",
+    createdAt: d(98), mergedAt: d(90, 12), closedAt: d(90, 12),
+    linkedIssue: 403, milestoneNumber: 1,
+    labels: [{ name: "ci-cd", color: "#e4e669" }], assignees: ["sindresorhus"], firstReviewAt: d(94, 15),
+  },
+  {
+    type: "issue", number: 404, title: "Horizontal pod autoscaling based on CPU + memory",
+    url: "https://github.com/acme/platform/issues/404", author: "addyosmani",
+    createdAt: d(92), closedAt: d(80, 11), linkedPRs: [513],
+    milestoneNumber: 1, labels: [{ name: "k8s", color: "#0075ca" }, { name: "performance", color: "#fbca04" }],
+    assignees: ["addyosmani"], reopenedCount: 0,
+  },
+  {
+    type: "pr", number: 513, title: "feat: HPA + KEDA for event-driven autoscaling",
+    url: "https://github.com/acme/platform/pull/513", author: "addyosmani",
+    createdAt: d(85), mergedAt: d(80, 10), closedAt: d(80, 10),
+    linkedIssue: 404, milestoneNumber: 1,
+    labels: [{ name: "k8s", color: "#0075ca" }], assignees: ["addyosmani"], firstReviewAt: d(82, 14),
+  },
+  {
+    type: "issue", number: 405, title: "Secrets management with Vault + external-secrets-operator",
+    url: "https://github.com/acme/platform/issues/405", author: "gaearon",
+    createdAt: d(85), closedAt: d(72, 15), linkedPRs: [514],
+    milestoneNumber: 1, labels: [{ name: "security", color: "#e11d48" }],
+    assignees: ["gaearon"], reopenedCount: 0,
+  },
+  {
+    type: "pr", number: 514, title: "feat: HashiCorp Vault integration via ESO",
+    url: "https://github.com/acme/platform/pull/514", author: "gaearon",
+    createdAt: d(78), mergedAt: d(72, 14), closedAt: d(72, 14),
+    linkedIssue: 405, milestoneNumber: 1,
+    labels: [{ name: "security", color: "#e11d48" }], assignees: ["gaearon"], firstReviewAt: d(75, 10),
+  },
+];
+
+const PF_MILESTONE_2: Milestone = {
+  number: 2,
+  title: "Observability & Alerting",
+  state: "open",
+  openIssues: 3,
+  closedIssues: 3,
+};
+
+const PF_ITEMS_2: TimelineItem[] = [
+  {
+    type: "issue", number: 406, title: "Centralised log aggregation with Loki + Grafana",
+    url: "https://github.com/acme/platform/issues/406", author: "tj",
+    createdAt: d(68), closedAt: d(55, 13), linkedPRs: [515],
+    milestoneNumber: 2, labels: [{ name: "observability", color: "#d4c5f9" }],
+    assignees: ["tj"], reopenedCount: 0,
+  },
+  {
+    type: "pr", number: 515, title: "feat: Loki stack with Promtail daemonset",
+    url: "https://github.com/acme/platform/pull/515", author: "tj",
+    createdAt: d(62), mergedAt: d(55, 12), closedAt: d(55, 12),
+    linkedIssue: 406, milestoneNumber: 2,
+    labels: [{ name: "observability", color: "#d4c5f9" }], assignees: ["tj"], firstReviewAt: d(58, 11),
+  },
+  {
+    type: "issue", number: 407, title: "Prometheus metrics for all services",
+    url: "https://github.com/acme/platform/issues/407", author: "torvalds",
+    createdAt: d(60), closedAt: d(47, 14), linkedPRs: [516],
+    milestoneNumber: 2, labels: [{ name: "observability", color: "#d4c5f9" }],
+    assignees: ["torvalds"], reopenedCount: 0,
+  },
+  {
+    type: "pr", number: 516, title: "feat: OpenMetrics export + ServiceMonitor CRDs",
+    url: "https://github.com/acme/platform/pull/516", author: "torvalds",
+    createdAt: d(52), mergedAt: d(47, 13), closedAt: d(47, 13),
+    linkedIssue: 407, milestoneNumber: 2,
+    labels: [{ name: "observability", color: "#d4c5f9" }], assignees: ["torvalds"], firstReviewAt: d(50, 10),
+  },
+  {
+    type: "issue", number: 408, title: "SLO dashboards for error rate and latency",
+    url: "https://github.com/acme/platform/issues/408", author: "sindresorhus",
+    createdAt: d(50), closedAt: d(38, 15), linkedPRs: [517],
+    milestoneNumber: 2, labels: [{ name: "observability", color: "#d4c5f9" }, { name: "slo", color: "#f9d0c4" }],
+    assignees: ["sindresorhus"], reopenedCount: 1,
+  },
+  {
+    type: "pr", number: 517, title: "feat: Grafana SLO dashboards with burn-rate alerts",
+    url: "https://github.com/acme/platform/pull/517", author: "sindresorhus",
+    createdAt: d(43), mergedAt: d(38, 14), closedAt: d(38, 14),
+    linkedIssue: 408, milestoneNumber: 2,
+    labels: [{ name: "slo", color: "#f9d0c4" }], assignees: ["sindresorhus"], firstReviewAt: d(41, 11),
+  },
+  {
+    type: "issue", number: 409, title: "PagerDuty alerting integration",
+    url: "https://github.com/acme/platform/issues/409", author: "addyosmani",
+    createdAt: d(40), closedAt: null, linkedPRs: [518],
+    milestoneNumber: 2, labels: [{ name: "ops", color: "#e4e669" }],
+    assignees: ["addyosmani"], reopenedCount: 0,
+  },
+  {
+    type: "pr", number: 518, title: "feat: Alertmanager → PagerDuty routing rules",
+    url: "https://github.com/acme/platform/pull/518", author: "addyosmani",
+    createdAt: d(32), mergedAt: null, closedAt: null,
+    linkedIssue: 409, milestoneNumber: 2,
+    labels: [{ name: "ops", color: "#e4e669" }], assignees: ["addyosmani"], firstReviewAt: d(29, 16),
+  },
+  {
+    type: "issue", number: 410, title: "Distributed tracing with OpenTelemetry",
+    url: "https://github.com/acme/platform/issues/410", author: "gaearon",
+    createdAt: d(35), closedAt: null, linkedPRs: [],
+    milestoneNumber: 2, labels: [{ name: "observability", color: "#d4c5f9" }],
+    assignees: ["gaearon"], reopenedCount: 0,
+  },
+  {
+    type: "issue", number: 411, title: "Runbook documentation for on-call engineers",
+    url: "https://github.com/acme/platform/issues/411", author: "tj",
+    createdAt: d(25), closedAt: null, linkedPRs: [],
+    milestoneNumber: 2, labels: [{ name: "docs", color: "#c5def5" }],
+    assignees: [], reopenedCount: 0,
+  },
+];
+
+// ── Mobile repo milestones ───────────────────────────────────────────────────
+
+const MB_MILESTONE_1: Milestone = {
+  number: 1,
+  title: "v1.0 — App Store Launch",
+  state: "closed",
+  openIssues: 0,
+  closedIssues: 7,
+};
+
+const MB_ITEMS_1: TimelineItem[] = [
+  {
+    type: "issue", number: 601, title: "Onboarding flow with biometric authentication",
+    url: "https://github.com/acme/mobile/issues/601", author: "addyosmani",
+    createdAt: d(90), closedAt: d(78, 14), linkedPRs: [710],
+    milestoneNumber: 1, labels: [{ name: "feature", color: "#0075ca" }, { name: "auth", color: "#e4e669" }],
+    assignees: ["addyosmani"], reopenedCount: 0,
+  },
+  {
+    type: "pr", number: 710, title: "feat: FaceID/TouchID with secure enclave storage",
+    url: "https://github.com/acme/mobile/pull/710", author: "addyosmani",
+    createdAt: d(84), mergedAt: d(78, 13), closedAt: d(78, 13),
+    linkedIssue: 601, milestoneNumber: 1,
+    labels: [{ name: "auth", color: "#e4e669" }], assignees: ["addyosmani"], firstReviewAt: d(81, 10),
+  },
+  {
+    type: "issue", number: 602, title: "Push notification infrastructure (FCM + APNs)",
+    url: "https://github.com/acme/mobile/issues/602", author: "gaearon",
+    createdAt: d(87), closedAt: d(75, 16), linkedPRs: [711],
+    milestoneNumber: 1, labels: [{ name: "feature", color: "#0075ca" }],
+    assignees: ["gaearon"], reopenedCount: 1,
+  },
+  {
+    type: "pr", number: 711, title: "feat: unified push service with topic subscriptions",
+    url: "https://github.com/acme/mobile/pull/711", author: "gaearon",
+    createdAt: d(80), mergedAt: d(75, 15), closedAt: d(75, 15),
+    linkedIssue: 602, milestoneNumber: 1,
+    labels: [{ name: "feature", color: "#0075ca" }], assignees: ["gaearon"], firstReviewAt: d(77, 11),
+  },
+  {
+    type: "issue", number: 603, title: "Offline-first data sync with SQLite",
+    url: "https://github.com/acme/mobile/issues/603", author: "torvalds",
+    createdAt: d(85), closedAt: d(70, 13), linkedPRs: [712],
+    milestoneNumber: 1, labels: [{ name: "feature", color: "#0075ca" }, { name: "offline", color: "#c5def5" }],
+    assignees: ["torvalds"], reopenedCount: 0,
+  },
+  {
+    type: "pr", number: 712, title: "feat: WatermelonDB sync engine with conflict resolution",
+    url: "https://github.com/acme/mobile/pull/712", author: "torvalds",
+    createdAt: d(76), mergedAt: d(70, 12), closedAt: d(70, 12),
+    linkedIssue: 603, milestoneNumber: 1,
+    labels: [{ name: "offline", color: "#c5def5" }], assignees: ["torvalds"], firstReviewAt: d(73, 15),
+  },
+  {
+    type: "issue", number: 604, title: "Deep-link routing for share and notification tap",
+    url: "https://github.com/acme/mobile/issues/604", author: "sindresorhus",
+    createdAt: d(75), closedAt: d(63, 15), linkedPRs: [713],
+    milestoneNumber: 1, labels: [{ name: "feature", color: "#0075ca" }],
+    assignees: ["sindresorhus"], reopenedCount: 0,
+  },
+  {
+    type: "pr", number: 713, title: "feat: React Navigation deep-link config + universal links",
+    url: "https://github.com/acme/mobile/pull/713", author: "sindresorhus",
+    createdAt: d(68), mergedAt: d(63, 14), closedAt: d(63, 14),
+    linkedIssue: 604, milestoneNumber: 1,
+    labels: [{ name: "feature", color: "#0075ca" }], assignees: ["sindresorhus"], firstReviewAt: d(65, 11),
+  },
+  {
+    type: "issue", number: 605, title: "App performance budget — 60fps list scrolling",
+    url: "https://github.com/acme/mobile/issues/605", author: "tj",
+    createdAt: d(70), closedAt: d(58, 12), linkedPRs: [714],
+    milestoneNumber: 1, labels: [{ name: "performance", color: "#fbca04" }],
+    assignees: ["tj"], reopenedCount: 0,
+  },
+  {
+    type: "pr", number: 714, title: "perf: FlashList migration + Hermes engine tuning",
+    url: "https://github.com/acme/mobile/pull/714", author: "tj",
+    createdAt: d(63), mergedAt: d(58, 11), closedAt: d(58, 11),
+    linkedIssue: 605, milestoneNumber: 1,
+    labels: [{ name: "performance", color: "#fbca04" }], assignees: ["tj"], firstReviewAt: d(60, 14),
+  },
+  {
+    type: "issue", number: 606, title: "Privacy manifest and App Tracking Transparency",
+    url: "https://github.com/acme/mobile/issues/606", author: "addyosmani",
+    createdAt: d(60), closedAt: d(50, 14), linkedPRs: [715],
+    milestoneNumber: 1, labels: [{ name: "compliance", color: "#d4c5f9" }],
+    assignees: ["addyosmani"], reopenedCount: 0,
+  },
+  {
+    type: "pr", number: 715, title: "feat: PrivacyInfo.xcprivacy + ATT prompt flow",
+    url: "https://github.com/acme/mobile/pull/715", author: "addyosmani",
+    createdAt: d(54), mergedAt: d(50, 13), closedAt: d(50, 13),
+    linkedIssue: 606, milestoneNumber: 1,
+    labels: [{ name: "compliance", color: "#d4c5f9" }], assignees: ["addyosmani"], firstReviewAt: d(52, 10),
+  },
+  {
+    type: "issue", number: 607, title: "Automated screenshot tests for App Store submission",
+    url: "https://github.com/acme/mobile/issues/607", author: "gaearon",
+    createdAt: d(52), closedAt: d(44, 11), linkedPRs: [716],
+    milestoneNumber: 1, labels: [{ name: "testing", color: "#bfd4f2" }],
+    assignees: ["gaearon"], reopenedCount: 0,
+  },
+  {
+    type: "pr", number: 716, title: "test: Maestro E2E flow + Fastlane screenshot automation",
+    url: "https://github.com/acme/mobile/pull/716", author: "gaearon",
+    createdAt: d(48), mergedAt: d(44, 10), closedAt: d(44, 10),
+    linkedIssue: 607, milestoneNumber: 1,
+    labels: [{ name: "testing", color: "#bfd4f2" }], assignees: ["gaearon"], firstReviewAt: d(46, 15),
+  },
+];
+
+const MB_MILESTONE_2: Milestone = {
+  number: 2,
+  title: "v1.1 — Offline Mode & Widgets",
+  state: "open",
+  openIssues: 3,
+  closedIssues: 3,
+};
+
+const MB_ITEMS_2: TimelineItem[] = [
+  {
+    type: "issue", number: 608, title: "Home screen widget (iOS/Android)",
+    url: "https://github.com/acme/mobile/issues/608", author: "sindresorhus",
+    createdAt: d(42), closedAt: d(32, 15), linkedPRs: [717],
+    milestoneNumber: 2, labels: [{ name: "feature", color: "#0075ca" }],
+    assignees: ["sindresorhus"], reopenedCount: 0,
+  },
+  {
+    type: "pr", number: 717, title: "feat: WidgetKit + Glance widget with activity data",
+    url: "https://github.com/acme/mobile/pull/717", author: "sindresorhus",
+    createdAt: d(37), mergedAt: d(32, 14), closedAt: d(32, 14),
+    linkedIssue: 608, milestoneNumber: 2,
+    labels: [{ name: "feature", color: "#0075ca" }], assignees: ["sindresorhus"], firstReviewAt: d(35, 11),
+  },
+  {
+    type: "issue", number: 609, title: "Reduce app bundle size below 30 MB",
+    url: "https://github.com/acme/mobile/issues/609", author: "tj",
+    createdAt: d(38), closedAt: d(26, 13), linkedPRs: [718],
+    milestoneNumber: 2, labels: [{ name: "performance", color: "#fbca04" }],
+    assignees: ["tj"], reopenedCount: 0,
+  },
+  {
+    type: "pr", number: 718, title: "perf: tree-shake icons, lazy-load screens, compress assets",
+    url: "https://github.com/acme/mobile/pull/718", author: "tj",
+    createdAt: d(30), mergedAt: d(26, 12), closedAt: d(26, 12),
+    linkedIssue: 609, milestoneNumber: 2,
+    labels: [{ name: "performance", color: "#fbca04" }], assignees: ["tj"], firstReviewAt: d(28, 10),
+  },
+  {
+    type: "issue", number: 610, title: "Background sync when app is in background",
+    url: "https://github.com/acme/mobile/issues/610", author: "torvalds",
+    createdAt: d(30), closedAt: d(20, 14), linkedPRs: [719],
+    milestoneNumber: 2, labels: [{ name: "offline", color: "#c5def5" }],
+    assignees: ["torvalds"], reopenedCount: 0,
+  },
+  {
+    type: "pr", number: 719, title: "feat: Background fetch + silent push for incremental sync",
+    url: "https://github.com/acme/mobile/pull/719", author: "torvalds",
+    createdAt: d(24), mergedAt: d(20, 13), closedAt: d(20, 13),
+    linkedIssue: 610, milestoneNumber: 2,
+    labels: [{ name: "offline", color: "#c5def5" }], assignees: ["torvalds"], firstReviewAt: d(22, 11),
+  },
+  {
+    type: "issue", number: 611, title: "Sentry crash reporting and session replay",
+    url: "https://github.com/acme/mobile/issues/611", author: "addyosmani",
+    createdAt: d(22), closedAt: null, linkedPRs: [],
+    milestoneNumber: 2, labels: [{ name: "observability", color: "#d4c5f9" }],
+    assignees: ["addyosmani"], reopenedCount: 0,
+  },
+  {
+    type: "issue", number: 612, title: "iPad split-view and Stage Manager support",
+    url: "https://github.com/acme/mobile/issues/612", author: "gaearon",
+    createdAt: d(18), closedAt: null, linkedPRs: [],
+    milestoneNumber: 2, labels: [{ name: "feature", color: "#0075ca" }],
+    assignees: ["gaearon"], reopenedCount: 0,
+  },
+  {
+    type: "issue", number: 613, title: "VoiceOver and TalkBack accessibility audit",
+    url: "https://github.com/acme/mobile/issues/613", author: "sindresorhus",
+    createdAt: d(12), closedAt: null, linkedPRs: [],
+    milestoneNumber: 2, labels: [{ name: "accessibility", color: "#1d76db" }],
+    assignees: [], reopenedCount: 0,
+  },
+];
+
+// ── Demo data by repo (keyed by fullName) ────────────────────────────────────
+
+const DEMO_DATA_BY_REPO: Record<string, { milestones: Milestone[]; items: Record<number, TimelineItem[]> }> = {
+  "acme/frontend": {
+    milestones: [DEMO_MILESTONE, DEMO_MILESTONE_2, DEMO_MILESTONE_3],
+    items: {
+      [DEMO_MILESTONE.number]:   DEMO_ITEMS,
+      [DEMO_MILESTONE_2.number]: DEMO_ITEMS_2,
+      [DEMO_MILESTONE_3.number]: DEMO_ITEMS_3,
+    },
+  },
+  "acme/backend": {
+    milestones: [BE_MILESTONE_1, BE_MILESTONE_2],
+    items: {
+      [BE_MILESTONE_1.number]: BE_ITEMS_1,
+      [BE_MILESTONE_2.number]: BE_ITEMS_2,
+    },
+  },
+  "acme/platform": {
+    milestones: [PF_MILESTONE_1, PF_MILESTONE_2],
+    items: {
+      [PF_MILESTONE_1.number]: PF_ITEMS_1,
+      [PF_MILESTONE_2.number]: PF_ITEMS_2,
+    },
+  },
+  "acme/mobile": {
+    milestones: [MB_MILESTONE_1, MB_MILESTONE_2],
+    items: {
+      [MB_MILESTONE_1.number]: MB_ITEMS_1,
+      [MB_MILESTONE_2.number]: MB_ITEMS_2,
+    },
+  },
+};
+
+export {
+  DEMO_DATA_BY_REPO,
+  DEMO_ITEMS, DEMO_ITEMS_2, DEMO_ITEMS_3,
+  DEMO_MILESTONE, DEMO_MILESTONE_2, DEMO_MILESTONE_3,
+  DEMO_REPOS,
+  DEMO_USER,
+};
