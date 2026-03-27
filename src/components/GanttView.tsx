@@ -4,7 +4,7 @@ import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { COLORS, COLORS_CB, MS, assigneesOtherThanAuthor, durationDays, fmtDate, itemEndDate, safeUrl } from "../utils/utils";
 import { AuthorCard, AuthorTag } from "./AuthorTag";
 import { LabelBadge } from "./LabelBadge";
@@ -174,6 +174,10 @@ const GanttView: FunctionComponent<Props> = ({
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [barHover, setBarHover] = useState<BarHover | null>(null);
   const [cursorInfo, setCursorInfo] = useState<CursorInfo | null>(null);
+
+  useEffect(() => () => {
+    if (hideTimer.current) {clearTimeout(hideTimer.current);}
+  }, []);
 
   const showCard = (item: TimelineItem, e: MouseEvent<HTMLSpanElement>) => {
     if (hideTimer.current) {clearTimeout(hideTimer.current);}
