@@ -266,13 +266,17 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
           <g key={`${p.item.type}-${p.item.number}`}
             style={{ transition: "transform 0.15s ease" }}
             transform={`translate(0, ${spreadOffsets[i]!.dy})`}
+            role="button"
+            tabIndex={0}
+            aria-label={`${p.typeLabel} #${p.item.number}: ${p.item.title} — ${p.days} day${p.days !== 1 ? "s" : ""} cycle time`}
+            onClick={() => window.open(p.item.url, "_blank", "noreferrer")}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); window.open(p.item.url, "_blank", "noreferrer"); } }}
           >
             <circle
               cx={svgPts[i]!.x.toFixed(1)} cy={svgPts[i]!.y.toFixed(1)}
               r={5} fill={p.col} opacity={0.82}
               className="ct-dot"
-              onMouseEnter={(e) => onEnter(e, p, i)}
-              onClick={() => window.open(p.item.url, "_blank", "noreferrer")} />
+              onMouseEnter={(e) => onEnter(e, p, i)} />
           </g>
         ))}
 
