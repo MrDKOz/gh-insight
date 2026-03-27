@@ -8,8 +8,6 @@ import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
-import ToggleButton from "@mui/material/ToggleButton";
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -373,7 +371,7 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
   const noFilteredItems = filteredItems.length === 0;
 
   const toolbar = (
-    <Stack direction="row" gap={1} alignItems="center" flexWrap="wrap" data-export-exclude>
+    <Stack direction="row" gap={1} alignItems="center" data-export-exclude>
       <Button
         variant="outlined"
         size="small"
@@ -389,19 +387,6 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
           </MenuItem>
         ))}
       </Menu>
-
-      {view === "Gantt" && (
-        <ToggleButtonGroup
-          value={snapMode}
-          exclusive
-          size="small"
-          onChange={(_, val: "day" | "hour" | null) => { if (val) { setSnapMode(val); } }}
-          aria-label="Bar snap granularity"
-        >
-          <ToggleButton value="day"  aria-label="Snap to day">Day</ToggleButton>
-          <ToggleButton value="hour" aria-label="Snap to hour">Hour</ToggleButton>
-        </ToggleButtonGroup>
-      )}
 
       <Tooltip
         title={copyTooltip === "copied" ? "Copied!" : "Copy shareable link"}
@@ -475,6 +460,7 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
           highlightWeekends={highlightWeekends}
           colorblindMode={colorblindMode}
           snapMode={snapMode}
+          onSnapModeChange={setSnapMode}
         />
       )}
     </Paper>

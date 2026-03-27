@@ -4,6 +4,8 @@ import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { COLORS, COLORS_CB, FS, MS, MS_HOUR, assigneesOtherThanAuthor, durationDays, fmtDate, fmtDateTime, itemEndDate, pluralize, safeUrl, snapToHour } from "../utils/utils";
 import { AuthorCard, AuthorTag } from "./AuthorTag";
@@ -28,6 +30,7 @@ type Props = {
   highlightWeekends: boolean;
   colorblindMode: boolean;
   snapMode: "day" | "hour";
+  onSnapModeChange: (mode: "day" | "hour") => void;
 };
 
 const ROW_HEIGHT = 31;
@@ -58,9 +61,11 @@ type GanttLegendProps = {
   isMultiMilestone: boolean;
   milestones: MilestoneMeta[];
   colorblindMode: boolean;
+  snapMode: "day" | "hour";
+  onSnapModeChange: (mode: "day" | "hour") => void;
 };
 
-const GanttLegend: FunctionComponent<GanttLegendProps> = ({ hasOpenIssues, isMultiMilestone, milestones, colorblindMode }) => {
+const GanttLegend: FunctionComponent<GanttLegendProps> = ({ hasOpenIssues, isMultiMilestone, milestones, colorblindMode, snapMode, onSnapModeChange }) => {
   const p = colorblindMode ? COLORS_CB : COLORS;
   // 0x73 hex ≈ 0.45 alpha — used for the open-issue dashed bar fill
   const issueClosed = `linear-gradient(135deg, ${p.issue} 0%, ${p.issueDark} 100%)`;
@@ -69,20 +74,33 @@ const GanttLegend: FunctionComponent<GanttLegendProps> = ({ hasOpenIssues, isMul
   const prClosedBg  = `linear-gradient(135deg, ${p.prClosed} 0%, ${p.prClosedDark} 100%)`;
   return (
   <>
-    <Box sx={{ display: "flex", gap: 2.5, flexWrap: "wrap" }}>
-      {[
-        { bg: issueClosed, label: "Issues (closed)" },
-        ...(hasOpenIssues
-          ? [{ bg: issueOpen, label: "Issues (open)", dashed: true, borderColor: p.issue }]
-          : []),
-        { bg: prMergedBg, label: "PRs (merged)" },
-        { bg: prClosedBg, label: "PRs (closed)" },
-      ].map(({ bg, label, dashed, borderColor }) => (
-        <Box key={label} sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: FS.md }}>
-          <Box sx={{ width: 20, height: 14, borderRadius: "3px", flexShrink: 0, background: bg, ...(dashed ? { border: `1.5px dashed ${borderColor ?? COLORS.issue}` } : {}) }} />
-          {label}
-        </Box>
-      ))}
+    <Box sx={{ display: "flex", alignItems: "center", gap: 2.5, flexWrap: "wrap" }}>
+      <Box sx={{ display: "flex", gap: 2.5, flexWrap: "wrap", flex: 1 }}>
+        {[
+          { bg: issueClosed, label: "Issues (closed)" },
+          ...(hasOpenIssues
+            ? [{ bg: issueOpen, label: "Issues (open)", dashed: true, borderColor: p.issue }]
+            : []),
+          { bg: prMergedBg, label: "PRs (merged)" },
+          { bg: prClosedBg, label: "PRs (closed)" },
+        ].map(({ bg, label, dashed, borderColor }) => (
+          <Box key={label} sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: FS.md }}>
+            <Box sx={{ width: 20, height: 14, borderRadius: "3px", flexShrink: 0, background: bg, ...(dashed ? { border: `1.5px dashed ${borderColor ?? COLORS.issue}` } : {}) }} />
+            {label}
+          </Box>
+        ))}
+      </Box>
+      <ToggleButtonGroup
+        value={snapMode}
+        exclusive
+        size="small"
+        onChange={(_, val: "day" | "hour" | null) => { if (val) { onSnapModeChange(val); } }}
+        aria-label="Bar snap granularity"
+        sx={{ flexShrink: 0 }}
+      >
+        <ToggleButton value="day"  aria-label="Snap bars to day boundaries">Day</ToggleButton>
+        <ToggleButton value="hour" aria-label="Snap bars to hour boundaries">Hour</ToggleButton>
+      </ToggleButtonGroup>
     </Box>
 
     {isMultiMilestone && (
@@ -173,6 +191,7 @@ const GanttView: FunctionComponent<Props> = ({
   highlightWeekends,
   colorblindMode,
   snapMode,
+  onSnapModeChange,
 }) => {
   const [hoverItem, setHoverItem] = useState<TimelineItem | null>(null);
   const [cardPos, setCardPos] = useState({ top: 0, left: 0 });
@@ -229,7 +248,7 @@ const GanttView: FunctionComponent<Props> = ({
 
   return (
     <>
-      <GanttLegend hasOpenIssues={hasOpenIssues} isMultiMilestone={isMultiMilestone} milestones={milestones} colorblindMode={colorblindMode} />
+      <GanttLegend hasOpenIssues={hasOpenIssues} isMultiMilestone={isMultiMilestone} milestones={milestones} colorblindMode={colorblindMode} snapMode={snapMode} onSnapModeChange={onSnapModeChange} />
 
       <Box className="tl-body">
         <Box className="tl-label-col" style={{ width: labelWidth }}>
