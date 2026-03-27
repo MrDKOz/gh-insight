@@ -4,7 +4,9 @@ const MS = 86_400_000;
 
 const fmtDate = (iso: string | null | undefined, includeYear = false): string => {
   if (!iso) {return "N/A";}
-  return new Date(iso).toLocaleDateString("en-GB", {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) {return "N/A";}
+  return d.toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
     ...(includeYear ? { year: "numeric" } : {}),
@@ -43,14 +45,19 @@ const hoverCardPos = (
 });
 
 /**
- * Returns the URL only if it uses an allowed scheme (https).
- * Rejects javascript:, data:, and other potentially dangerous schemes that
- * could execute code if rendered as an href.
+ * Returns the URL only if it is a valid https GitHub URL.
+ * Rejects javascript:, data:, http:, and any non-GitHub domain — so a
+ * compromised API response cannot inject links to attacker-controlled sites.
  */
 const safeUrl = (url: string): string => {
   try {
     const parsed = new URL(url);
-    if (parsed.protocol === "https:") {return url;}
+    if (
+      parsed.protocol === "https:" &&
+      (parsed.hostname === "github.com" || parsed.hostname.endsWith(".github.com"))
+    ) {
+      return url;
+    }
   } catch {
     // malformed URL
   }
@@ -74,10 +81,10 @@ const labelTextColor = (hex: string): "#000000" | "#ffffff" => {
   return L > 0.179 ? "#000000" : "#ffffff";
 };
 
-/** Days between two ISO date strings (rounded). Returns null when end is null (open items). */
+/** Days between two ISO date strings (rounded, clamped to 0). Returns null when end is null (open items). */
 const durationDays = (start: string, end: string | null): number | null => {
   if (!end) {return null;}
-  return Math.round((new Date(end).getTime() - new Date(start).getTime()) / MS);
+  return Math.max(0, Math.round((new Date(end).getTime() - new Date(start).getTime()) / MS));
 };
 
 /** Assignees who are not also the author — used for author/assignee display logic. */

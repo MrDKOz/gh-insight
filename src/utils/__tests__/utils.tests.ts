@@ -51,6 +51,10 @@ describe("fmtDate", () => {
   it("returns N/A for empty string", () => {
     expect(fmtDate("")).toBe("N/A");
   });
+
+  it("returns N/A for an invalid ISO string", () => {
+    expect(fmtDate("not-a-date")).toBe("N/A");
+  });
 });
 
 describe("itemEndDate", () => {
@@ -104,6 +108,14 @@ describe("safeUrl", () => {
 
   it("returns '#' for an empty string", () => {
     expect(safeUrl("")).toBe("#");
+  });
+
+  it("returns '#' for a non-GitHub https URL", () => {
+    expect(safeUrl("https://evil.com/inject")).toBe("#");
+  });
+
+  it("passes through a github.com subdomain URL (e.g. gist.github.com)", () => {
+    expect(safeUrl("https://gist.github.com/user/abc123")).toBe("https://gist.github.com/user/abc123");
   });
 });
 
