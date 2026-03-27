@@ -19,6 +19,9 @@ const stripDevCspPlugin: Plugin = {
 };
 
 export default defineConfig({
+  // GitHub Actions sets GITHUB_ACTIONS=true automatically; use it to set the
+  // correct sub-path for Pages without affecting the local dev server.
+  base: process.env["GITHUB_ACTIONS"] ? "/GitHubWorkVisualiser/" : "/",
   plugins: [
     react({ babel: { plugins: ["babel-plugin-react-compiler"] } }),
     stripDevCspPlugin,
