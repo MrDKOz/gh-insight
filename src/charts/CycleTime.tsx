@@ -5,7 +5,7 @@ import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { AuthorTag } from "../components/AuthorTag";
-import { COLORS, COLORS_CB, MS, fmtDate, hoverCardPos, itemEndDate } from "../utils/utils";
+import { COLORS, COLORS_CB, MS, fmtDate, hoverCardPos, itemEndDate, pluralize } from "../utils/utils";
 
 type Props = {
   items: TimelineItem[];
@@ -185,7 +185,7 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
           </Typography>
           <AuthorTag login={hover.pt.item.author} prefix="@" />
           <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
-            {hover.pt.days} day{hover.pt.days !== 1 ? "s" : ""} cycle time
+            {pluralize(hover.pt.days, "day")} cycle time
           </Box>
           {reviewWaitDays !== null && (
             <Box sx={{ fontSize: "0.6875rem", fontWeight: 500, color: "text.secondary" }}>
@@ -268,7 +268,7 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
             transform={`translate(0, ${spreadOffsets[i]!.dy})`}
             role="button"
             tabIndex={0}
-            aria-label={`${p.typeLabel} #${p.item.number}: ${p.item.title} — ${p.days} day${p.days !== 1 ? "s" : ""} cycle time`}
+            aria-label={`${p.typeLabel} #${p.item.number}: ${p.item.title} — ${pluralize(p.days, "day")} cycle time`}
             onClick={() => window.open(p.item.url, "_blank", "noreferrer")}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); window.open(p.item.url, "_blank", "noreferrer"); } }}
           >

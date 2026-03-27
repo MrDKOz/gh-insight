@@ -5,7 +5,7 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { COLORS, COLORS_CB, MS, assigneesOtherThanAuthor, durationDays, fmtDate, itemEndDate, safeUrl } from "../utils/utils";
+import { COLORS, COLORS_CB, MS, assigneesOtherThanAuthor, durationDays, fmtDate, itemEndDate, pluralize, safeUrl } from "../utils/utils";
 import { AuthorCard, AuthorTag } from "./AuthorTag";
 import { LabelBadge } from "./LabelBadge";
 
@@ -109,7 +109,7 @@ const BarHoverCard: FunctionComponent<{ barHover: BarHover }> = ({ barHover }) =
         <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: barHover.dotColor, flexShrink: 0, opacity: barHover.isOpen ? 0.55 : 1 }} />
         {item.type === "pr" ? "PR" : "Issue"} #{item.number}
         {item.type === "issue" && item.reopenedCount > 0 && (
-          <Box component="span" title={`Reopened ${item.reopenedCount} time${item.reopenedCount !== 1 ? "s" : ""}`} sx={{ color: "#d97706", ml: "2px" }}>
+          <Box component="span" title={`Reopened ${pluralize(item.reopenedCount, "time")}`} sx={{ color: "#d97706", ml: "2px" }}>
             ↺{item.reopenedCount}
           </Box>
         )}

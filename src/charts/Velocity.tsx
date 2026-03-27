@@ -4,7 +4,7 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
-import { COLORS, COLORS_CB, fmtDate, hoverCardPos, itemEndDate } from "../utils/utils";
+import { COLORS, COLORS_CB, fmtDate, hoverCardPos, itemEndDate, pluralize } from "../utils/utils";
 
 type Props = {
   items: TimelineItem[];
@@ -158,19 +158,19 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
             {hover.week.issues > 0 && (
               <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
                 <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: COL.issue, flexShrink: 0 }} />
-                {hover.week.issues} issue{hover.week.issues !== 1 ? "s" : ""} closed
+                {pluralize(hover.week.issues, "issue")} closed
               </Box>
             )}
             {hover.week.merged > 0 && (
               <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
                 <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: COL.prMerged, flexShrink: 0 }} />
-                {hover.week.merged} PR{hover.week.merged !== 1 ? "s" : ""} merged
+                {pluralize(hover.week.merged, "PR")} merged
               </Box>
             )}
             {hover.week.closed > 0 && (
               <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
                 <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: COL.prClosed, flexShrink: 0 }} />
-                {hover.week.closed} PR{hover.week.closed !== 1 ? "s" : ""} closed
+                {pluralize(hover.week.closed, "PR")} closed
               </Box>
             )}
             <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary", borderTop: 1, borderColor: "divider", pt: "4px", mt: "2px" }}>
@@ -292,7 +292,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
             {fmtDate(new Date(msHover.week.startMs).toISOString())} – {fmtDate(new Date(msHover.week.endMs).toISOString())}
           </Box>
           <Box sx={{ fontSize: "0.8125rem", fontWeight: 600 }}>
-            {msHover.week.total} item{msHover.week.total !== 1 ? "s" : ""} completed
+            {pluralize(msHover.week.total, "item")} completed
           </Box>
         </Paper>
       )}

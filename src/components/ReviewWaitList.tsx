@@ -12,7 +12,7 @@ import TableSortLabel from "@mui/material/TableSortLabel";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { memo, useMemo, useState } from "react";
-import { MS, fmtDate, safeUrl } from "../utils/utils";
+import { MS, fmtDate, itemStatus, safeUrl } from "../utils/utils";
 import { AuthorWithAssignees } from "./AuthorWithAssignees";
 import { MilestonePill } from "./MilestonePill";
 
@@ -43,11 +43,6 @@ type PRRow = {
   milestoneNumber: number;
 };
 
-const prStatus = (item: Extract<TimelineItem, { type: "pr" }>): "Open" | "Merged" | "Closed" => {
-  if (item.mergedAt) {return "Merged";}
-  if (item.closedAt) {return "Closed";}
-  return "Open";
-};
 
 const toDays = (ms: number): number => Math.round(ms / MS);
 
@@ -68,7 +63,7 @@ const buildRows = (items: TimelineItem[]): PRRow[] => items
         url: pr.url,
         author: pr.author,
         assignees: pr.assignees,
-        status: prStatus(pr),
+        status: itemStatus(pr),
         createdAt: pr.createdAt,
         mergedAt: pr.mergedAt,
         closedAt: pr.closedAt,

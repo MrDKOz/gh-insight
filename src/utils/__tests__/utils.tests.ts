@@ -1,5 +1,5 @@
 import type { TimelineItem } from "../../types";
-import { COLORS, MS, assigneesOtherThanAuthor, durationDays, fmtDate, hoverCardPos, itemEndDate, labelTextColor, safeUrl } from "../utils";
+import { COLORS, MS, assigneesOtherThanAuthor, durationDays, fmtDate, hoverCardPos, itemEndDate, itemStatus, labelTextColor, pluralize, safeUrl, upperBound } from "../utils";
 
 const issue = (overrides: Partial<{ closedAt: string | null }> = {}): TimelineItem => ({
   type: "issue", number: 1, title: "Test issue",
@@ -165,6 +165,64 @@ describe("assigneesOtherThanAuthor", () => {
 
   it("returns an empty array when there are no assignees", () => {
     expect(assigneesOtherThanAuthor([], "alice")).toEqual([]);
+  });
+});
+
+describe("upperBound", () => {
+  it("returns the count of elements ≤ t", () => {
+    expect(upperBound([1, 2, 3, 4, 5], 3)).toBe(3);
+  });
+
+  it("returns 0 when t is less than all elements", () => {
+    expect(upperBound([10, 20, 30], 5)).toBe(0);
+  });
+
+  it("returns arr.length when t is >= all elements", () => {
+    expect(upperBound([10, 20, 30], 30)).toBe(3);
+  });
+
+  it("returns 0 for an empty array", () => {
+    expect(upperBound([], 99)).toBe(0);
+  });
+});
+
+describe("itemStatus", () => {
+  it("returns 'Closed' for a closed issue", () => {
+    expect(itemStatus(issue({ closedAt: "2025-02-01T00:00:00Z" }))).toBe("Closed");
+  });
+
+  it("returns 'Open' for an open issue", () => {
+    expect(itemStatus(issue())).toBe("Open");
+  });
+
+  it("returns 'Merged' for a merged PR", () => {
+    expect(itemStatus(pr({ mergedAt: "2025-02-01T00:00:00Z" }))).toBe("Merged");
+  });
+
+  it("returns 'Closed' for a closed (non-merged) PR", () => {
+    expect(itemStatus(pr({ closedAt: "2025-02-01T00:00:00Z" }))).toBe("Closed");
+  });
+
+  it("returns 'Open' for an open PR", () => {
+    expect(itemStatus(pr())).toBe("Open");
+  });
+});
+
+describe("pluralize", () => {
+  it("appends 's' when count is 0", () => {
+    expect(pluralize(0, "item")).toBe("0 items");
+  });
+
+  it("does not append 's' when count is 1", () => {
+    expect(pluralize(1, "item")).toBe("1 item");
+  });
+
+  it("appends 's' when count is 2", () => {
+    expect(pluralize(2, "item")).toBe("2 items");
+  });
+
+  it("works with words that already contain spaces (e.g. 'open issue')", () => {
+    expect(pluralize(3, "open issue")).toBe("3 open issues");
   });
 });
 

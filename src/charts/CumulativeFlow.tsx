@@ -4,7 +4,7 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useRef, useState } from "react";
-import { COLORS, COLORS_CB, MS, fmtDate, hoverCardPos, itemEndDate } from "../utils/utils";
+import { COLORS, COLORS_CB, MS, fmtDate, hoverCardPos, itemEndDate, upperBound } from "../utils/utils";
 
 type Props = {
   items: TimelineItem[];
@@ -64,14 +64,7 @@ const CumulativeFlowInner: FunctionComponent<Props> = ({ items, highlightWeekend
     .flatMap((item) => { const e = itemEndDate(item); return e ? [new Date(e).getTime()] : []; })
     .sort((a, b) => a - b);
 
-  const upperBound = (sorted: number[], t: number): number => {
-    let lo = 0, hi = sorted.length;
-    // sorted[mid] is always within bounds: mid = (lo+hi)>>>1, and lo < hi throughout the loop
-    while (lo < hi) { const mid = (lo + hi) >>> 1; sorted[mid]! <= t ? (lo = mid + 1) : (hi = mid); }
-    return lo;
-  };
-
-  const pts: DayPt[] = Array.from({ length: totalDays + 1 }, (_, i) => {
+const pts: DayPt[] = Array.from({ length: totalDays + 1 }, (_, i) => {
     const t = minTime + i * MS;
     return { t, opened: upperBound(sortedOpenedTs, t), closed: upperBound(sortedClosedTs, t) };
   });

@@ -12,7 +12,7 @@ import TableRow from "@mui/material/TableRow";
 import TableSortLabel from "@mui/material/TableSortLabel";
 import Typography from "@mui/material/Typography";
 import { memo, useMemo, useState } from "react";
-import { COLORS, COLORS_CB, MS, fmtDate, itemEndDate, safeUrl } from "../utils/utils";
+import { COLORS, COLORS_CB, MS, fmtDate, itemEndDate, itemStatus, pluralize, safeUrl } from "../utils/utils";
 import { AuthorWithAssignees } from "./AuthorWithAssignees";
 import { LabelBadge } from "./LabelBadge";
 import { MilestonePill } from "./MilestonePill";
@@ -26,12 +26,6 @@ type Props = {
 type SortCol = "type" | "number" | "title" | "author" | "status" | "milestone" | "created" | "closed" | "days";
 type SortDir = "asc" | "desc";
 
-const itemStatus = (item: TimelineItem): "Open" | "Closed" | "Merged" => {
-  if (item.type === "issue") {return item.closedAt ? "Closed" : "Open";}
-  if (item.mergedAt) {return "Merged";}
-  if (item.closedAt) {return "Closed";}
-  return "Open";
-};
 
 const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblindMode }) => {
   const palette = colorblindMode ? COLORS_CB : COLORS;
@@ -208,7 +202,7 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                     }}
                   >
                     {item.type === "issue" && item.reopenedCount > 0 && (
-                      <Box component="span" title={`Reopened ${item.reopenedCount} time${item.reopenedCount !== 1 ? "s" : ""}`} sx={{ color: "#d97706", mr: "4px", fontSize: "0.75rem" }}>↺</Box>
+                      <Box component="span" title={`Reopened ${pluralize(item.reopenedCount, "time")}`} sx={{ color: "#d97706", mr: "4px", fontSize: "0.75rem" }}>↺</Box>
                     )}
                     {item.title}
                   </Link>

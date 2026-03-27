@@ -5,7 +5,7 @@ import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useMemo } from "react";
-import { COLORS, COLORS_CB, MS } from "../utils/utils";
+import { COLORS, COLORS_CB, MS, pluralize } from "../utils/utils";
 
 type StatProps = {
   value: string;
@@ -55,11 +55,13 @@ const StatsBar: FunctionComponent<Props> = ({ items, view, colorblindMode }) => 
     const cycleTimes = closedIssues.map((i) =>
       Math.round((new Date(i.closedAt!).getTime() - new Date(i.createdAt).getTime()) / MS),
     );
-    const avgCycle     = cycleTimes.length > 0 ? Math.round(cycleTimes.reduce((a, b) => a + b, 0) / cycleTimes.length) : null;
-    const fastestCycle = cycleTimes.length > 0 ? Math.min(...cycleTimes) : null;
-    const slowestCycle = cycleTimes.length > 0 ? Math.max(...cycleTimes) : null;
+    const cycleStats = cycleTimes.length > 0 ? {
+      avg:     Math.round(cycleTimes.reduce((a, b) => a + b, 0) / cycleTimes.length),
+      fastest: Math.min(...cycleTimes),
+      slowest: Math.max(...cycleTimes),
+    } : null;
 
-    return { closedIssues, openIssues, mergedPRs, closedPRs, avgCycle, fastestCycle, slowestCycle };
+    return { closedIssues, openIssues, mergedPRs, closedPRs, cycleStats };
   }, [items]);
 
   const reviewWait = useMemo(() => {
@@ -70,13 +72,15 @@ const StatsBar: FunctionComponent<Props> = ({ items, view, colorblindMode }) => 
     const waitDays   = reviewed.map((p) =>
       Math.round((new Date(p.firstReviewAt!).getTime() - new Date(p.createdAt).getTime()) / MS),
     );
-    const avg     = waitDays.length > 0 ? Math.round(waitDays.reduce((a, b) => a + b, 0) / waitDays.length) : null;
-    const fastest = waitDays.length > 0 ? Math.min(...waitDays) : null;
-    const slowest = waitDays.length > 0 ? Math.max(...waitDays) : null;
-    return { total: prs.length, reviewed: reviewed.length, unreviewed: unreviewed.length, avg, fastest, slowest };
+    const waitDetails = waitDays.length > 0 ? {
+      avg:     Math.round(waitDays.reduce((a, b) => a + b, 0) / waitDays.length),
+      fastest: Math.min(...waitDays),
+      slowest: Math.max(...waitDays),
+    } : null;
+    return { total: prs.length, reviewed: reviewed.length, unreviewed: unreviewed.length, waitDetails };
   }, [items, view]);
 
-  const { closedIssues, openIssues, mergedPRs, closedPRs, avgCycle, fastestCycle, slowestCycle } = general;
+  const { closedIssues, openIssues, mergedPRs, closedPRs, cycleStats } = general;
 
   return (
     <Stack
@@ -93,27 +97,27 @@ const StatsBar: FunctionComponent<Props> = ({ items, view, colorblindMode }) => 
           {reviewWait.unreviewed > 0 && (
             <Stat value={String(reviewWait.unreviewed)} label="Not reviewed" title="PRs with no review recorded" lightColor="#d97706" darkColor="#f59e0b" />
           )}
-          {reviewWait.avg !== null && (
+          {reviewWait.waitDetails !== null && (
             <>
               <Divider orientation="vertical" flexItem />
               <Stat
-                value={reviewWait.avg === 0 ? "same day" : `${reviewWait.avg}d`}
+                value={reviewWait.waitDetails.avg === 0 ? "same day" : `${reviewWait.waitDetails.avg}d`}
                 label="Avg wait"
                 title="Average days from PR creation to first review"
               />
               <Stat
-                value={reviewWait.fastest === 0 ? "same day" : `${reviewWait.fastest}d`}
+                value={reviewWait.waitDetails.fastest === 0 ? "same day" : `${reviewWait.waitDetails.fastest}d`}
                 lightColor="#1a7f37"
                 darkColor="#3fb950"
                 label="Fastest"
-                title={`Shortest review wait: ${reviewWait.fastest} day${reviewWait.fastest !== 1 ? "s" : ""}`}
+                title={`Shortest review wait: ${pluralize(reviewWait.waitDetails.fastest, "day")}`}
               />
               <Stat
-                value={`${reviewWait.slowest}d`}
+                value={`${reviewWait.waitDetails.slowest}d`}
                 lightColor="#d97706"
                 darkColor="#f59e0b"
                 label="Slowest"
-                title={`Longest review wait: ${reviewWait.slowest} day${reviewWait.slowest !== 1 ? "s" : ""}`}
+                title={`Longest review wait: ${pluralize(reviewWait.waitDetails.slowest, "day")}`}
               />
             </>
           )}
@@ -128,12 +132,12 @@ const StatsBar: FunctionComponent<Props> = ({ items, view, colorblindMode }) => 
           {closedPRs.length > 0 && (
             <Stat value={String(closedPRs.length)} lightColor={palette.prClosed} label="PRs closed" title="Number of pull requests closed without being merged" />
           )}
-          {avgCycle !== null && (
+          {cycleStats !== null && (
             <>
               <Divider orientation="vertical" flexItem />
-              <Stat value={`${avgCycle}d`}      label="Avg cycle" title="Average days from issue creation to close, across all closed issues" />
-              <Stat value={`${fastestCycle}d`}  lightColor="#1a7f37" darkColor="#3fb950" label="Fastest" title={`Fastest issue closed in ${fastestCycle} day${fastestCycle !== 1 ? "s" : ""} (creation to close)`} />
-              <Stat value={`${slowestCycle}d`}  lightColor="#d97706" darkColor="#f59e0b" label="Slowest" title={`Slowest issue took ${slowestCycle} day${slowestCycle !== 1 ? "s" : ""} to close (creation to close)`} />
+              <Stat value={`${cycleStats.avg}d`}     label="Avg cycle" title="Average days from issue creation to close, across all closed issues" />
+              <Stat value={`${cycleStats.fastest}d`} lightColor="#1a7f37" darkColor="#3fb950" label="Fastest" title={`Fastest issue closed in ${pluralize(cycleStats.fastest, "day")} (creation to close)`} />
+              <Stat value={`${cycleStats.slowest}d`} lightColor="#d97706" darkColor="#f59e0b" label="Slowest" title={`Slowest issue took ${pluralize(cycleStats.slowest, "day")} to close (creation to close)`} />
             </>
           )}
         </>

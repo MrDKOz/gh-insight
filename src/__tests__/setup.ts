@@ -1,5 +1,28 @@
 import "@testing-library/jest-dom/vitest";
 
+// jsdom doesn't implement matchMedia — MUI's responsive utilities call it at render time
+Object.defineProperty(window, "matchMedia", {
+  writable: true,
+  value: (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  }),
+});
+
+// jsdom doesn't implement ResizeObserver — MUI components may observe element sizes
+class MockResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+Object.defineProperty(window, "ResizeObserver", { writable: true, value: MockResizeObserver });
+
 let warnSpy: ReturnType<typeof vi.spyOn>;
 let errorSpy: ReturnType<typeof vi.spyOn>;
 

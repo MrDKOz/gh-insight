@@ -1,5 +1,5 @@
 import type { TimelineItem } from "../types";
-import { MS, fmtDate, itemEndDate } from "./utils";
+import { MS, fmtDate, itemEndDate, itemStatus } from "./utils";
 
 const safeFilename = (s: string): string =>
   s
@@ -41,10 +41,7 @@ const buildRows = (items: TimelineItem[]): Row[] =>
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
     .map((item) => {
       const endDate = itemEndDate(item);
-      const status =
-        item.type === "pr"
-          ? (item.mergedAt ? "Merged" : item.closedAt ? "Closed" : "Open")
-          : (item.closedAt ? "Closed" : "Open");
+      const status = itemStatus(item);
       const days =
         endDate != null
           ? Math.max(0, Math.round((new Date(endDate).getTime() - new Date(item.createdAt).getTime()) / MS))
@@ -487,7 +484,7 @@ const buildReviewWaitRows = (items: TimelineItem[]): ReviewWaitRow[] =>
       const reviewMs = pr.firstReviewAt ? new Date(pr.firstReviewAt).getTime() : null;
       const waitDays = reviewMs !== null ? Math.max(0, Math.round((reviewMs - createdMs) / MS)) : null;
       const totalDays = endMs !== null ? Math.max(0, Math.round((endMs - createdMs) / MS)) : null;
-      const status = pr.mergedAt ? "Merged" : pr.closedAt ? "Closed" : "Open";
+      const status = itemStatus(pr);
       return {
         num: `#${pr.number}`,
         title: pr.title,

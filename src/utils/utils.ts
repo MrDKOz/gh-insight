@@ -91,4 +91,27 @@ const durationDays = (start: string, end: string | null): number | null => {
 const assigneesOtherThanAuthor = (assignees: string[], author: string): string[] =>
   assignees.filter((a) => a !== author);
 
-export { COLORS, COLORS_CB, MS, assigneesOtherThanAuthor, durationDays, fmtDate, hoverCardPos, itemEndDate, labelTextColor, safeUrl };
+/**
+ * Binary upper-bound search: returns the number of elements in a sorted array
+ * that are ≤ t (i.e., the first index where arr[i] > t).
+ */
+const upperBound = (arr: number[], t: number): number => {
+  let lo = 0, hi = arr.length;
+  // arr[mid] is always within bounds: mid = (lo+hi)>>>1, and lo < hi throughout the loop
+  while (lo < hi) { const mid = (lo + hi) >>> 1; arr[mid]! <= t ? (lo = mid + 1) : (hi = mid); }
+  return lo;
+};
+
+/** Canonical open/closed/merged status for any timeline item. */
+const itemStatus = (item: TimelineItem): "Open" | "Closed" | "Merged" => {
+  if (item.type === "issue") { return item.closedAt ? "Closed" : "Open"; }
+  if (item.mergedAt) { return "Merged"; }
+  if (item.closedAt) { return "Closed"; }
+  return "Open";
+};
+
+/** Returns `"${count} ${word}"` with an "s" suffix when count !== 1. */
+const pluralize = (count: number, word: string): string =>
+  `${count} ${word}${count !== 1 ? "s" : ""}`;
+
+export { COLORS, COLORS_CB, MS, assigneesOtherThanAuthor, durationDays, fmtDate, hoverCardPos, itemEndDate, itemStatus, labelTextColor, pluralize, safeUrl, upperBound };

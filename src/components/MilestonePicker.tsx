@@ -8,6 +8,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
+import { pluralize } from "../utils/utils";
 
 type Props = {
   milestones: Milestone[];
@@ -78,7 +79,7 @@ const MilestonePicker: FunctionComponent<Props> = ({ milestones, selected, loadi
                     {ms.title}
                   </Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ ml: 1.5, whiteSpace: "nowrap" }}>
-                    {ms.openIssues + ms.closedIssues} issue{ms.openIssues + ms.closedIssues !== 1 ? "s" : ""} ({ms.state})
+                    {pluralize(ms.openIssues + ms.closedIssues, "issue")} ({ms.state})
                   </Typography>
                 </MenuItem>
               ))}

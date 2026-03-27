@@ -18,7 +18,7 @@ import { CumulativeFlow } from "../charts/CumulativeFlow";
 import { CycleTime } from "../charts/CycleTime";
 import { Velocity } from "../charts/Velocity";
 import { exportCSV, exportChartPDF, exportGanttPDF, exportMarkdown, exportPDF, exportPNG, exportReviewWaitCSV, exportReviewWaitMarkdown, exportReviewWaitPDF, exportReviewWaitXLSX, exportSVG, exportXLSX } from "../utils/export";
-import { MS, itemEndDate } from "../utils/utils";
+import { MS, itemEndDate, pluralize } from "../utils/utils";
 import { FilterBar, applyFilters } from "./FilterBar";
 import { GanttView } from "./GanttView";
 import { ItemList } from "./ItemList";
@@ -346,8 +346,8 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
             {title}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            {issueItems.length} issue{issueItems.length !== 1 ? "s" : ""} ({closedIssues.length} closed),{" "}
-            {prItems.length} PR{prItems.length !== 1 ? "s" : ""} ({mergedPRs.length} merged)
+            {pluralize(issueItems.length, "issue")} ({closedIssues.length} closed),{" "}
+            {pluralize(prItems.length, "PR")} ({mergedPRs.length} merged)
           </Typography>
         </Box>
 

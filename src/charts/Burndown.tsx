@@ -4,7 +4,7 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useMemo, useRef, useState } from "react";
-import { COLORS, COLORS_CB, MS, fmtDate, hoverCardPos } from "../utils/utils";
+import { COLORS, COLORS_CB, MS, fmtDate, hoverCardPos, pluralize, upperBound } from "../utils/utils";
 
 type Props = {
   items: TimelineItem[];
@@ -40,12 +40,6 @@ const makeC = (cb: boolean) => {
   };
 };
 
-const upperBound = (arr: number[], t: number): number => {
-  let lo = 0, hi = arr.length;
-  // arr[mid] is always within bounds: mid = (lo+hi)>>>1, and lo < hi throughout the loop
-  while (lo < hi) { const mid = (lo + hi) >>> 1; arr[mid]! <= t ? (lo = mid + 1) : (hi = mid); }
-  return lo;
-};
 
 type HoverInfo = {
   x: number;
@@ -192,7 +186,7 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
           )}
           <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
             <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: hover.msColor ?? C.line, flexShrink: 0 }} />
-            {hover.count} open issue{hover.count !== 1 ? "s" : ""}
+            {pluralize(hover.count, "open issue")}
           </Box>
         </Paper>
       )}

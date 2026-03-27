@@ -96,6 +96,13 @@ const HelpPopover: FunctionComponent = () => {
           About GitHub Work Visualiser
         </Typography>
 
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
+          Made by{" "}
+          <Link href="https://github.com/MrDKOz" target="_blank" rel="noreferrer" variant="caption">
+            @MrDKOz
+          </Link>
+        </Typography>
+
         <Stack gap={1.5}>
           {SECTIONS.map((section, i) => (
             <Box key={section.heading}>
