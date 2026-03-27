@@ -1,13 +1,13 @@
-import { describe, it, expect } from "vitest";
-import { applyFilters, DEFAULT_FILTERS } from "../FilterBar";
-import type { Filters } from "../FilterBar";
 import type { TimelineItem } from "../../types";
+import type { Filters } from "../FilterBar";
+import { DEFAULT_FILTERS, applyFilters } from "../FilterBar";
 
 const issue = (overrides: Partial<{ createdAt: string; closedAt: string | null; number: number }> = {}): TimelineItem => ({
   type: "issue", number: 1, title: "Bug",
   url: "https://github.com/o/r/issues/1", author: "jsmith",
   createdAt: "2025-01-10T00:00:00Z", closedAt: null,
   linkedPRs: [], milestoneNumber: 1,
+  labels: [], assignees: [], reopenedCount: 0,
   ...overrides,
 });
 
@@ -16,6 +16,7 @@ const pr = (overrides: Partial<{ createdAt: string; mergedAt: string | null; clo
   url: "https://github.com/o/r/pull/2", author: "a-jones",
   createdAt: "2025-01-10T00:00:00Z", mergedAt: null, closedAt: null,
   linkedIssue: null, milestoneNumber: 1,
+  labels: [], assignees: [], firstReviewAt: null,
   ...overrides,
 });
 
@@ -52,6 +53,7 @@ describe("applyFilters — show/hide toggles", () => {
   it("hides open issues when showOpenIssues is false", () => {
     const f: Filters = { ...DEFAULT_FILTERS, showOpenIssues: false };
     const result = applyFilters(all, f);
+
     expect(result).not.toContainEqual(openIssue);
     expect(result).toContainEqual(closedIssue);
   });
@@ -59,6 +61,7 @@ describe("applyFilters — show/hide toggles", () => {
   it("hides closed issues when showClosedIssues is false", () => {
     const f: Filters = { ...DEFAULT_FILTERS, showClosedIssues: false };
     const result = applyFilters(all, f);
+
     expect(result).not.toContainEqual(closedIssue);
     expect(result).toContainEqual(openIssue);
   });
@@ -66,6 +69,7 @@ describe("applyFilters — show/hide toggles", () => {
   it("hides open PRs when showOpenPRs is false", () => {
     const f: Filters = { ...DEFAULT_FILTERS, showOpenPRs: false };
     const result = applyFilters(all, f);
+
     expect(result).not.toContainEqual(openPR);
     expect(result).toContainEqual(mergedPR);
     expect(result).toContainEqual(closedPR);
@@ -74,6 +78,7 @@ describe("applyFilters — show/hide toggles", () => {
   it("hides merged PRs when showMergedPRs is false", () => {
     const f: Filters = { ...DEFAULT_FILTERS, showMergedPRs: false };
     const result = applyFilters(all, f);
+
     expect(result).not.toContainEqual(mergedPR);
     expect(result).toContainEqual(openPR);
   });
@@ -81,6 +86,7 @@ describe("applyFilters — show/hide toggles", () => {
   it("hides closed (non-merged) PRs when showClosedPRs is false", () => {
     const f: Filters = { ...DEFAULT_FILTERS, showClosedPRs: false };
     const result = applyFilters(all, f);
+
     expect(result).not.toContainEqual(closedPR);
     expect(result).toContainEqual(mergedPR);
   });
@@ -91,6 +97,7 @@ describe("applyFilters — createdAt range", () => {
     const early = issue({ number: 11, createdAt: "2025-01-05T00:00:00Z" });
     const late  = issue({ number: 12, createdAt: "2025-01-15T00:00:00Z" });
     const f: Filters = { ...DEFAULT_FILTERS, createdStart: "2025-01-10" };
+
     expect(applyFilters([early, late], f)).toEqual([late]);
   });
 
@@ -98,7 +105,22 @@ describe("applyFilters — createdAt range", () => {
     const early = issue({ number: 11, createdAt: "2025-01-05T00:00:00Z" });
     const late  = issue({ number: 12, createdAt: "2025-01-15T00:00:00Z" });
     const f: Filters = { ...DEFAULT_FILTERS, createdEnd: "2025-01-10" };
+
     expect(applyFilters([early, late], f)).toEqual([early]);
+  });
+
+  it("includes items created exactly on createdStart (inclusive lower bound)", () => {
+    const boundary = issue({ number: 13, createdAt: "2025-01-10T00:00:00Z" });
+    const f: Filters = { ...DEFAULT_FILTERS, createdStart: "2025-01-10" };
+
+    expect(applyFilters([boundary], f)).toEqual([boundary]);
+  });
+
+  it("includes items created exactly on createdEnd (inclusive upper bound)", () => {
+    const boundary = issue({ number: 14, createdAt: "2025-01-10T23:59:59Z" });
+    const f: Filters = { ...DEFAULT_FILTERS, createdEnd: "2025-01-10" };
+
+    expect(applyFilters([boundary], f)).toEqual([boundary]);
   });
 });
 
@@ -106,6 +128,7 @@ describe("applyFilters — closedAt range", () => {
   it("excludes open items when a closed-date filter is active", () => {
     const f: Filters = { ...DEFAULT_FILTERS, closedStart: "2025-01-01" };
     const result = applyFilters([openIssue, closedIssue], f);
+
     expect(result).not.toContainEqual(openIssue);
     expect(result).toContainEqual(closedIssue);
   });
@@ -114,6 +137,7 @@ describe("applyFilters — closedAt range", () => {
     const early = issue({ number: 11, closedAt: "2025-01-20T00:00:00Z" });
     const late  = issue({ number: 12, closedAt: "2025-02-01T00:00:00Z" });
     const f: Filters = { ...DEFAULT_FILTERS, closedStart: "2025-01-25" };
+
     expect(applyFilters([early, late], f)).toEqual([late]);
   });
 
@@ -121,6 +145,21 @@ describe("applyFilters — closedAt range", () => {
     const early = issue({ number: 11, closedAt: "2025-01-20T00:00:00Z" });
     const late  = issue({ number: 12, closedAt: "2025-02-01T00:00:00Z" });
     const f: Filters = { ...DEFAULT_FILTERS, closedEnd: "2025-01-25" };
+
     expect(applyFilters([early, late], f)).toEqual([early]);
+  });
+
+  it("includes items closed exactly on closedStart (inclusive lower bound)", () => {
+    const boundary = issue({ number: 13, closedAt: "2025-01-25T00:00:00Z" });
+    const f: Filters = { ...DEFAULT_FILTERS, closedStart: "2025-01-25" };
+
+    expect(applyFilters([boundary], f)).toEqual([boundary]);
+  });
+
+  it("includes items closed exactly on closedEnd (inclusive upper bound)", () => {
+    const boundary = issue({ number: 14, closedAt: "2025-01-25T23:59:59Z" });
+    const f: Filters = { ...DEFAULT_FILTERS, closedEnd: "2025-01-25" };
+
+    expect(applyFilters([boundary], f)).toEqual([boundary]);
   });
 });
