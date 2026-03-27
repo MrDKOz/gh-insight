@@ -5,13 +5,12 @@ import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { AuthorTag } from "../components/AuthorTag";
-import { CHART_EMPTY_STATE_SX, fmtDate, hoverCardPos, itemEndDate, makeChartColors } from "../utils/utils";
+import { CHART_EMPTY_STATE_SX, FS, HOVER_CARD_BASE_SX, fmtDate, hoverCardPos, itemEndDate, makeChartColors, safeUrl } from "../utils/utils";
 
 type Props = {
   items: TimelineItem[];
   colorblindMode: boolean;
 };
-
 
 type ContribRow = {
   login: string;
@@ -31,9 +30,13 @@ type Hover = {
   latestDate: string | null;
 };
 
-const L = 150, R = 48, T = 20, B = 36, W = 1200;
+// L is the left margin reserved for avatar + username label.
+const L = 170, R = 48, T = 20, B = 36, W = 1200;
 const ROW_H = 36;
 const BAR_H = 22;
+const AVATAR_SIZE = 18;
+const AVATAR_R_GAP = 6;   // px between avatar right edge and y-axis line
+const AVATAR_T_GAP = 5;   // px between text right edge and avatar left edge
 
 const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) => {
   const COL = makeChartColors(colorblindMode);
@@ -132,39 +135,48 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
   const xStep  = maxTotal <= 10 ? 1 : maxTotal <= 30 ? 5 : Math.ceil(maxTotal / 6);
   const xTicks = Array.from({ length: Math.floor(maxTotal / xStep) + 1 }, (_, i) => i * xStep);
 
+  // Avatar positions
+  const avatarX = L - AVATAR_R_GAP - AVATAR_SIZE;
+  const textX   = avatarX - AVATAR_T_GAP;
+
+  const LEGEND_ITEMS = [
+    { seg: "issues" as const, label: "Issues closed" },
+    { seg: "merged" as const, label: "PRs merged" },
+    { seg: "closed" as const, label: "PRs closed" },
+  ];
+
   return (
     <Box className="chart-wrap" ref={wrapRef} style={{ position: "relative" }}>
       {hover && (
         <Paper
           elevation={2}
-          sx={{
-            position: "absolute",
-            display: "flex",
-            flexDirection: "column",
-            gap: "5px",
-            minWidth: 160,
-            px: 1.5,
-            py: 1,
-            pointerEvents: "none",
-            zIndex: 50,
-            ...cardStyle,
-          }}
+          sx={{ ...HOVER_CARD_BASE_SX, minWidth: 160, ...cardStyle }}
         >
           <AuthorTag login={hover.row.login} />
-          <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: FS.md, fontWeight: 600 }}>
             <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: segColor(hover.segment), flexShrink: 0 }} />
             {hover.count} {segLabel(hover.segment)}
           </Box>
           {hover.earliestDate && hover.latestDate && hover.earliestDate !== hover.latestDate && (
-            <Box sx={{ fontSize: "0.6875rem", color: "text.secondary", fontWeight: 500 }}>
+            <Box sx={{ fontSize: FS.sm, color: "text.secondary", fontWeight: 500 }}>
               {fmtDate(hover.earliestDate)} – {fmtDate(hover.latestDate)}
             </Box>
           )}
-          <Box sx={{ fontSize: "0.6875rem", color: "text.secondary", borderTop: 1, borderColor: "divider", pt: "4px", mt: "2px", fontWeight: 600 }}>
+          <Box sx={{ fontSize: FS.sm, color: "text.secondary", borderTop: 1, borderColor: "divider", pt: "4px", mt: "2px", fontWeight: 600 }}>
             Total: {hover.row.total}
           </Box>
         </Paper>
       )}
+
+      {/* Legend — outside the SVG so it never overlaps bars */}
+      <Box sx={{ display: "flex", gap: 2, mb: 1 }}>
+        {LEGEND_ITEMS.map(({ seg, label }) => (
+          <Box key={seg} sx={{ display: "flex", alignItems: "center", gap: "5px" }}>
+            <Box sx={{ width: 10, height: 10, borderRadius: "2px", bgcolor: segColor(seg), opacity: 0.88, flexShrink: 0 }} />
+            <Typography sx={{ fontSize: FS.sm, color: "text.secondary" }}>{label}</Typography>
+          </Box>
+        ))}
+      </Box>
 
       <table className="sr-only" aria-label="Contributor breakdown data">
         <caption>Completed items per contributor</caption>
@@ -196,6 +208,13 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
         aria-hidden="true"
         onMouseLeave={() => setHover(null)}
       >
+        <defs>
+          {/* Shared circular clip for all contributor avatars */}
+          <clipPath id="contrib-avatar-clip" clipPathUnits="objectBoundingBox">
+            <circle cx="0.5" cy="0.5" r="0.5" />
+          </clipPath>
+        </defs>
+
         {/* Grid lines */}
         {xTicks.map((v) => (
           <line key={v}
@@ -214,20 +233,33 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
             { seg: "closed", count: row.closed },
           ];
 
+          const profileUrl = safeUrl(`https://github.com/${row.login}`);
+          const avatarUrl  = safeUrl(`https://github.com/${row.login}.png?size=40`);
+
           return (
             <g key={row.login}>
-              {/* Contributor label (left) */}
-              <text
-                x={L - 8}
-                y={cy + BAR_H / 2 + 4}
-                textAnchor="end"
-                fill={COL.label}
-                fontSize={10}
-                fontFamily="inherit"
-                className="chart-label"
-              >
-                {row.login}
-              </text>
+              {/* Avatar + username — both wrapped in a link to the GitHub profile */}
+              <a href={profileUrl} target="_blank" rel="noreferrer" style={{ cursor: "pointer" }}>
+                <image
+                  href={avatarUrl}
+                  x={avatarX.toFixed(1)}
+                  y={(cy + (BAR_H - AVATAR_SIZE) / 2).toFixed(1)}
+                  width={AVATAR_SIZE}
+                  height={AVATAR_SIZE}
+                  clipPath="url(#contrib-avatar-clip)"
+                />
+                <text
+                  x={textX.toFixed(1)}
+                  y={cy + BAR_H / 2 + 4}
+                  textAnchor="end"
+                  fill={COL.label}
+                  fontSize={10}
+                  fontFamily="inherit"
+                  className="chart-label"
+                >
+                  {row.login}
+                </text>
+              </a>
 
               {/* Stacked segments */}
               {segments.map(({ seg, count }) => {
@@ -283,20 +315,6 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
           >
             {v}
           </text>
-        ))}
-
-        {/* Legend */}
-        {([
-          { seg: "issues" as const, label: "Issues closed" },
-          { seg: "merged" as const, label: "PRs merged" },
-          { seg: "closed" as const, label: "PRs closed" },
-        ]).map(({ seg, label }, i) => (
-          <g key={seg} transform={`translate(${L + CW - 160}, ${T + i * 15})`}>
-            <rect x={0} y={-8} width={10} height={10} fill={segColor(seg)} rx={2} />
-            <text x={14} y={0} fill={COL.label} fontSize={9} fontFamily="inherit" className="chart-label">
-              {label}
-            </text>
-          </g>
         ))}
       </svg>
     </Box>
