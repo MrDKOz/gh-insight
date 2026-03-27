@@ -17,7 +17,7 @@ import { Contributors } from "../charts/Contributors";
 import { CumulativeFlow } from "../charts/CumulativeFlow";
 import { CycleTime } from "../charts/CycleTime";
 import { Velocity } from "../charts/Velocity";
-import { exportCSV, exportChartPDF, exportMarkdown, exportPDF, exportPNG, exportReviewWaitCSV, exportReviewWaitMarkdown, exportReviewWaitPDF, exportReviewWaitXLSX, exportXLSX } from "../utils/export";
+import { exportCSV, exportChartPDF, exportGanttPDF, exportMarkdown, exportPDF, exportPNG, exportReviewWaitCSV, exportReviewWaitMarkdown, exportReviewWaitPDF, exportReviewWaitXLSX, exportSVG, exportXLSX } from "../utils/export";
 import { MS, itemEndDate } from "../utils/utils";
 import { FilterBar, applyFilters } from "./FilterBar";
 import { GanttView } from "./GanttView";
@@ -32,21 +32,22 @@ type Props = {
   colorblindMode: boolean;
 };
 
-type ExportFormat = "CSV" | "XLSX" | "Markdown" | "PNG — Current view" | "PNG — Full timeline" | "PDF";
+type ExportFormat = "CSV" | "XLSX" | "Markdown" | "PNG — Current view" | "PNG — Full timeline" | "PDF" | "SVG";
 
 // Only show export formats whose output visually matches what is on screen:
-//   Gantt        — PNG only; a data table is not a Gantt chart
-//   Chart views  — PNG (current) + PDF (embeds the chart as an image)
-//   List         — CSV / XLSX / Markdown / PDF; the list IS a data table so all four match
-//   Review Wait  — same as List but routed to dedicated review-wait export functions that
-//                  include the PR-specific columns (first review date, wait days, total days)
+//   Gantt       — PNG (current + full) + PDF (full Gantt embedded as image in PDF)
+//   Chart views — PNG (current) + PDF (chart image) + SVG (true vector; extracted directly
+//                 from the <svg aria-hidden> element — editable in Illustrator/Inkscape)
+//   Review Wait — CSV / XLSX / Markdown / PDF (data table) + PNG (captures table + wait bars)
+//   List        — CSV / XLSX / Markdown / PDF (data table) + PNG (captures visible table)
 const CHART_VIEWS = new Set<View>(["Burndown", "Cycle Time", "Velocity", "Cumulative Flow", "Contributors"]);
 
 const formatsForView = (v: View): ExportFormat[] => {
-  if (v === "Gantt")        {return ["PNG — Current view", "PNG — Full timeline"];}
-  if (v === "List")         {return ["CSV", "XLSX", "Markdown", "PDF"];}
-  if (v === "Review Wait")  {return ["CSV", "XLSX", "Markdown", "PNG — Current view", "PDF"];}
-  return ["PNG — Current view", "PDF"];
+  if (v === "Gantt")       {return ["PNG — Current view", "PNG — Full timeline", "PDF"];}
+  if (v === "List")        {return ["CSV", "XLSX", "Markdown", "PNG — Current view", "PDF"];}
+  if (v === "Review Wait") {return ["CSV", "XLSX", "Markdown", "PNG — Current view", "PDF"];}
+  // Chart views (Burndown, Cycle Time, Velocity, Cumulative Flow, Contributors)
+  return ["PNG — Current view", "PDF", "SVG"];
 };
 
 type View = "Gantt" | "Burndown" | "Cycle Time" | "Velocity" | "Cumulative Flow" | "Contributors" | "Review Wait" | "List";
@@ -237,22 +238,21 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
       setExporting(fmt);
       try {
         if (view === "Review Wait") {
-          if (fmt === "CSV")      {exportReviewWaitCSV(filteredItems, title);}
-          else if (fmt === "Markdown") {exportReviewWaitMarkdown(filteredItems, title);}
-          else if (fmt === "XLSX")     {await exportReviewWaitXLSX(filteredItems, title);}
-          else if (fmt === "PDF")      {await exportReviewWaitPDF(filteredItems, title);}
-          else if (fmt === "PNG — Current view")
-            {await exportPNG(wrapperRef.current!, trackColRef.current, title, "current");}
-        } else if (fmt === "CSV")                  {exportCSV(filteredCompletedItems, title);}
-        else if (fmt === "Markdown")        {exportMarkdown(filteredCompletedItems, title);}
-        else if (fmt === "XLSX")            {await exportXLSX(filteredCompletedItems, title);}
-        else if (fmt === "PNG — Current view")
-          {await exportPNG(wrapperRef.current!, trackColRef.current, title, "current");}
-        else if (fmt === "PNG — Full timeline")
-          {await exportPNG(wrapperRef.current!, trackColRef.current, title, "full");}
+          if      (fmt === "CSV")                {exportReviewWaitCSV(filteredItems, title);}
+          else if (fmt === "Markdown")           {exportReviewWaitMarkdown(filteredItems, title);}
+          else if (fmt === "XLSX")               {await exportReviewWaitXLSX(filteredItems, title);}
+          else if (fmt === "PDF")                {await exportReviewWaitPDF(filteredItems, title);}
+          else if (fmt === "PNG — Current view") {await exportPNG(wrapperRef.current!, trackColRef.current, title, "current");}
+        } else if (fmt === "SVG")                {exportSVG(wrapperRef.current!, title);}
+        else if (fmt === "CSV")                  {exportCSV(filteredCompletedItems, title);}
+        else if (fmt === "Markdown")             {exportMarkdown(filteredCompletedItems, title);}
+        else if (fmt === "XLSX")                 {await exportXLSX(filteredCompletedItems, title);}
+        else if (fmt === "PNG — Current view")   {await exportPNG(wrapperRef.current!, trackColRef.current, title, "current");}
+        else if (fmt === "PNG — Full timeline")  {await exportPNG(wrapperRef.current!, trackColRef.current, title, "full");}
         else if (fmt === "PDF") {
-          if (CHART_VIEWS.has(view)) {await exportChartPDF(wrapperRef.current!, title);}
-          else                       {await exportPDF(filteredCompletedItems, title);}
+          if (view === "Gantt")          {await exportGanttPDF(wrapperRef.current!, trackColRef.current, title);}
+          else if (CHART_VIEWS.has(view)){await exportChartPDF(wrapperRef.current!, title);}
+          else                           {await exportPDF(filteredCompletedItems, title);}
         }
       } catch (e) {
         console.error(`Export ${fmt} failed:`, e);

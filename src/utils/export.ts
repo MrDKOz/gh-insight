@@ -150,42 +150,32 @@ const captureElement = async (el: HTMLElement, overrides?: { width?: number; hei
   }
 };
 
-const exportPNG = async (
+// Temporarily expands the Gantt track column to its full scroll width, calls fn with
+// the resulting capture dimensions, then restores original styles — used by both
+// PNG full-timeline and Gantt PDF exports to avoid duplicating expand/restore logic.
+const withExpandedGantt = async <T>(
   wrapperEl: HTMLElement,
   trackColEl: HTMLElement | null,
-  title: string,
-  mode: "current" | "full",
-): Promise<void> => {
+  fn: (size: { width: number; height: number }) => Promise<T>,
+): Promise<T> => {
   let prevTrackOverflowX = "";
   let prevTrackWidth = "";
   let prevWrapperWidth = "";
-  let captureWidth: number | undefined;
-  let captureHeight: number | undefined;
 
-  if (mode === "full" && trackColEl) {
+  if (trackColEl) {
     prevTrackOverflowX = trackColEl.style.overflowX;
     prevTrackWidth = trackColEl.style.width;
     prevWrapperWidth = wrapperEl.style.width;
-
     trackColEl.style.overflowX = "visible";
     trackColEl.style.width = `${trackColEl.scrollWidth}px`;
-
-    captureWidth = wrapperEl.scrollWidth;
-    captureHeight = wrapperEl.scrollHeight;
-    wrapperEl.style.width = `${captureWidth}px`;
+    wrapperEl.style.width = `${wrapperEl.scrollWidth}px`;
   }
-
+  const width = wrapperEl.scrollWidth;
+  const height = wrapperEl.scrollHeight;
   try {
-    const sizeOverride = captureWidth !== undefined
-      ? ({ width: captureWidth, ...(captureHeight !== undefined ? { height: captureHeight } : {}) })
-      : undefined;
-    const dataUrl = await captureElement(wrapperEl, sizeOverride);
-    const a = document.createElement("a");
-    a.href = dataUrl;
-    a.download = `${safeFilename(title)}_${mode === "full" ? "full" : "current"}.png`;
-    a.click();
+    return await fn({ width, height });
   } finally {
-    if (mode === "full" && trackColEl) {
+    if (trackColEl) {
       trackColEl.style.overflowX = prevTrackOverflowX;
       trackColEl.style.width = prevTrackWidth;
       wrapperEl.style.width = prevWrapperWidth;
@@ -193,37 +183,102 @@ const exportPNG = async (
   }
 };
 
-const exportChartPDF = async (wrapperEl: HTMLElement, title: string): Promise<void> => {
+const exportPNG = async (
+  wrapperEl: HTMLElement,
+  trackColEl: HTMLElement | null,
+  title: string,
+  mode: "current" | "full",
+): Promise<void> => {
+  const download = (dataUrl: string, suffix: string) => {
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = `${safeFilename(title)}_${suffix}.png`;
+    a.click();
+  };
+
+  if (mode === "full") {
+    await withExpandedGantt(wrapperEl, trackColEl, async ({ width, height }) => {
+      download(await captureElement(wrapperEl, { width, height }), "full");
+    });
+  } else {
+    download(await captureElement(wrapperEl), "current");
+  }
+};
+
+// Embed an image data URL into a landscape A4 PDF, scaled to fit with a title header.
+const embedImageInPDF = async (dataUrl: string, title: string, filename: string): Promise<void> => {
   const { jsPDF } = await import("jspdf");
 
-  const dataUrl = await captureElement(wrapperEl);
-
-  // Resolve natural image dimensions (captured at pixelRatio 2, so halve for CSS px)
   const img = new Image();
   img.src = dataUrl;
   await new Promise<void>((resolve) => { img.onload = () => resolve(); });
+  // Captured at pixelRatio 2, so divide by 2 for CSS px → mm scaling
   const imgCssW = img.width / 2;
   const imgCssH = img.height / 2;
 
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-  const pageW = doc.internal.pageSize.getWidth();   // 297mm
-  const pageH = doc.internal.pageSize.getHeight();  // 210mm
   const margin = 14;
   const titleH = 12;
-  const availW = pageW - margin * 2;
-  const availH = pageH - margin - titleH - margin;
+  const availW = doc.internal.pageSize.getWidth() - margin * 2;
+  const availH = doc.internal.pageSize.getHeight() - margin - titleH - margin;
 
-  // Scale image to fit available area while preserving aspect ratio
   const scale = Math.min(availW / imgCssW, availH / imgCssH);
-  const drawW = imgCssW * scale;
-  const drawH = imgCssH * scale;
-
   doc.setFontSize(14);
   doc.setTextColor(36, 47, 47);
   doc.text(title, margin, margin + 6);
+  doc.addImage(dataUrl, "PNG", margin, margin + titleH, imgCssW * scale, imgCssH * scale);
+  doc.save(filename);
+};
 
-  doc.addImage(dataUrl, "PNG", margin, margin + titleH, drawW, drawH);
-  doc.save(`${safeFilename(title)}_chart.pdf`);
+// Chart views: capture the current viewport and embed as an image in a PDF.
+const exportChartPDF = async (wrapperEl: HTMLElement, title: string): Promise<void> => {
+  await embedImageInPDF(await captureElement(wrapperEl), title, `${safeFilename(title)}_chart.pdf`);
+};
+
+// Gantt: expand to full scroll width, capture, then embed in a landscape A4 PDF.
+const exportGanttPDF = async (
+  wrapperEl: HTMLElement,
+  trackColEl: HTMLElement | null,
+  title: string,
+): Promise<void> => {
+  await withExpandedGantt(wrapperEl, trackColEl, async ({ width, height }) => {
+    await embedImageInPDF(
+      await captureElement(wrapperEl, { width, height }),
+      title,
+      `${safeFilename(title)}_gantt.pdf`,
+    );
+  });
+};
+
+// Chart views: extract the SVG element directly for a clean, scalable vector file.
+// The charts use hardcoded presentation attributes (fill, stroke) so the exported SVG
+// renders correctly in any vector tool or browser without the page's CSS.
+const exportSVG = (wrapperEl: HTMLElement, title: string): void => {
+  const svgEl = wrapperEl.querySelector<SVGSVGElement>('svg[aria-hidden="true"]');
+  if (!svgEl) { return; }
+
+  const clone = svgEl.cloneNode(true) as SVGSVGElement;
+  clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+
+  // Replace width: 100% / height: auto with explicit pixel dimensions from the
+  // viewBox so the file has natural dimensions when opened standalone.
+  const vb = clone.getAttribute("viewBox");
+  if (vb) {
+    const parts = vb.split(/\s+/);
+    if (parts[2]) { clone.setAttribute("width", parts[2]); }
+    if (parts[3]) { clone.setAttribute("height", parts[3]); }
+  }
+  clone.removeAttribute("style");
+
+  // Set a concrete font-family so text using fontFamily="inherit" renders
+  // with a reasonable font when the SVG is opened outside the browser page.
+  clone.setAttribute("font-family", "redgate-type, sans-serif");
+
+  triggerBlobDownload(
+    new XMLSerializer().serializeToString(clone),
+    `${safeFilename(title)}.svg`,
+    "image/svg+xml;charset=utf-8;",
+  );
 };
 
 const exportPDF = async (items: TimelineItem[], title: string): Promise<void> => {
@@ -453,4 +508,4 @@ const exportReviewWaitPDF = async (items: TimelineItem[], title: string): Promis
   doc.save(`${safeFilename(title)}_review_wait.pdf`);
 };
 
-export { buildRows, exportCSV, exportChartPDF, exportMarkdown, exportPDF, exportPNG, exportReviewWaitCSV, exportReviewWaitMarkdown, exportReviewWaitPDF, exportReviewWaitXLSX, exportXLSX, safeFilename };
+export { buildRows, exportCSV, exportChartPDF, exportGanttPDF, exportMarkdown, exportPDF, exportPNG, exportReviewWaitCSV, exportReviewWaitMarkdown, exportReviewWaitPDF, exportReviewWaitXLSX, exportSVG, exportXLSX, safeFilename };
