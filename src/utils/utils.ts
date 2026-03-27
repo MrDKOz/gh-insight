@@ -276,6 +276,93 @@ const makeStatusChipSx = (colorblindMode: boolean): Record<string, object> => {
   };
 };
 
+/**
+ * Projects the completion date for a milestone's open issues.
+ *
+ * Strategy (in priority order):
+ * 1. Linear regression over the last 30 daily data points — captures recent velocity.
+ * 2. Average close-rate over the full milestone lifetime — fallback when recent data is flat.
+ *
+ * Returns null when there are no open issues, no history to extrapolate from,
+ * or the projection would be in the past / more than 365 days out.
+ */
+type ForecastResult = {
+  projectedDate: Date;
+  /** "regression" = recent trend; "velocity" = overall average close rate */
+  method: "regression" | "velocity";
+  openCount: number;
+  closedCount: number;
+  totalDays: number;
+};
+
+const forecastCompletion = (
+  allItems: TimelineItem[],
+  milestoneNumber?: number,
+): ForecastResult | null => {
+  const todayMs = Date.now();
+  const issues = allItems.filter(
+    (i) => i.type === "issue" && (milestoneNumber === undefined || i.milestoneNumber === milestoneNumber),
+  );
+  if (issues.length === 0) {return null;}
+
+  const hasOpenIssues = issues.some((i) => i.closedAt === null);
+  if (!hasOpenIssues) {return null;}
+
+  const openCount    = issues.filter((i) => i.closedAt === null).length;
+  const closedIssues = issues.filter((i) => i.closedAt !== null);
+  const closedCount  = closedIssues.length;
+
+  const allCreatedTs  = issues.map((i) => new Date(i.createdAt).getTime());
+  const allClosedTs   = closedIssues.map((i) => new Date(i.closedAt!).getTime());
+  const minTime       = Math.min(...allCreatedTs);
+  const maxTime       = Math.max(...allCreatedTs, ...allClosedTs, todayMs);
+  const totalDays     = Math.max(Math.ceil((maxTime - minTime) / MS), 1);
+
+  // Build daily open-issue counts
+  const sortedCreatedTs = [...allCreatedTs].sort((a, b) => a - b);
+  const sortedClosedTs  = [...allClosedTs].sort((a, b) => a - b);
+  const pts = Array.from({ length: totalDays + 1 }, (_, idx) => {
+    const t = minTime + idx * MS;
+    return upperBound(sortedCreatedTs, t) - upperBound(sortedClosedTs, t);
+  });
+
+  // ── Primary: linear regression over last 30 points ───────────────────────────
+  const win = pts.slice(-30);
+  const n   = win.length;
+  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+  for (let i = 0; i < n; i++) {
+    sumX += i; sumY += win[i]!; sumXY += i * win[i]!; sumX2 += i * i;
+  }
+  const denom = n * sumX2 - sumX * sumX;
+  let projectedT: number | null = null;
+  let method: "regression" | "velocity" = "regression";
+  if (denom !== 0) {
+    const slope     = (n * sumXY - sumX * sumY) / denom;
+    const intercept = (sumY - slope * sumX) / n;
+    if (slope < 0) {
+      const zeroDayIdx    = -intercept / slope;
+      const windowStartT  = minTime + (totalDays - n + 1) * MS;
+      const candidate     = windowStartT + zeroDayIdx * MS;
+      if (candidate > todayMs && candidate <= todayMs + 365 * MS) {
+        projectedT = candidate;
+      }
+    }
+  }
+
+  // ── Fallback: average close-rate ─────────────────────────────────────────────
+  if (projectedT === null && closedCount > 0) {
+    const daysPerClose = totalDays / closedCount;
+    const candidate    = todayMs + openCount * daysPerClose * MS;
+    if (candidate > todayMs && candidate <= todayMs + 365 * MS) {
+      projectedT = candidate;
+      method     = "velocity";
+    }
+  }
+
+  if (projectedT === null) {return null;}
+  return { projectedDate: new Date(projectedT), method, openCount, closedCount, totalDays };
+};
+
 export {
   CARD_LABEL_SX,
   CHART_EMPTY_STATE_SX,
@@ -300,6 +387,7 @@ export {
   makeStatusChipSx,
   pluralize,
   safeUrl,
+  forecastCompletion,
   snapToHour,
   upperBound,
 };
