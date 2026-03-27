@@ -92,14 +92,33 @@ const exportMarkdown = (items: TimelineItem[], title: string): void => {
   triggerBlobDownload(lines.join("\n"), `${safeFilename(title)}.md`, "text/markdown;charset=utf-8;");
 };
 
+// Transparent 1×1 PNG — fallback for CORS-blocked images (e.g. GitHub avatars)
+// inside html-to-image's cloned document.
+const TRANSPARENT_PNG =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+
+const htmlToImageOpts = (overrides?: { width?: number; height?: number }) => ({
+  pixelRatio: 2,
+  skipFonts: true,
+  imagePlaceholder: TRANSPARENT_PNG,
+  ...overrides,
+  filter: (node: Node) => !(node instanceof Element && node.hasAttribute("data-export-exclude")),
+});
+
+// Capture an element as a PNG data URL. Two-pass to force Emotion styles to inline.
+const captureElement = async (el: HTMLElement, overrides?: { width?: number; height?: number }): Promise<string> => {
+  const { toPng } = await import("html-to-image");
+  const opts = htmlToImageOpts(overrides);
+  await toPng(el, opts).catch(() => {}); // warm-up
+  return toPng(el, opts);
+};
+
 const exportPNG = async (
   wrapperEl: HTMLElement,
   trackColEl: HTMLElement | null,
   title: string,
   mode: "current" | "full",
 ): Promise<void> => {
-  const { toPng } = await import("html-to-image");
-
   let prevTrackOverflowX = "";
   let prevTrackWidth = "";
   let prevWrapperWidth = "";
@@ -119,26 +138,11 @@ const exportPNG = async (
     wrapperEl.style.width = `${captureWidth}px`;
   }
 
-  // Transparent 1×1 PNG — used as fallback when external images (e.g. GitHub
-  // avatars) fail to load due to CORS inside html-to-image's cloned document.
-  const TRANSPARENT_PNG =
-    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
-
-  const opts = {
-    pixelRatio: 2,
-    skipFonts: true,
-    imagePlaceholder: TRANSPARENT_PNG,
-    ...(captureWidth !== undefined ? { width: captureWidth } : {}),
-    ...(captureHeight !== undefined ? { height: captureHeight } : {}),
-    filter: (node: Node) => !(node instanceof Element && node.hasAttribute("data-export-exclude")),
-  };
-
   try {
-    // Warm-up call: forces Emotion's CSSStyleSheet.insertRule() styles to be
-    // inlined into the cloned document. html-to-image can't capture adoptedStyleSheets
-    // on the first call with Vite/Emotion — the second call always captures correctly.
-    await toPng(wrapperEl, opts).catch(() => {});
-    const dataUrl = await toPng(wrapperEl, opts);
+    const sizeOverride = captureWidth !== undefined
+      ? ({ width: captureWidth, ...(captureHeight !== undefined ? { height: captureHeight } : {}) })
+      : undefined;
+    const dataUrl = await captureElement(wrapperEl, sizeOverride);
     const a = document.createElement("a");
     a.href = dataUrl;
     a.download = `${safeFilename(title)}_${mode === "full" ? "full" : "current"}.png`;
@@ -150,6 +154,39 @@ const exportPNG = async (
       wrapperEl.style.width = prevWrapperWidth;
     }
   }
+};
+
+const exportChartPDF = async (wrapperEl: HTMLElement, title: string): Promise<void> => {
+  const { jsPDF } = await import("jspdf");
+
+  const dataUrl = await captureElement(wrapperEl);
+
+  // Resolve natural image dimensions (captured at pixelRatio 2, so halve for CSS px)
+  const img = new Image();
+  img.src = dataUrl;
+  await new Promise<void>((resolve) => { img.onload = () => resolve(); });
+  const imgCssW = img.width / 2;
+  const imgCssH = img.height / 2;
+
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();   // 297mm
+  const pageH = doc.internal.pageSize.getHeight();  // 210mm
+  const margin = 14;
+  const titleH = 12;
+  const availW = pageW - margin * 2;
+  const availH = pageH - margin - titleH - margin;
+
+  // Scale image to fit available area while preserving aspect ratio
+  const scale = Math.min(availW / imgCssW, availH / imgCssH);
+  const drawW = imgCssW * scale;
+  const drawH = imgCssH * scale;
+
+  doc.setFontSize(14);
+  doc.setTextColor(36, 47, 47);
+  doc.text(title, margin, margin + 6);
+
+  doc.addImage(dataUrl, "PNG", margin, margin + titleH, drawW, drawH);
+  doc.save(`${safeFilename(title)}_chart.pdf`);
 };
 
 const exportPDF = async (items: TimelineItem[], title: string): Promise<void> => {
@@ -244,4 +281,4 @@ const exportXLSX = async (items: TimelineItem[], title: string): Promise<void> =
   });
 };
 
-export { buildRows, exportCSV, exportMarkdown, exportPDF, exportPNG, exportXLSX, safeFilename };
+export { buildRows, exportCSV, exportChartPDF, exportMarkdown, exportPDF, exportPNG, exportXLSX, safeFilename };

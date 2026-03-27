@@ -2,7 +2,6 @@ import type { MilestoneMeta, TimelineItem } from "../types";
 import type { Filters } from "./FilterBar";
 import type { FunctionComponent } from "react";
 import Alert from "@mui/material/Alert";
-import Badge from "@mui/material/Badge";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Menu from "@mui/material/Menu";
@@ -18,7 +17,7 @@ import { Contributors } from "../charts/Contributors";
 import { CumulativeFlow } from "../charts/CumulativeFlow";
 import { CycleTime } from "../charts/CycleTime";
 import { Velocity } from "../charts/Velocity";
-import { exportCSV, exportMarkdown, exportPDF, exportPNG, exportXLSX } from "../utils/export";
+import { exportCSV, exportChartPDF, exportMarkdown, exportPDF, exportPNG, exportXLSX } from "../utils/export";
 import { MS, itemEndDate } from "../utils/utils";
 import { FilterBar, applyFilters } from "./FilterBar";
 import { GanttView } from "./GanttView";
@@ -34,7 +33,18 @@ type Props = {
 };
 
 type ExportFormat = "CSV" | "XLSX" | "Markdown" | "PNG — Current view" | "PNG — Full timeline" | "PDF";
-const EXPORT_FORMATS: ExportFormat[] = ["CSV", "XLSX", "Markdown", "PNG — Current view", "PNG — Full timeline", "PDF"];
+
+// Which exports make sense for each view category:
+//   Gantt       — all formats; PNG Full captures the full scrollable timeline
+//   Chart views — data formats + PNG current (captures the chart); PDF embeds chart as image
+//   List        — data formats only; PDF produces a matching table; PNG adds nothing over CSV
+const CHART_VIEWS = new Set<View>(["Burndown", "Cycle Time", "Velocity", "Cumulative Flow", "Contributors", "Review Wait"]);
+
+const formatsForView = (v: View): ExportFormat[] => {
+  if (v === "Gantt") {return ["CSV", "XLSX", "Markdown", "PNG — Current view", "PNG — Full timeline", "PDF"];}
+  if (v === "List")  {return ["CSV", "XLSX", "Markdown", "PDF"];}
+  return ["CSV", "XLSX", "Markdown", "PNG — Current view", "PDF"];
+};
 
 type View = "Gantt" | "Burndown" | "Cycle Time" | "Velocity" | "Cumulative Flow" | "Contributors" | "Review Wait" | "List";
 const VIEWS: View[] = ["Gantt", "Burndown", "Cycle Time", "Velocity", "Cumulative Flow", "Contributors", "Review Wait", "List"];
@@ -216,29 +226,24 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
     }
   }, [pixelsPerDay]);
 
-  const disabledExports = useMemo<Partial<Record<ExportFormat, string>>>(
-    () =>
-      view !== "Gantt"
-        ? { "PNG — Current view": "No scroll position in this view — use PNG — Full timeline" }
-        : {},
-    [view],
-  );
-  const hasLimitedExports = Object.keys(disabledExports).length > 0;
+  const visibleFormats = useMemo(() => formatsForView(view), [view]);
 
   const handleExport = useCallback(
     async (fmt: ExportFormat) => {
-      if (disabledExports[fmt]) {return;}
       setExportAnchor(null);
       setExporting(fmt);
       try {
-        if (fmt === "CSV") {exportCSV(filteredCompletedItems, title);}
-        else if (fmt === "Markdown") {exportMarkdown(filteredCompletedItems, title);}
+        if (fmt === "CSV")                  {exportCSV(filteredCompletedItems, title);}
+        else if (fmt === "Markdown")        {exportMarkdown(filteredCompletedItems, title);}
+        else if (fmt === "XLSX")            {await exportXLSX(filteredCompletedItems, title);}
         else if (fmt === "PNG — Current view")
           {await exportPNG(wrapperRef.current!, trackColRef.current, title, "current");}
         else if (fmt === "PNG — Full timeline")
           {await exportPNG(wrapperRef.current!, trackColRef.current, title, "full");}
-        else if (fmt === "PDF") {await exportPDF(filteredCompletedItems, title);}
-        else if (fmt === "XLSX") {await exportXLSX(filteredCompletedItems, title);}
+        else if (fmt === "PDF") {
+          if (CHART_VIEWS.has(view)) {await exportChartPDF(wrapperRef.current!, title);}
+          else                       {await exportPDF(filteredCompletedItems, title);}
+        }
       } catch (e) {
         console.error(`Export ${fmt} failed:`, e);
         setExportError(`Export failed: ${e instanceof Error ? e.message : String(e)}`);
@@ -246,7 +251,7 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
         setExporting(null);
       }
     },
-    [filteredCompletedItems, title, disabledExports],
+    [filteredCompletedItems, title, view],
   );
 
   const allTimestamps = useMemo(
@@ -361,30 +366,20 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
             ))}
           </Menu>
 
-          <Badge
-            color="warning"
-            variant="dot"
-            invisible={!hasLimitedExports}
-            title={hasLimitedExports ? "Some export formats are not available in this view" : undefined}
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={(e) => setExportAnchor(e.currentTarget)}
+            disabled={exporting !== null}
           >
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={(e) => setExportAnchor(e.currentTarget)}
-              disabled={exporting !== null}
-            >
-              {exporting ? `Exporting ${exporting}…` : "Export ▾"}
-            </Button>
-          </Badge>
+            {exporting ? `Exporting ${exporting}…` : "Export ▾"}
+          </Button>
           <Menu anchorEl={exportAnchor} open={Boolean(exportAnchor)} onClose={() => setExportAnchor(null)}>
-            {EXPORT_FORMATS.map((fmt) => {
-              const reason = disabledExports[fmt];
-              return (
-                <MenuItem key={fmt} disabled={!!reason} dense onClick={() => handleExport(fmt)} title={reason}>
-                  {fmt}
-                </MenuItem>
-              );
-            })}
+            {visibleFormats.map((fmt) => (
+              <MenuItem key={fmt} dense onClick={() => handleExport(fmt)}>
+                {fmt}
+              </MenuItem>
+            ))}
           </Menu>
 
           <Tooltip
