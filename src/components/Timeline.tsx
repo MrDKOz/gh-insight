@@ -2,7 +2,6 @@ import type { MilestoneMeta, TimelineItem } from "../types";
 import type { Filters } from "./FilterBar";
 import type { FunctionComponent } from "react";
 import Alert from "@mui/material/Alert";
-import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
@@ -19,7 +18,7 @@ import { CumulativeFlow } from "../charts/CumulativeFlow";
 import { CycleTime } from "../charts/CycleTime";
 import { Velocity } from "../charts/Velocity";
 import { exportCSV, exportChartPDF, exportGanttPDF, exportMarkdown, exportPDF, exportPNG, exportReviewWaitCSV, exportReviewWaitMarkdown, exportReviewWaitPDF, exportReviewWaitXLSX, exportSVG, exportXLSX } from "../utils/export";
-import { MS, itemEndDate, pluralize } from "../utils/utils";
+import { MS, itemEndDate } from "../utils/utils";
 import { FilterBar, applyFilters } from "./FilterBar";
 import { GanttView } from "./GanttView";
 import { ItemList } from "./ItemList";
@@ -143,13 +142,13 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
           ? `${milestones[0]!.title} + ${milestones[1]!.title}`
           : `${milestones.length} milestones`;
 
-  const { issueItems, closedIssues, openIssues, prItems, mergedPRs } = useMemo(() => {
+  const { closedIssues, openIssues, prItems, mergedPRs } = useMemo(() => {
     const issueItems = items.filter((i) => i.type === "issue");
     const prItems = items.filter((i) => i.type === "pr");
     const closedIssues = issueItems.filter((i) => i.closedAt);
     const openIssues = issueItems.filter((i) => !i.closedAt);
     const mergedPRs = prItems.filter((i) => i.mergedAt);
-    return { issueItems, prItems, closedIssues, openIssues, mergedPRs };
+    return { prItems, closedIssues, openIssues, mergedPRs };
   }, [items]);
 
   const filteredItems = useMemo(() => applyFilters(items, filters), [items, filters]);
@@ -347,6 +346,7 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
   const noFilteredItems = filteredItems.length === 0;
 
   const toolbarSlot = document.getElementById("timeline-toolbar");
+  const filterSlot  = document.getElementById("filter-bar-slot");
 
   const toolbar = (
     <Stack direction="row" gap={1} alignItems="center" data-export-exclude>
@@ -391,20 +391,19 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
   return (
     <>
     {toolbarSlot && createPortal(toolbar, toolbarSlot)}
+    {filterSlot && createPortal(
+      <FilterBar
+        variant="toolbar"
+        items={items}
+        filters={filters}
+        counts={counts}
+        onChange={setFilters}
+        colorblindMode={colorblindMode}
+      />,
+      filterSlot,
+    )}
     <Paper sx={{ p: 3, display: "flex", flexDirection: "column", gap: 1.5 }} ref={wrapperRef}>
-      <Box>
-        <Typography variant="h6" fontWeight={700}>
-          {title}
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-          {pluralize(issueItems.length, "issue")} ({closedIssues.length} closed),{" "}
-          {pluralize(prItems.length, "PR")} ({mergedPRs.length} merged)
-        </Typography>
-      </Box>
-
-      <StatsBar items={filteredItems} view={view} colorblindMode={colorblindMode} />
-
-      <FilterBar items={items} filters={filters} counts={counts} onChange={setFilters} colorblindMode={colorblindMode} />
+      <StatsBar items={filteredItems} view={view} colorblindMode={colorblindMode} title={title} />
 
       {noFilteredItems && (
         <Typography color="text.secondary" sx={{ py: 2 }}>

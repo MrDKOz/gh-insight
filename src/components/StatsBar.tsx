@@ -39,9 +39,10 @@ type Props = {
   items: TimelineItem[];
   view: string;
   colorblindMode: boolean;
+  title: string;
 };
 
-const StatsBar: FunctionComponent<Props> = ({ items, view, colorblindMode }) => {
+const StatsBar: FunctionComponent<Props> = ({ items, view, colorblindMode, title }) => {
   const palette = colorblindMode ? COLORS_CB : COLORS;
 
   const general = useMemo(() => {
@@ -90,6 +91,14 @@ const StatsBar: FunctionComponent<Props> = ({ items, view, colorblindMode }) => 
       flexWrap="wrap"
       sx={{ py: 1.5, borderBottom: 1, borderColor: "divider" }}
     >
+      <Typography
+        variant="subtitle2"
+        fontWeight={700}
+        sx={{ whiteSpace: "nowrap", letterSpacing: "-0.01em" }}
+      >
+        {title}
+      </Typography>
+      <Divider orientation="vertical" flexItem sx={{ my: 0.25 }} />
       {reviewWait ? (
         <>
           <Stat value={String(reviewWait.total)}    label="PRs total"    title="Total pull requests shown" />

@@ -31,7 +31,7 @@ const mergedPR: TimelineItem = {
 describe("StatsBar — smoke", () => {
   it("renders issue and PR counts without crashing", () => {
     const { getByText } = wrap(
-      <StatsBar items={[openIssue, closedIssue, mergedPR]} view="Gantt" colorblindMode={false} />,
+      <StatsBar items={[openIssue, closedIssue, mergedPR]} view="Gantt" colorblindMode={false} title="Sprint 42" />,
     );
 
     expect(getByText("Issues closed")).toBeInTheDocument();
@@ -40,7 +40,7 @@ describe("StatsBar — smoke", () => {
 
   it("shows cycle time stats when closed issues exist", () => {
     const { getByText } = wrap(
-      <StatsBar items={[closedIssue]} view="Gantt" colorblindMode={false} />,
+      <StatsBar items={[closedIssue]} view="Gantt" colorblindMode={false} title="Sprint 42" />,
     );
 
     expect(getByText("Avg cycle")).toBeInTheDocument();
@@ -50,7 +50,7 @@ describe("StatsBar — smoke", () => {
 
   it("does not show cycle time stats when no issues are closed", () => {
     const { queryByText } = wrap(
-      <StatsBar items={[openIssue]} view="Gantt" colorblindMode={false} />,
+      <StatsBar items={[openIssue]} view="Gantt" colorblindMode={false} title="Sprint 42" />,
     );
 
     expect(queryByText("Avg cycle")).not.toBeInTheDocument();
@@ -58,7 +58,7 @@ describe("StatsBar — smoke", () => {
 
   it("shows open issues count when open issues exist", () => {
     const { getByText } = wrap(
-      <StatsBar items={[openIssue, closedIssue]} view="Gantt" colorblindMode={false} />,
+      <StatsBar items={[openIssue, closedIssue]} view="Gantt" colorblindMode={false} title="Sprint 42" />,
     );
 
     expect(getByText("Issues open")).toBeInTheDocument();

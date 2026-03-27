@@ -101,6 +101,7 @@ type Props = {
   counts: Counts;
   onChange: (f: Filters) => void;
   colorblindMode: boolean;
+  variant?: "toolbar";
 };
 
 const IconX = () => (
@@ -209,7 +210,7 @@ const DateRangeFilter: FunctionComponent<DateRangeFilterProps> = ({
   </Stack>
 );
 
-const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange, colorblindMode }) => {
+const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange, colorblindMode, variant }) => {
   const palette = colorblindMode ? COLORS_CB : COLORS;
   const set = (patch: Partial<Filters>) => onChange({ ...filters, ...patch });
 
@@ -273,9 +274,21 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
     { value: "either",    label: "Either",    title: "Match selected people in either role" },
   ];
 
+  const isToolbar = variant === "toolbar";
+
   return (
     <Box
-      sx={{
+      sx={isToolbar ? {
+        display: "flex",
+        alignItems: "center",
+        flexWrap: "wrap",
+        gap: 1,
+        px: 2,
+        py: 0.75,
+        borderBottom: 1,
+        borderColor: isActive ? "primary.light" : "divider",
+        bgcolor: "background.paper",
+      } : {
         display: "flex",
         alignItems: "center",
         flexWrap: "wrap",

@@ -149,7 +149,13 @@ const ContextBar: FunctionComponent<Props> = memo(({
         ))}
       </Tabs>
     )}
+
+    {/* Row 3: filter bar — portaled from Timeline when data is loaded */}
+    {hasItems && (
+      <Box id="filter-bar-slot" />
+    )}
   </Box>
 ));
 
 export { ContextBar };
+
