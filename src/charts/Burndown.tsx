@@ -4,7 +4,7 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useMemo, useRef, useState } from "react";
-import { CHART_EMPTY_STATE_SX, HOVER_CARD_BASE_SX, MS, fmtDate, forecastCompletion, hoverCardPos, makeChartColors, pluralize, upperBound } from "../utils/utils";
+import { CHART_EMPTY_STATE_SX, HOVER_CARD_BASE_SX, MS, fmtDate, hoverCardPos, makeChartColors, pluralize, upperBound } from "../utils/utils";
 import { ChartLegend } from "./ChartLegend";
 
 type Props = {
@@ -117,24 +117,6 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
     }
     return markers;
   }, [issues.length, milestones, isMulti, minTime, maxTime]);
-
-  // ── Completion forecast (single-milestone, open issues only) ──────────────────
-  type Forecast = { lastX: number; lastY: number; forecastX: number; forecastLabel: string; clipped: boolean };
-  const forecast = useMemo((): Forecast | null => {
-    if (isMulti || !hasOpenIssues || !singleSeries || singleSeries.points.length < 2) {return null;}
-    const result = forecastCompletion(items, singleSeries.ms.number);
-    if (!result) {return null;}
-    const pts       = singleSeries.points;
-    const lastPtIdx = pts.length - 1;
-    const lastX     = pxFn(lastPtIdx, pts.length);
-    const lastY     = pyFn(pts[lastPtIdx]!.count);
-    const projectedT    = result.projectedDate.getTime();
-    const rawForecastX  = L + ((projectedT - minTime) / (maxTime - minTime)) * CW;
-    const clipped       = rawForecastX > L + CW;
-    const forecastX     = Math.min(rawForecastX, L + CW);
-    const forecastLabel = `~${fmtDate(result.projectedDate.toISOString())}`;
-    return { lastX, lastY, forecastX, forecastLabel, clipped };
-  }, [isMulti, hasOpenIssues, singleSeries, items, minTime, maxTime, maxCount]);
 
   // X-axis labels (from full time range, not per-series)
   const numXLabels  = Math.min(8, totalDays + 1);
@@ -372,24 +354,6 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
           </g>
         ))}
 
-        {/* Completion forecast line */}
-        {forecast && (
-          <g>
-            <line
-              x1={forecast.lastX.toFixed(1)} y1={forecast.lastY.toFixed(1)}
-              x2={forecast.forecastX.toFixed(1)} y2={pyFn(0).toFixed(1)}
-              stroke={COL.mean} strokeWidth={1.5} strokeDasharray="4 3" opacity={0.85}
-            />
-            <text
-              x={forecast.forecastX - 4}
-              y={pyFn(0) - 5}
-              textAnchor="end"
-              fill={COL.mean} fontSize={10} fontFamily="inherit"
-            >
-              {forecast.forecastLabel}
-            </text>
-          </g>
-        )}
       </svg>
     </Box>
   );
