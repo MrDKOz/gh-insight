@@ -4,7 +4,7 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
-import { AuthorTag } from "../components/AuthorTag";
+import { AuthorWithAssignees } from "../components/AuthorWithAssignees";
 import { CHART_EMPTY_STATE_SX, MS, fmtDate, hoverCardPos, itemEndDate, makeChartColors, pluralize } from "../utils/utils";
 
 type Props = {
@@ -169,7 +169,7 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
           <Typography sx={{ fontSize: "0.75rem", color: "text.primary", maxWidth: 210, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {hover.pt.item.title}
           </Typography>
-          <AuthorTag login={hover.pt.item.author} prefix="@" />
+          <AuthorWithAssignees author={hover.pt.item.author} assignees={hover.pt.item.assignees} />
           <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
             {pluralize(hover.pt.days, "day")} cycle time
           </Box>

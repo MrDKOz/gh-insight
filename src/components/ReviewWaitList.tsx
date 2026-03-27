@@ -15,6 +15,7 @@ import Typography from "@mui/material/Typography";
 import { memo, useMemo, useState } from "react";
 import { COLORS, COLORS_CB, FS, MS, fmtDate, itemStatus, makeStatusChipSx, safeUrl } from "../utils/utils";
 import { AuthorWithAssignees } from "./AuthorWithAssignees";
+import { LabelBadge } from "./LabelBadge";
 import { MilestonePill } from "./MilestonePill";
 
 type Props = {
@@ -32,6 +33,7 @@ type PRRow = {
   url: string;
   author: string;
   assignees: string[];
+  labels: { name: string; color: string }[];
   status: "Open" | "Merged" | "Closed";
   createdAt: string;
   mergedAt: string | null;
@@ -64,6 +66,7 @@ const buildRows = (items: TimelineItem[]): PRRow[] => items
         url: pr.url,
         author: pr.author,
         assignees: pr.assignees,
+        labels: pr.labels,
         status: itemStatus(pr),
         createdAt: pr.createdAt,
         mergedAt: pr.mergedAt,
@@ -248,6 +251,13 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
                   >
                     {row.title}
                   </Link>
+                  {row.labels.length > 0 && (
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: "3px", mt: "3px" }}>
+                      {row.labels.map((l) => (
+                        <LabelBadge key={l.name} name={l.name} color={l.color} />
+                      ))}
+                    </Box>
+                  )}
                 </TableCell>
 
                 {/* Author + assignees */}
