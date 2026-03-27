@@ -114,4 +114,18 @@ const itemStatus = (item: TimelineItem): "Open" | "Closed" | "Merged" => {
 const pluralize = (count: number, word: string): string =>
   `${count} ${word}${count !== 1 ? "s" : ""}`;
 
-export { COLORS, COLORS_CB, MS, assigneesOtherThanAuthor, durationDays, fmtDate, hoverCardPos, itemEndDate, itemStatus, labelTextColor, pluralize, safeUrl, upperBound };
+/**
+ * Returns MUI sx objects for status Chips, keyed by lowercase status string.
+ * Respects colorblind mode and adapts to MUI theme (no hardcoded light/dark hex).
+ */
+const makeStatusChipSx = (colorblindMode: boolean): Record<string, object> => ({
+  open:   { bgcolor: "rgba(214,149,0,0.15)", color: "#d97706" },
+  closed: colorblindMode
+    ? { bgcolor: `${COLORS_CB.prClosed}22`, color: COLORS_CB.prClosed }
+    : { bgcolor: "rgba(220,53,69,0.12)",   color: "#dc3545" },
+  merged: colorblindMode
+    ? { bgcolor: `${COLORS_CB.prMerged}22`, color: COLORS_CB.prMerged }
+    : { bgcolor: "rgba(130,80,223,0.12)",  color: "#8250df" },
+});
+
+export { COLORS, COLORS_CB, MS, assigneesOtherThanAuthor, durationDays, fmtDate, hoverCardPos, itemEndDate, itemStatus, labelTextColor, makeStatusChipSx, pluralize, safeUrl, upperBound };

@@ -12,7 +12,7 @@ import TableRow from "@mui/material/TableRow";
 import TableSortLabel from "@mui/material/TableSortLabel";
 import Typography from "@mui/material/Typography";
 import { memo, useMemo, useState } from "react";
-import { COLORS, COLORS_CB, MS, fmtDate, itemEndDate, itemStatus, pluralize, safeUrl } from "../utils/utils";
+import { COLORS, COLORS_CB, MS, fmtDate, itemEndDate, itemStatus, makeStatusChipSx, pluralize, safeUrl } from "../utils/utils";
 import { AuthorWithAssignees } from "./AuthorWithAssignees";
 import { LabelBadge } from "./LabelBadge";
 import { MilestonePill } from "./MilestonePill";
@@ -98,15 +98,7 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
     "pr-closed": { bgcolor: palette.prClosed, color: colorblindMode ? "#000" : "#fff" },
   };
 
-  const statusChipSx: Record<string, object> = {
-    open: { bgcolor: "rgba(214,149,0,0.15)", color: "#d97706" },
-    closed: colorblindMode
-      ? { bgcolor: `${COLORS_CB.prClosed}22`, color: COLORS_CB.prClosed }
-      : { bgcolor: "rgba(220,53,69,0.12)", color: "#dc3545" },
-    merged: colorblindMode
-      ? { bgcolor: `${COLORS_CB.prMerged}22`, color: COLORS_CB.prMerged }
-      : { bgcolor: "rgba(130,80,223,0.12)", color: "#8250df" },
-  };
+  const statusChipSx = makeStatusChipSx(colorblindMode);
 
   const Th: FunctionComponent<{ col: SortCol; label: string }> = ({ col, label }) => (
     <TableCell

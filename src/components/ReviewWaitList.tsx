@@ -1,6 +1,7 @@
 import type { MilestoneMeta, TimelineItem } from "../types";
 import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
+import Chip from "@mui/material/Chip";
 import Link from "@mui/material/Link";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -12,7 +13,7 @@ import TableSortLabel from "@mui/material/TableSortLabel";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { memo, useMemo, useState } from "react";
-import { MS, fmtDate, itemStatus, safeUrl } from "../utils/utils";
+import { COLORS, COLORS_CB, MS, fmtDate, itemStatus, makeStatusChipSx, safeUrl } from "../utils/utils";
 import { AuthorWithAssignees } from "./AuthorWithAssignees";
 import { MilestonePill } from "./MilestonePill";
 
@@ -109,11 +110,10 @@ const sortRows = (rows: PRRow[], col: SortCol, dir: SortDir): PRRow[] => {
 };
 
 // Amber for review-wait segment, blue-grey for post-review segment
-const BAR_WAIT   = "#f59e0b";
-const BAR_DONE   = "#6b7280";
-const BAR_OPEN   = "#d1d5db";
-const BAR_WAIT_CB  = "#E69F00";
-const BAR_DONE_CB  = "#56B4E9";
+const BAR_WAIT    = "#f59e0b";
+const BAR_DONE    = "#6b7280";
+const BAR_WAIT_CB = "#E69F00";
+const BAR_DONE_CB = "#56B4E9";
 
 const Th: FunctionComponent<{
   col: SortCol;
@@ -123,7 +123,7 @@ const Th: FunctionComponent<{
   onSort: (c: SortCol) => void;
   align?: "left" | "right";
 }> = ({ col, label, active, dir, onSort, align = "left" }) => (
-  <TableCell align={align} sx={{ fontWeight: 700, fontSize: "0.75rem", whiteSpace: "nowrap", py: 1 }}>
+  <TableCell align={align} sx={{ fontWeight: 600, fontSize: "0.6875rem", whiteSpace: "nowrap", py: 1 }}>
     <TableSortLabel
       active={active === col}
       direction={active === col ? dir : "asc"}
@@ -134,13 +134,9 @@ const Th: FunctionComponent<{
   </TableCell>
 );
 
-const statusSx: Record<string, { color: string; fontWeight: number }> = {
-  open:   { color: "#16a34a", fontWeight: 700 },
-  merged: { color: "#7c3aed", fontWeight: 700 },
-  closed: { color: "#dc2626", fontWeight: 700 },
-};
-
 const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colorblindMode }) => {
+  const palette = colorblindMode ? COLORS_CB : COLORS;
+  const statusChipSx = makeStatusChipSx(colorblindMode);
   const [sortCol, setSortCol] = useState<SortCol>("wait");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
@@ -183,12 +179,12 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
             <Th col="created"     label="Created"       active={sortCol} dir={sortDir} onSort={handleSort} />
             <Th col="firstReview" label="First Review"  active={sortCol} dir={sortDir} onSort={handleSort} />
             <Th col="wait"        label="Wait"          active={sortCol} dir={sortDir} onSort={handleSort} align="right" />
-            <TableCell sx={{ fontWeight: 700, fontSize: "0.75rem", py: 1, width: 140 }}>
+            <TableCell sx={{ fontWeight: 600, fontSize: "0.6875rem", py: 1, width: 140 }}>
               Wait vs Total
             </TableCell>
             <Th col="total"       label="Total"         active={sortCol} dir={sortDir} onSort={handleSort} align="right" />
             {isMulti && (
-              <TableCell sx={{ fontWeight: 700, fontSize: "0.75rem", py: 1 }}>Milestone</TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: "0.6875rem", py: 1 }}>Milestone</TableCell>
             )}
           </TableRow>
         </TableHead>
@@ -225,12 +221,17 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
             return (
               <TableRow
                 key={row.number}
-                hover
-                sx={{ "&:last-child td": { borderBottom: 0 } }}
+                sx={{ opacity: isOpen ? 0.65 : 1, "&:hover": { opacity: 1, bgcolor: "action.hover" }, "&:last-child td": { borderBottom: 0 } }}
               >
                 {/* # */}
-                <TableCell sx={{ fontSize: "0.75rem", color: "text.secondary", whiteSpace: "nowrap" }}>
-                  <Link href={safeUrl(row.url)} target="_blank" rel="noopener noreferrer" underline="hover" color="inherit">
+                <TableCell sx={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}>
+                  <Link
+                    href={safeUrl(row.url)}
+                    target="_blank"
+                    rel="noreferrer"
+                    underline="hover"
+                    sx={{ color: row.status === "Merged" ? palette.prMerged : row.status === "Closed" ? palette.prClosed : palette.prMerged, fontWeight: 700, fontSize: "0.75rem" }}
+                  >
                     #{row.number}
                   </Link>
                 </TableCell>
@@ -240,9 +241,9 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
                   <Link
                     href={safeUrl(row.url)}
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel="noreferrer"
                     underline="hover"
-                    color="inherit"
+                    color="text.primary"
                     sx={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
                   >
                     {row.title}
@@ -255,8 +256,12 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
                 </TableCell>
 
                 {/* Status */}
-                <TableCell sx={{ whiteSpace: "nowrap", fontSize: "0.75rem", ...statusSx[row.status.toLowerCase()] }}>
-                  {row.status}
+                <TableCell sx={{ whiteSpace: "nowrap" }}>
+                  <Chip
+                    label={row.status}
+                    size="small"
+                    sx={{ ...statusChipSx[row.status.toLowerCase()], fontSize: "0.6875rem", fontWeight: 600, height: 22 }}
+                  />
                 </TableCell>
 
                 {/* Created */}
@@ -304,7 +309,7 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
                           <Box sx={{ width: `${donePct}%`, bgcolor: barDone, flexShrink: 0 }} />
                         )}
                         {isOpen && (
-                          <Box sx={{ flex: 1, bgcolor: BAR_OPEN }} />
+                          <Box sx={{ flex: 1, bgcolor: "action.disabledBackground" }} />
                         )}
                       </Box>
                     </Tooltip>
