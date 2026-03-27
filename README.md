@@ -1,5 +1,7 @@
 # GitHub Work Visualiser
 
+**Live:** [mrdkoz.github.io/GitHubWorkVisualiser](https://mrdkoz.github.io/GitHubWorkVisualiser/)
+
 A browser-based dashboard for visualising GitHub milestone progress. Point it at any public or private repository, select one or more milestones, and explore the data across six views.
 
 ## Features
@@ -18,7 +20,28 @@ A browser-based dashboard for visualising GitHub milestone progress. Point it at
 - **Colorblind mode** — alternative colour palette across all charts
 - **Demo mode** — try the app without a token using built-in sample data
 
-## Getting started
+## Using the live app
+
+Visit **[mrdkoz.github.io/GitHubWorkVisualiser](https://mrdkoz.github.io/GitHubWorkVisualiser/)** — no installation needed.
+
+You will need a GitHub Personal Access Token to load real data. A fine-grained token with the following read-only permissions is recommended:
+
+| Permission | Level |
+|---|---|
+| Metadata | Read |
+| Contents | Read |
+| Issues | Read |
+| Pull requests | Read |
+
+[Create a fine-grained PAT on GitHub](https://github.com/settings/personal-access-tokens/new)
+
+### Privacy and security
+
+- Your token is encrypted with AES-GCM (256-bit, Web Crypto API). The ciphertext is stored in `localStorage`; the encryption key lives in IndexedDB and never leaves your browser.
+- All API calls go directly from your browser to `api.github.com` over HTTPS. No data passes through any third-party server.
+- The token is never written to the URL. Clearing your browser storage removes everything.
+
+## Local development
 
 ```bash
 npm install
@@ -27,16 +50,7 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173).
 
-### GitHub token
-
-To load real milestone data you need a GitHub personal access token.
-
-- **Public repositories** — a classic token with no scopes is sufficient, or a fine-grained token with read-only `Contents` permission.
-- **Private repositories** — a classic token with the `repo` scope, or a fine-grained token with `Contents: Read` permission.
-
-The token is encrypted with AES-GCM (256-bit, Web Crypto API). The ciphertext is stored in `localStorage`; the encryption key is stored in IndexedDB and never leaves your browser. The token is never written to the URL.
-
-## Development
+## Development commands
 
 ```bash
 npm run dev      # start dev server
@@ -61,6 +75,6 @@ src/
 
 ### Tech stack
 
-- React 18 + TypeScript + Vite
+- React 19 + TypeScript + Vite
 - MUI v7 with the Redgate Honeycomb theme
 - Vitest + Testing Library for unit tests
