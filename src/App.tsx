@@ -14,6 +14,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { fetchMilestoneItems, fetchMilestones } from "./api/github";
 import { GearIcon } from "./components/GearIcon";
+import { HelpPopover } from "./components/HelpPopover";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { Timeline } from "./components/Timeline";
 import {   DEMO_ITEMS, DEMO_ITEMS_2, DEMO_ITEMS_3,
@@ -314,6 +315,7 @@ const App: FunctionComponent = () => {
         <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Typography variant="h5" fontWeight={700}>GitHub Work Visualiser</Typography>
           <Stack direction="row" gap={0.5} alignItems="center">
+          <HelpPopover />
           <IconButton onClick={(e) => setSettingsAnchor(e.currentTarget)} title="Settings" aria-label="Settings" size="small">
             <GearIcon />
           </IconButton>
