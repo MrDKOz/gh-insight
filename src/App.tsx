@@ -331,7 +331,7 @@ const App: FunctionComponent = () => {
   }, [state.selected, activeRepo, token]);
 
   const handleExportConfig = useCallback(() => {
-    const config = { version: 1, owner: activeRepo?.owner ?? "", repo: activeRepo?.name ?? "", dark, token, settings };
+    const config = { version: 1, owner: activeRepo?.owner ?? "", repo: activeRepo?.name ?? "", dark, settings };
     const blob = new Blob([JSON.stringify(config, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     try {
@@ -341,7 +341,7 @@ const App: FunctionComponent = () => {
     } finally {
       URL.revokeObjectURL(url);
     }
-  }, [activeRepo, dark, token, settings]);
+  }, [activeRepo, dark, settings]);
 
   const handleImportConfig = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -453,9 +453,6 @@ const App: FunctionComponent = () => {
                 <Button onClick={handleExportConfig}>Export</Button>
                 <Button onClick={() => fileInputRef.current?.click()}>Import</Button>
               </ButtonGroup>
-              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.75 }}>
-                Export includes your token in plain text.
-              </Typography>
               <Divider sx={{ my: 1.5 }} />
               <Button
                 variant="outlined"
