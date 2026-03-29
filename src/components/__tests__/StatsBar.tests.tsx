@@ -32,7 +32,7 @@ const mergedPR: TimelineItem = {
 describe("StatsBar — smoke", () => {
   it("renders issue and PR counts without crashing", () => {
     const { getByText } = wrap(
-      <StatsBar items={[openIssue, closedIssue, mergedPR]} milestones={[]} view="Gantt" colorblindMode={false} title="Sprint 42" />,
+      <StatsBar items={[openIssue, closedIssue, mergedPR]} milestones={[]} view="Gantt" colorblindMode={false} />,
     );
 
     expect(getByText("Issues closed")).toBeInTheDocument();
@@ -41,7 +41,7 @@ describe("StatsBar — smoke", () => {
 
   it("shows cycle time stats when closed issues exist", () => {
     const { getByText } = wrap(
-      <StatsBar items={[closedIssue]} milestones={[]} view="Gantt" colorblindMode={false} title="Sprint 42" />,
+      <StatsBar items={[closedIssue]} milestones={[]} view="Gantt" colorblindMode={false} />,
     );
 
     expect(getByText("Avg cycle")).toBeInTheDocument();
@@ -51,7 +51,7 @@ describe("StatsBar — smoke", () => {
 
   it("does not show cycle time stats when no issues are closed", () => {
     const { queryByText } = wrap(
-      <StatsBar items={[openIssue]} milestones={[]} view="Gantt" colorblindMode={false} title="Sprint 42" />,
+      <StatsBar items={[openIssue]} milestones={[]} view="Gantt" colorblindMode={false} />,
     );
 
     expect(queryByText("Avg cycle")).not.toBeInTheDocument();
@@ -59,7 +59,7 @@ describe("StatsBar — smoke", () => {
 
   it("shows open issues count when open issues exist", () => {
     const { getByText } = wrap(
-      <StatsBar items={[openIssue, closedIssue]} milestones={[]} view="Gantt" colorblindMode={false} title="Sprint 42" />,
+      <StatsBar items={[openIssue, closedIssue]} milestones={[]} view="Gantt" colorblindMode={false} />,
     );
 
     expect(getByText("Issues open")).toBeInTheDocument();
@@ -86,7 +86,7 @@ describe("StatsBar — Review Wait view", () => {
 
   it("shows review wait stats when there are reviewed PRs", () => {
     const { getByText } = wrap(
-      <StatsBar items={[reviewedPR]} milestones={[]} view="Review Wait" colorblindMode={false} title="Sprint 42" />,
+      <StatsBar items={[reviewedPR]} milestones={[]} view="Review Wait" colorblindMode={false} />,
     );
 
     expect(getByText("PRs total")).toBeInTheDocument();
@@ -96,7 +96,7 @@ describe("StatsBar — Review Wait view", () => {
 
   it("shows not-reviewed count when some PRs have no first review", () => {
     const { getByText } = wrap(
-      <StatsBar items={[reviewedPR, unreviewedPR]} milestones={[]} view="Review Wait" colorblindMode={false} title="Sprint 42" />,
+      <StatsBar items={[reviewedPR, unreviewedPR]} milestones={[]} view="Review Wait" colorblindMode={false} />,
     );
 
     expect(getByText("Not reviewed")).toBeInTheDocument();
@@ -104,7 +104,7 @@ describe("StatsBar — Review Wait view", () => {
 
   it("does not show review wait stats in a non-Review-Wait view", () => {
     const { queryByText } = wrap(
-      <StatsBar items={[reviewedPR]} milestones={[]} view="Gantt" colorblindMode={false} title="Sprint 42" />,
+      <StatsBar items={[reviewedPR]} milestones={[]} view="Gantt" colorblindMode={false} />,
     );
 
     expect(queryByText("PRs total")).not.toBeInTheDocument();
