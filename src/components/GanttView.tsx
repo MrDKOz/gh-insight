@@ -6,7 +6,7 @@ import Typography from "@mui/material/Typography";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { COLORS, COLORS_CB, FS, MS, MS_HOUR, assigneesOtherThanAuthor, durationDays, fmtDate, fmtDateTime, itemEndDate, pluralize, safeUrl, snapToHour } from "../utils/utils";
+import { COLORS, COLORS_CB, FS, MS, MS_HOUR, durationDays, fmtDate, fmtDateTime, itemEndDate, pluralize, safeUrl, snapToHour } from "../utils/utils";
 import { AuthorCard, AuthorTag } from "./AuthorTag";
 import { LabelBadge } from "./LabelBadge";
 
@@ -119,7 +119,6 @@ const GanttLegend: FunctionComponent<GanttLegendProps> = ({ hasOpenIssues, isMul
 const BarHoverCard: FunctionComponent<{ barHover: BarHover; snapMode: "day" | "hour" }> = ({ barHover, snapMode }) => {
   const fmt = snapMode === "hour" ? fmtDateTime : fmtDate;
   const { item } = barHover;
-  const otherAssignees = assigneesOtherThanAuthor(item.assignees, item.author);
   return (
     <Paper elevation={2} sx={{ display: "flex", flexDirection: "column", gap: "6px", minWidth: 200, maxWidth: 280, px: 1.5, py: 1.25, pointerEvents: "none", ...barCardStyle(barHover.clientX, barHover.clientY) }}>
       <Box sx={{ display: "flex", alignItems: "center", gap: "6px", fontSize: FS.sm, fontWeight: 600, color: "text.secondary" }}>
@@ -139,11 +138,11 @@ const BarHoverCard: FunctionComponent<{ barHover: BarHover; snapMode: "day" | "h
         <Typography sx={{ fontSize: FS.tiny, color: "text.disabled", fontWeight: 600, lineHeight: 1, mb: "3px", textTransform: "uppercase", letterSpacing: "0.04em" }}>Author</Typography>
         <AuthorTag login={item.author} prefix="@" />
       </Box>
-      {otherAssignees.length > 0 && (
+      {item.assignees.length > 0 && (
         <Box>
           <Typography sx={{ fontSize: FS.tiny, color: "text.disabled", fontWeight: 600, lineHeight: 1, mb: "3px", textTransform: "uppercase", letterSpacing: "0.04em" }}>Assignees</Typography>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-            {otherAssignees.map((a) => (
+            {item.assignees.map((a) => (
               <AuthorTag key={a} login={a} prefix="@" />
             ))}
           </Box>
