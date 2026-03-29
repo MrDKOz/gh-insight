@@ -37,9 +37,6 @@ type HoverInfo = {
 
 const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, colorblindMode, includePRs }) => {
   const COL = makeChartColors(colorblindMode);
-  // chart-specific colours not covered by the shared factory
-  const areaFill   = colorblindMode ? "rgba(0,114,178,0.12)" : "rgba(9,105,218,0.12)";
-  const calloutColor = "#24292f"; // bd-callout-text CSS class overrides this in dark mode
   const isMulti = milestones.length > 1;
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<HoverInfo | null>(null);
@@ -114,7 +111,7 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
       if (dueMs < minTime - MS || dueMs > maxTime + 30 * MS) {continue;}
       const frac  = (dueMs - minTime) / (maxTime - minTime);
       const xNum  = L + Math.min(frac, 1) * CW;
-      const color = isMulti ? ms.color : "#8250df";
+      const color = ms.color;
       const label = `Due ${fmtDate(ms.dueOn)}`;
       markers.push({ xNum, label, color, flipLeft: frac > 0.85 });
     }
@@ -183,9 +180,13 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
         })),
       });
     } else if (singleSeries) {
-      // ptIdx is clamped to [0, totalDays] and points has totalDays+1 elements
       const { t, count } = singleSeries.points[ptIdx]!;
-      setHover({ x: wrapX, y: e.clientY - rect.top, date: fmtDate(new Date(t).toISOString()), count, svgX: pxFn(ptIdx, singleSeries.points.length) });
+      setHover({
+        x: wrapX, y: e.clientY - rect.top,
+        svgX: pxFn(ptIdx, singleSeries.points.length),
+        date: fmtDate(new Date(t).toISOString()),
+        series: [{ color: singleSeries.ms.color, title: singleSeries.ms.title, count }],
+      });
     }
   };
 
@@ -255,30 +256,19 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
             stroke={COL.grid} strokeWidth={1} strokeDasharray="4 3" className="chart-grid" />
         ))}
 
-        {/* Chart lines (and fill area for single-milestone mode) */}
-        {isMulti
-          ? msSeries.map(({ ms, points }) => {
-              const linePath = points
-                .map(({ count }, i) => `${i === 0 ? "M" : "L"}${pxFn(i, points.length).toFixed(1)},${pyFn(count).toFixed(1)}`)
-                .join(" ");
-              return (
-                <path key={ms.number} d={linePath} fill="none" stroke={ms.color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" opacity={0.9} />
-              );
-            })
-          : singleSeries && (() => {
-              const { points } = singleSeries;
-              const linePath = points
-                .map(({ count }, i) => `${i === 0 ? "M" : "L"}${pxFn(i, points.length).toFixed(1)},${pyFn(count).toFixed(1)}`)
-                .join(" ");
-              const areaPath = `${linePath} L${(L + CW).toFixed(1)},${(T + CH).toFixed(1)} L${L.toFixed(1)},${(T + CH).toFixed(1)} Z`;
-              return (
-                <>
-                  <path d={areaPath} fill={areaFill} />
-                  <path d={linePath} fill="none" stroke={COL.issue} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-                </>
-              );
-            })()
-        }
+        {/* Chart lines + fill area — same treatment for both single and multi */}
+        {msSeries.map(({ ms, points }) => {
+          const linePath = points
+            .map(({ count }, i) => `${i === 0 ? "M" : "L"}${pxFn(i, points.length).toFixed(1)},${pyFn(count).toFixed(1)}`)
+            .join(" ");
+          const areaPath = `${linePath} L${(L + CW).toFixed(1)},${(T + CH).toFixed(1)} L${L.toFixed(1)},${(T + CH).toFixed(1)} Z`;
+          return (
+            <g key={ms.number}>
+              <path d={areaPath} fill={`${ms.color}22`} />
+              <path d={linePath} fill="none" stroke={ms.color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" opacity={0.9} />
+            </g>
+          );
+        })}
 
         {hover && (
           <>
@@ -339,30 +329,12 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
           </text>
         ))}
 
-        {isMulti && (
-          <ChartLegend
-            items={milestones.map((ms) => ({ color: ms.color, label: ms.title }))}
-            cx={L + CW / 2}
-            y={T - 8}
-            fill={COL.label}
-          />
-        )}
-
-        {/* Single milestone: "N open" callout */}
-        {!isMulti && singleSeries && (
-          <text
-            x={L + CW - 4}
-            y={T - 6}
-            textAnchor="end"
-            fill={calloutColor}
-            fontSize={11}
-            fontWeight="bold"
-            fontFamily="inherit"
-            className="bd-callout-text"
-          >
-            {singleSeries.points[singleSeries.points.length - 1]!.count} open
-          </text>
-        )}
+        <ChartLegend
+          items={msSeries.map(({ ms }) => ({ color: ms.color, label: ms.title }))}
+          cx={L + CW / 2}
+          y={T - 8}
+          fill={COL.label}
+        />
 
         {/* Due date markers */}
         {placedMarkers.map((dm, idx) => (
