@@ -490,14 +490,21 @@ const GanttView: FunctionComponent<Props> = ({
             const barWidthPx = (widthPct / 100) * trackWidth;
             const fmt = snapMode === "hour" ? fmtDateTime : fmtDate;
             const reopenPrefix = item.type === "issue" && item.reopenedCount > 0 ? "↺ " : "";
+            const isShortDuration = durationText === "Same day" || durationText.match(/^[0-9]+h$/);
+            // Effective width available for text (subtract review badge space if present)
+            const effectiveBarPx = barWidthPx - (barWidthPx >= 60 && item.type === "pr" && item.reviewDecision ? 26 : 0);
             const barLabel =
-              barWidthPx < 40
+              effectiveBarPx < 40
                 ? ""
-                : isOpen
-                  ? `${reopenPrefix}${fmt(item.createdAt)} → today (${durationText})`
-                  : durationText === "Same day" || durationText.match(/^[0-9]+h$/)
-                    ? `${reopenPrefix}${durationText}`
-                    : `${reopenPrefix}${fmt(item.createdAt)} → ${fmt(endDate)} (${durationText})`;
+                : effectiveBarPx < 130 || isShortDuration
+                  ? `${reopenPrefix}${durationText}`
+                  : isOpen
+                    ? effectiveBarPx < 200
+                      ? `${reopenPrefix}${fmt(item.createdAt)} → today`
+                      : `${reopenPrefix}${fmt(item.createdAt)} → today (${durationText})`
+                    : effectiveBarPx < 200
+                      ? `${reopenPrefix}${fmt(item.createdAt)} → ${fmt(endDate)}`
+                      : `${reopenPrefix}${fmt(item.createdAt)} → ${fmt(endDate)} (${durationText})`;
 
             const statusWord = isOpen ? "Open" : item.type === "pr" ? (item.mergedAt ? "Merged" : "Closed") : "Closed";
             const palette = colorblindMode ? COLORS_CB : COLORS;
