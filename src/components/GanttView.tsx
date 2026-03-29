@@ -50,10 +50,11 @@ type BarHover = {
 };
 
 const barCardStyle = (clientX: number, clientY: number) => {
-  const cardW = 240;
-  const cardH = 170;
-  const left = clientX + 14 + cardW > window.innerWidth ? clientX - cardW - 14 : clientX + 14;
-  const top = Math.max(8, Math.min(clientY - cardH / 2, window.innerHeight - cardH - 8));
+  const cardW = 300; // slightly over maxWidth:280 so flip triggers before clipping
+  const cardH = 260; // generous — varies with assignees / labels rows
+  const rawLeft = clientX + 14 + cardW > window.innerWidth ? clientX - cardW - 14 : clientX + 14;
+  const left = Math.max(8, Math.min(rawLeft, window.innerWidth - cardW - 8));
+  const top  = Math.max(8, Math.min(clientY - cardH / 2, window.innerHeight - cardH - 8));
   return { position: "fixed" as const, left, top, zIndex: 200 };
 };
 
@@ -221,7 +222,11 @@ const GanttView: FunctionComponent<Props> = ({
   const showCard = (item: TimelineItem, e: MouseEvent<HTMLSpanElement>) => {
     if (hideTimer.current) {clearTimeout(hideTimer.current);}
     const rect = e.currentTarget.getBoundingClientRect();
-    setCardPos({ top: rect.top + rect.height / 2, left: rect.right + 8 });
+    const cardW = 160;
+    const left = rect.right + 8 + cardW > window.innerWidth
+      ? Math.max(8, rect.left - cardW - 8)
+      : rect.right + 8;
+    setCardPos({ top: rect.top + rect.height / 2, left });
     setHoverItem(item);
   };
 
