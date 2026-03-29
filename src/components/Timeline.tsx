@@ -131,6 +131,7 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
   const [toolbarSlot, setToolbarSlot] = useState<Element | null>(null);
   const [filterSlot, setFilterSlot] = useState<Element | null>(null);
   const [burndownIncludePRs, setBurndownIncludePRs] = useState(false);
+  const [cumulativeFlowIncludePRs, setCumulativeFlowIncludePRs] = useState(false);
 
   const handleFitToScreen = useCallback(() => {
     const el = trackColRef.current;
@@ -457,7 +458,16 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
       )}
       {!noFilteredItems && view === "Cycle Time" && <CycleTime items={filteredItems} milestones={milestones} highlightWeekends={highlightWeekends} colorblindMode={colorblindMode} />}
       {!noFilteredItems && view === "Velocity" && <Velocity items={filteredItems} milestones={milestones} colorblindMode={colorblindMode} />}
-      {!noFilteredItems && view === "Cumulative Flow" && <CumulativeFlow items={filteredItems} highlightWeekends={highlightWeekends} colorblindMode={colorblindMode} />}
+      {!noFilteredItems && view === "Cumulative Flow" && (
+        <>
+          <FormControlLabel
+            control={<Checkbox size="small" checked={cumulativeFlowIncludePRs} onChange={(e) => setCumulativeFlowIncludePRs(e.target.checked)} />}
+            label="Include PRs"
+            sx={{ alignSelf: "flex-start", ml: 0 }}
+          />
+          <CumulativeFlow items={filteredItems} highlightWeekends={highlightWeekends} colorblindMode={colorblindMode} includePRs={cumulativeFlowIncludePRs} />
+        </>
+      )}
       {!noFilteredItems && view === "Contributors" && <Contributors items={filteredItems} colorblindMode={colorblindMode} />}
       {!noFilteredItems && view === "Review Wait" && <ReviewWaitList items={filteredItems} milestones={milestones} colorblindMode={colorblindMode} />}
       {!noFilteredItems && view === "List" && <ItemList items={filteredItems} milestones={milestones} colorblindMode={colorblindMode} />}

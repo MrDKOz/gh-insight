@@ -11,6 +11,7 @@ type Props = {
   items: TimelineItem[];
   highlightWeekends: boolean;
   colorblindMode: boolean;
+  includePRs: boolean;
 };
 
 const L = 52, R = 20, T = 24, B = 48, W = 1200, H = 320;
@@ -29,7 +30,8 @@ type HoverState = {
   dayIdx: number;
 };
 
-const CumulativeFlowInner: FunctionComponent<Props> = ({ items, highlightWeekends, colorblindMode }) => {
+const CumulativeFlowInner: FunctionComponent<Props> = ({ items, highlightWeekends, colorblindMode, includePRs }) => {
+  const filteredItems = includePRs ? items : items.filter((i) => i.type === "issue");
   const COL = makeChartColors(colorblindMode);
   // chart-specific derived colours not in the shared factory
   const closedFill  = colorblindMode ? "rgba(0,114,178,0.22)" : "rgba(9,105,218,0.22)";
@@ -39,11 +41,11 @@ const CumulativeFlowInner: FunctionComponent<Props> = ({ items, highlightWeekend
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<HoverState | null>(null);
 
-  if (items.length === 0) {
+  if (filteredItems.length === 0) {
     return <Typography sx={CHART_EMPTY_STATE_SX}>No items to plot cumulative flow for.</Typography>;
   }
 
-  const allTs = items.flatMap((item) => {
+  const allTs = filteredItems.flatMap((item) => {
     const end = itemEndDate(item);
     return [new Date(item.createdAt).getTime(), ...(end ? [new Date(end).getTime()] : [])];
   });
@@ -51,8 +53,8 @@ const CumulativeFlowInner: FunctionComponent<Props> = ({ items, highlightWeekend
   const maxTime   = Math.max(...allTs);
   const totalDays = Math.max(Math.ceil((maxTime - minTime) / MS), 1);
 
-  const sortedOpenedTs = items.map((item) => new Date(item.createdAt).getTime()).sort((a, b) => a - b);
-  const sortedClosedTs = items
+  const sortedOpenedTs = filteredItems.map((item) => new Date(item.createdAt).getTime()).sort((a, b) => a - b);
+  const sortedClosedTs = filteredItems
     .flatMap((item) => { const e = itemEndDate(item); return e ? [new Date(e).getTime()] : []; })
     .sort((a, b) => a - b);
 
