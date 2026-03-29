@@ -101,6 +101,7 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
 
   // ── Due date markers ──────────────────────────────────────────────────────────
   type DueMarker = { xNum: number; label: string; color: string; flipLeft: boolean };
+  type DueMarkerPlaced = DueMarker & { labelY: number; lineX: number };
   const dueMarkers = useMemo((): DueMarker[] => {
     if (issues.length === 0) {return [];}
     const markers: DueMarker[] = [];
@@ -118,6 +119,20 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
     }
     return markers;
   }, [issues.length, milestones, isMulti, minTime, maxTime]);
+
+  // Assign vertical label rows and horizontal line offsets so markers don't overlap
+  const placedMarkers: DueMarkerPlaced[] = [];
+  for (const dm of [...dueMarkers].sort((a, b) => a.xNum - b.xNum)) {
+    const usedRows = new Set<number>();
+    if (showToday && Math.abs(dm.xNum - todayXNum) < 60) usedRows.add(0);
+    for (const p of placedMarkers) {
+      if (Math.abs(dm.xNum - p.xNum) < 60) usedRows.add(Math.round((p.labelY - (T + 11)) / 11));
+    }
+    let row = 0;
+    while (usedRows.has(row)) row++;
+    const sameX = placedMarkers.filter((p) => Math.abs(p.xNum - dm.xNum) < 2).length;
+    placedMarkers.push({ ...dm, labelY: T + 11 + row * 11, lineX: dm.xNum + sameX * 3 });
+  }
 
   // X-axis labels (from full time range, not per-series)
   const numXLabels  = Math.min(8, totalDays + 1);
@@ -337,16 +352,16 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
         )}
 
         {/* Due date markers */}
-        {dueMarkers.map((dm, idx) => (
+        {placedMarkers.map((dm, idx) => (
           <g key={idx}>
             <line
-              x1={dm.xNum.toFixed(1)} y1={T}
-              x2={dm.xNum.toFixed(1)} y2={T + CH}
+              x1={dm.lineX.toFixed(1)} y1={T}
+              x2={dm.lineX.toFixed(1)} y2={T + CH}
               stroke={dm.color} strokeWidth={2} strokeDasharray="5 3" opacity={0.8}
             />
             <text
-              x={dm.flipLeft ? dm.xNum - 4 : dm.xNum + 4}
-              y={showToday && Math.abs(dm.xNum - todayXNum) < 60 ? T + 22 : T + 11}
+              x={dm.flipLeft ? dm.lineX - 4 : dm.lineX + 4}
+              y={dm.labelY}
               textAnchor={dm.flipLeft ? "end" : "start"}
               fill={dm.color} fontSize={10} fontFamily="inherit" opacity={0.9}
             >
