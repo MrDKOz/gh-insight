@@ -5,7 +5,7 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useMemo, useRef, useState } from "react";
-import { CHART_EMPTY_STATE_SX, HOVER_CARD_BASE_SX, MS, fmtDate, hoverCardPos, makeChartColors, pluralize, upperBound } from "../utils/utils";
+import { CARD_LABEL_SX, CHART_EMPTY_STATE_SX, DOT_SX, FS, HOVER_CARD_BASE_SX, MS, STAT_ROW_SX, fmtDate, hoverCardPos, makeChartColors, pluralize, upperBound } from "../utils/utils";
 import { ChartLegend } from "./ChartLegend";
 
 type Props = {
@@ -53,7 +53,7 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
 
   // ── Time range ────────────────────────────────────────────────────────────────
   const allCreatedTs = issues.map((i) => new Date(i.createdAt).getTime());
-  const allClosedTs  = issues.filter((i) => i.closedAt).map((i) => new Date(i.closedAt!).getTime());
+  const allClosedTs  = issues.flatMap((i) => i.closedAt ? [new Date(i.closedAt).getTime()] : []);
   const minTime = issues.length > 0 ? Math.min(...allCreatedTs) : 0;
   const maxTime = issues.length > 0
     ? (hasOpenIssues
@@ -69,7 +69,7 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
       const msIssues = issues.filter((i) => i.milestoneNumber === ms.number);
       if (msIssues.length === 0) {return { ms, points: [] };}
       const sortedCreatedTs = msIssues.map((i) => new Date(i.createdAt).getTime()).sort((a, b) => a - b);
-      const sortedClosedTs  = msIssues.filter((i) => i.closedAt).map((i) => new Date(i.closedAt!).getTime()).sort((a, b) => a - b);
+      const sortedClosedTs  = msIssues.flatMap((i) => i.closedAt ? [new Date(i.closedAt).getTime()] : []).sort((a, b) => a - b);
       const points = Array.from({ length: totalDays + 1 }, (_, idx) => {
         const t = minTime + idx * MS;
         return { t, count: upperBound(sortedCreatedTs, t) - upperBound(sortedClosedTs, t) };
@@ -203,7 +203,9 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
         })),
       });
     } else if (singleSeries) {
-      const { count } = singleSeries.points[ptIdx]!;
+      const point = singleSeries.points[ptIdx];
+      if (!point) { return; }
+      const { count } = point;
       setHover({
         x: wrapX, y: e.clientY - rect.top,
         svgX: pxFn(ptIdx, singleSeries.points.length),
@@ -220,19 +222,19 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
     <Box role="presentation" className="burndown-wrap" ref={wrapRef} style={{ position: "relative" }} onMouseMove={handleMouseMove} onMouseLeave={() => setHover(null)}>
       {hover && (
         <Paper elevation={2} sx={{ ...HOVER_CARD_BASE_SX, ...hoverCardStyle }}>
-          <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>{hover.date}</Box>
-          {hover.holidayName && <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "error.main" }}>{hover.holidayName}</Box>}
+          <Box sx={CARD_LABEL_SX}>{hover.date}</Box>
+          {hover.holidayName && <Box sx={{ ...CARD_LABEL_SX, color: "error.main" }}>{hover.holidayName}</Box>}
           {hover.series
             ? hover.series.map((s) => (
-                <Box key={s.title} sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem" }}>
-                  <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: s.color, flexShrink: 0 }} />
-                  <Box component="span" sx={{ fontSize: "0.6875rem", color: "text.secondary", mr: "2px" }}>{s.title}:</Box>
+                <Box key={s.title} sx={STAT_ROW_SX}>
+                  <Box sx={{ ...DOT_SX, bgcolor: s.color }} />
+                  <Box component="span" sx={{ fontSize: FS.sm, color: "text.secondary", mr: "2px" }}>{s.title}:</Box>
                   <Box component="span" sx={{ fontWeight: 600 }}>{pluralize(s.count, includePRs ? "open item" : "open issue")}</Box>
                 </Box>
               ))
             : (
-                <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
-                  <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: COL.issue, flexShrink: 0 }} />
+                <Box sx={STAT_ROW_SX}>
+                  <Box sx={{ ...DOT_SX, bgcolor: COL.issue }} />
                   {pluralize(hover.count ?? 0, includePRs ? "open item" : "open issue")}
                 </Box>
               )
@@ -274,7 +276,7 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
           <rect key={idx} x={b.x} y={T} width={b.w} height={CH} fill={COL.weekendBand} className="chart-weekend" />
         ))}
         {bankHolidayBands.map((b, idx) => (
-          <rect key={idx} x={b.x} y={T} width={b.w} height={CH} fill="rgba(234,67,53,0.12)" className="chart-bank-holiday" />
+          <rect key={idx} x={b.x} y={T} width={b.w} height={CH} fill={COL.bankHoliday} className="chart-bank-holiday" />
         ))}
 
         {yLabels.map((count) => (

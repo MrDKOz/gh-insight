@@ -249,7 +249,7 @@ const gqlFetch = async <T>(
   });
   await checkResponse(res);
   const json = (await res.json()) as { data?: T | null; errors?: Array<{ message: string }> };
-  if (json.errors && json.errors.length > 0) {throw new Error(json.errors[0]!.message);}
+  if (json.errors && json.errors.length > 0) {throw new Error(json.errors[0]?.message ?? "GraphQL error");}
   if (json.data == null) {throw new Error("GraphQL response contained no data");}
   return json.data;
 };

@@ -176,7 +176,7 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
   );
 
   // Helper to build the onResize handler for a given column index.
-  const resize = (i: number) => (e: React.MouseEvent) => startResize(i, e, widths[i]!);
+  const resize = (i: number) => (e: React.MouseEvent) => startResize(i, e, widths[i] ?? 0);
 
   // Column indices: #=0, title=1, author=2, status=3, created=4, firstReview=5, wait=6, bar=7, total=8, [milestone=9]
   const CI = { num: 0, title: 1, author: 2, status: 3, created: 4, firstReview: 5, wait: 6, bar: 7, total: 8, milestone: 9 };

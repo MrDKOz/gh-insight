@@ -3,26 +3,17 @@ import type { FunctionComponent } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import ButtonGroup from "@mui/material/ButtonGroup";
 import CssBaseline from "@mui/material/CssBaseline";
-import Divider from "@mui/material/Divider";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import Popover from "@mui/material/Popover";
-import Checkbox from "@mui/material/Checkbox";
-import ListItemText from "@mui/material/ListItemText";
-import MenuItem from "@mui/material/MenuItem";
-import Select from "@mui/material/Select";
-import Stack from "@mui/material/Stack";
-import Switch from "@mui/material/Switch";
-import Typography from "@mui/material/Typography";
 import { ThemeProvider } from "@mui/material/styles";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { fetchMilestoneItems, fetchMilestones, fetchUserProfile, fetchUserRepos } from "./api/github";
 import { fetchBankHolidays } from "./api/bankHolidayApi";
-import type { BankHoliday } from "./api/bankHolidayApi";
+import type { BankHoliday, Region } from "./api/bankHolidayApi";
 import { AppHeader } from "./components/AppHeader";
 import { ContextBar } from "./components/ContextBar";
+import { EmptyState } from "./components/EmptyState";
 import { KeyboardShortcuts } from "./components/KeyboardShortcuts";
+import { SettingsPopover } from "./components/SettingsPopover";
 import { SplashScreen } from "./components/SplashScreen";
 import { DEFAULT_VIEW, MilestoneView, readViewFiltersFromUrl } from "./components/MilestoneView";
 import type { View } from "./components/MilestoneView";
@@ -360,9 +351,11 @@ const App: FunctionComponent = () => {
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
-        const raw: unknown = JSON.parse(ev.target?.result as string);
+        if (typeof ev.target?.result !== "string") { throw new Error("File could not be read as text"); }
+        const raw: unknown = JSON.parse(ev.target.result);
         if (typeof raw !== "object" || raw === null) { throw new Error("Not a valid config object"); }
         const c = raw as Record<string, unknown>;
+        if (typeof c.version !== "number" || c.version !== 1) { throw new Error("Unsupported config version"); }
         if (typeof c.dark === "boolean") {
           setDark(c.dark);
           localStorage.setItem(LS_DARK, String(c.dark));
@@ -377,7 +370,10 @@ const App: FunctionComponent = () => {
           if (typeof s.highlightWeekends     === "boolean") { updateSetting("highlightWeekends",     s.highlightWeekends); }
           if (typeof s.colorblindMode        === "boolean") { updateSetting("colorblindMode",        s.colorblindMode); }
           if (typeof s.highlightBankHolidays === "boolean") { updateSetting("highlightBankHolidays", s.highlightBankHolidays); }
-          if (Array.isArray(s.bankHolidayRegions)) { updateSetting("bankHolidayRegions", (s.bankHolidayRegions as string[]).filter((v) => ["england-and-wales", "scotland", "northern-ireland", "US"].includes(v)) as import("./api/bankHolidayApi").Region[]); }
+          if (Array.isArray(s.bankHolidayRegions)) {
+            const isRegion = (v: unknown): v is Region => ["england-and-wales", "scotland", "northern-ireland", "US"].includes(v as string);
+            updateSetting("bankHolidayRegions", (s.bankHolidayRegions as unknown[]).filter(isRegion));
+          }
         }
         setSettingsAnchor(null);
       } catch (err) {
@@ -444,95 +440,22 @@ const App: FunctionComponent = () => {
           )}
 
           <AppHeader
-            userProfile={userProfile!}
+            userProfile={userProfile ?? DEMO_USER}
             dark={dark}
             onToggleDark={toggleDark}
             onSettingsClick={(e) => setSettingsAnchor(e.currentTarget)}
           />
 
-          <Popover
-            open={Boolean(settingsAnchor)}
-            anchorEl={settingsAnchor}
+          <SettingsPopover
+            anchor={settingsAnchor}
             onClose={() => setSettingsAnchor(null)}
-            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-            transformOrigin={{ vertical: "top", horizontal: "right" }}
-          >
-            <Box sx={{ p: 2, minWidth: 220 }}>
-              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Settings</Typography>
-              <Divider sx={{ mb: 1.5 }} />
-              <Stack direction="column" gap={0.5}>
-                <FormControlLabel
-                  control={<Switch size="small" checked={settings.highlightWeekends} onChange={(e) => updateSetting("highlightWeekends", e.target.checked)} />}
-                  label={<Typography variant="body2">Highlight weekends</Typography>}
-                />
-                <FormControlLabel
-                  control={<Switch size="small" checked={settings.highlightBankHolidays} onChange={(e) => updateSetting("highlightBankHolidays", e.target.checked)} />}
-                  label={<Typography variant="body2">Highlight bank holidays</Typography>}
-                />
-                {settings.highlightBankHolidays && (
-                  <Box sx={{ pl: 4.5, pb: 0.5 }}>
-                    {(() => {
-                      const REGION_LABELS: Record<string, string> = {
-                        "england-and-wales": "England & Wales",
-                        "scotland": "Scotland",
-                        "northern-ireland": "Northern Ireland",
-                        "US": "United States",
-                      };
-                      const ALL_REGIONS = ["england-and-wales", "scotland", "northern-ireland", "US"] as const;
-                      return (
-                        <Select
-                          multiple
-                          size="small"
-                          displayEmpty
-                          value={settings.bankHolidayRegions}
-                          onChange={(e) => updateSetting("bankHolidayRegions", e.target.value as import("./api/bankHolidayApi").Region[])}
-                          renderValue={(sel) => {
-                            const s = sel as string[];
-                            if (s.length === 0) { return <em style={{ opacity: 0.5 }}>None</em>; }
-                            if (s.length === 1) { return REGION_LABELS[s[0] ?? ""] ?? s[0]; }
-                            return `${s.length} regions`;
-                          }}
-                          sx={{ width: "100%", fontSize: "0.8rem" }}
-                        >
-                          {ALL_REGIONS.map((r) => (
-                            <MenuItem key={r} value={r} dense>
-                              <Checkbox size="small" checked={settings.bankHolidayRegions.includes(r)} sx={{ py: 0 }} />
-                              <ListItemText primary={REGION_LABELS[r]} primaryTypographyProps={{ variant: "body2" }} />
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      );
-                    })()}
-                  </Box>
-                )}
-                <FormControlLabel
-                  control={<Switch size="small" checked={settings.colorblindMode} onChange={(e) => updateSetting("colorblindMode", e.target.checked)} />}
-                  label={<Typography variant="body2">Colorblind-friendly palette</Typography>}
-                />
-              </Stack>
-              <Divider sx={{ my: 1.5 }} />
-              <Typography variant="caption" fontWeight={700} color="text.secondary"
-                sx={{ textTransform: "uppercase", letterSpacing: "0.06em", display: "block", mb: 1 }}>
-                Config
-              </Typography>
-              <ButtonGroup size="small" variant="outlined" fullWidth>
-                <Button onClick={handleExportConfig}>Export</Button>
-                <Button onClick={() => fileInputRef.current?.click()}>Import</Button>
-              </ButtonGroup>
-              <Divider sx={{ my: 1.5 }} />
-              <Button
-                variant="outlined"
-                color="error"
-                size="small"
-                fullWidth
-                onClick={handleDisconnect}
-              >
-                Disconnect
-              </Button>
-            </Box>
-          </Popover>
-
-          <input type="file" accept=".json" hidden ref={fileInputRef} onChange={handleImportConfig} />
+            settings={settings}
+            updateSetting={updateSetting}
+            onExportConfig={handleExportConfig}
+            fileInputRef={fileInputRef}
+            onImportConfig={handleImportConfig}
+            onDisconnect={handleDisconnect}
+          />
 
           <ContextBar
             repos={repos}
@@ -567,7 +490,7 @@ const App: FunctionComponent = () => {
                 {state.emptyMilestoneNums.length > 0 && (
                   <Alert severity="warning">
                     {state.emptyMilestoneNums.length === 1
-                      ? `Milestone #${state.emptyMilestoneNums[0]!} has no items.`
+                      ? `Milestone #${state.emptyMilestoneNums[0] ?? "?"} has no items.`
                       : `${state.emptyMilestoneNums.length} milestones have no items.`}
                   </Alert>
                 )}
@@ -579,29 +502,20 @@ const App: FunctionComponent = () => {
 
             {/* Empty state: no repo selected */}
             {!activeRepo && (
-              <Box sx={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1 }}>
-                <Box sx={{ color: "text.disabled" }}>
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M3 7a2 2 0 0 1 2-2h2.5l2 2H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
-                  </svg>
-                </Box>
-                <Typography variant="body1" fontWeight={500} color="text.secondary">Select a repository</Typography>
-                <Typography variant="body2" color="text.disabled">Choose a repository from the dropdown above to load its milestones</Typography>
-              </Box>
+              <EmptyState
+                icon={<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h2.5l2 2H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" /></svg>}
+                title="Select a repository"
+                message="Choose a repository from the dropdown above to load its milestones"
+              />
             )}
 
             {/* Empty state: repo has no milestones */}
             {activeRepo && state.milestones.length === 0 && !state.loadingList && !state.error && (
-              <Box sx={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1 }}>
-                <Box sx={{ color: "text.disabled" }}>
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
-                    <line x1="4" y1="22" x2="4" y2="15" />
-                  </svg>
-                </Box>
-                <Typography variant="body1" fontWeight={500} color="text.secondary">No milestones found</Typography>
-                <Typography variant="body2" color="text.disabled">This repository has no open or closed milestones</Typography>
-              </Box>
+              <EmptyState
+                icon={<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" y1="22" x2="4" y2="15" /></svg>}
+                title="No milestones found"
+                message="This repository has no open or closed milestones"
+              />
             )}
 
             {/* Main content */}

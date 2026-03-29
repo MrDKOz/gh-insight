@@ -360,7 +360,7 @@ const drawPDFTable = (
   y += ROW_H;
 
   doc.setFont("helvetica", "normal");
-  for (let i = 0; i < rows.length; i++) {
+  for (const [i, row] of rows.entries()) {
     if (y + ROW_H > pageH - BOTTOM_MARGIN) {
       doc.addPage();
       y = MARGIN;
@@ -368,15 +368,13 @@ const drawPDFTable = (
       y += ROW_H;
       doc.setFont("helvetica", "normal");
     }
-    const row = rows[i]!;
     if (i % 2 === 1) {
       doc.setFillColor(248, 249, 250);
       doc.rect(MARGIN, y, tableW, ROW_H, "F");
     }
     doc.setTextColor(36, 41, 47);
     let x = MARGIN;
-    for (let j = 0; j < cols.length; j++) {
-      const col = cols[j]!;
+    for (const [j, col] of cols.entries()) {
       const cell = doc.splitTextToSize(row[j] ?? "", col.width - PAD_X * 2)[0] ?? "";
       doc.text(cell, x + PAD_X, y + BASE_Y);
       if (j === linkColIdx) {

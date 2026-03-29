@@ -5,7 +5,7 @@ import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { AuthorTag } from "../components/AuthorTag";
-import { CHART_EMPTY_STATE_SX, HOVER_CARD_BASE_SX, fmtDate, hoverCardPos, itemEndDate, makeChartColors, pluralize } from "../utils/utils";
+import { CARD_LABEL_SX, CHART_EMPTY_STATE_SX, DOT_SX, FS, HOVER_CARD_BASE_SX, STAT_ROW_SX, fmtDate, hoverCardPos, itemEndDate, makeChartColors, pluralize } from "../utils/utils";
 import { ChartLegend } from "./ChartLegend";
 
 type Props = {
@@ -77,10 +77,11 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
       const endDate = itemEndDate(item);
       if (!endDate) {continue;}
       const ws = weekStart(new Date(endDate).getTime());
-      if (!buckets.has(ws)) {
-        buckets.set(ws, { startMs: ws, endMs: ws + 6 * DAY_MS, issues: 0, merged: 0, closed: 0, authors: [] });
+      let w = buckets.get(ws);
+      if (!w) {
+        w = { startMs: ws, endMs: ws + 6 * DAY_MS, issues: 0, merged: 0, closed: 0, authors: [] };
+        buckets.set(ws, w);
       }
-      const w = buckets.get(ws)!;
       if (item.type === "issue")      {w.issues++;}
       else if (item.mergedAt)         {w.merged++;}
       else                            {w.closed++;}
@@ -103,10 +104,12 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
       weekSet.add(ws);
       const bucket = msWeekMap.get(item.milestoneNumber);
       if (!bucket) {continue;}
-      if (!bucket.has(ws)) {
-        bucket.set(ws, { startMs: ws, endMs: ws + 6 * DAY_MS, total: 0 });
+      let entry = bucket.get(ws);
+      if (!entry) {
+        entry = { startMs: ws, endMs: ws + 6 * DAY_MS, total: 0 };
+        bucket.set(ws, entry);
       }
-      bucket.get(ws)!.total++;
+      entry.total++;
     }
     return { allWeekStarts: [...weekSet].sort((a, b) => a - b), msWeekMap };
   }, [filteredItems, milestones, isMulti]);
@@ -149,35 +152,35 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
       <Box className="chart-wrap" ref={wrapRef} role="presentation" style={{ position: "relative" }}>
         {hover && (
           <Paper elevation={2} sx={{ ...HOVER_CARD_BASE_SX, ...cardStyle }}>
-            <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>
+            <Box sx={CARD_LABEL_SX}>
               {DAY_NAMES[new Date(hover.week.startMs).getUTCDay()]} {fmtDate(new Date(hover.week.startMs).toISOString())} – {DAY_NAMES[new Date(hover.week.endMs).getUTCDay()]} {fmtDate(new Date(hover.week.endMs).toISOString())}
             </Box>
             {hover.week.issues > 0 && (
-              <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
-                <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: COL.issue, flexShrink: 0 }} />
+              <Box sx={STAT_ROW_SX}>
+                <Box sx={{ ...DOT_SX, bgcolor: COL.issue }} />
                 {pluralize(hover.week.issues, "issue")} closed
               </Box>
             )}
             {hover.week.merged > 0 && (
-              <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
-                <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: COL.prMerged, flexShrink: 0 }} />
+              <Box sx={STAT_ROW_SX}>
+                <Box sx={{ ...DOT_SX, bgcolor: COL.prMerged }} />
                 {pluralize(hover.week.merged, "PR")} merged
               </Box>
             )}
             {hover.week.closed > 0 && (
-              <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
-                <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: COL.prClosed, flexShrink: 0 }} />
+              <Box sx={STAT_ROW_SX}>
+                <Box sx={{ ...DOT_SX, bgcolor: COL.prClosed }} />
                 {pluralize(hover.week.closed, "PR")} closed
               </Box>
             )}
-            <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary", borderTop: 1, borderColor: "divider", pt: "4px", mt: "2px" }}>
+            <Box sx={{ ...CARD_LABEL_SX, borderTop: 1, borderColor: "divider", pt: "4px", mt: "2px" }}>
               Total: {hover.week.issues + hover.week.merged + hover.week.closed}
             </Box>
             {hover.week.authors.length > 0 && (
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: "3px", pt: "2px" }}>
                 {hover.week.authors.slice(0, 6).map((a) => <AuthorTag key={a} login={a} showName={false} size={16} />)}
                 {hover.week.authors.length > 6 && (
-                  <Box sx={{ fontSize: "0.6875rem", color: "text.secondary", alignSelf: "center" }}>+{hover.week.authors.length - 6}</Box>
+                  <Box sx={{ fontSize: FS.sm, color: "text.secondary", alignSelf: "center" }}>+{hover.week.authors.length - 6}</Box>
                 )}
               </Box>
             )}
@@ -242,7 +245,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
             <text key={wi} x={(barX(wi) + barW / 2).toFixed(1)} y={T + CH + 20}
               textAnchor={li === 0 ? "start" : li === numX - 1 ? "end" : "middle"}
               fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">
-              {fmtDate(new Date(weeks[wi]!.startMs).toISOString())}
+              {fmtDate(new Date(weeks[wi]?.startMs ?? 0).toISOString())}
             </text>
           ))}
 
@@ -292,14 +295,14 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
     <Box className="chart-wrap" ref={wrapRef} style={{ position: "relative" }}>
       {msHover && (
         <Paper elevation={2} sx={{ ...HOVER_CARD_BASE_SX, ...msCardStyle }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: msHover.msColor, flexShrink: 0 }} />
+          <Box sx={{ ...STAT_ROW_SX, fontSize: FS.sm, color: "text.secondary" }}>
+            <Box sx={{ ...DOT_SX, bgcolor: msHover.msColor }} />
             {msHover.msTitle}
           </Box>
-          <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>
+          <Box sx={CARD_LABEL_SX}>
             {DAY_NAMES[new Date(msHover.week.startMs).getUTCDay()]} {fmtDate(new Date(msHover.week.startMs).toISOString())} – {DAY_NAMES[new Date(msHover.week.endMs).getUTCDay()]} {fmtDate(new Date(msHover.week.endMs).toISOString())}
           </Box>
-          <Box sx={{ fontSize: "0.8125rem", fontWeight: 600 }}>
+          <Box sx={{ fontSize: FS.md, fontWeight: 600 }}>
             {pluralize(msHover.week.total, "item")} completed
           </Box>
         </Paper>
@@ -360,8 +363,8 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
           <text key={c} x={L - 6} y={pyFn(c) + 4} textAnchor="end" fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">{c}</text>
         ))}
         {xIndices.map((wi, li) => {
-          // wi comes from xIndices which are clamped to allWeekStarts bounds
-        const xs = allWeekStarts[wi]!;
+          const xs = allWeekStarts[wi];
+          if (xs === undefined) { return null; }
           const cx = L + wi * slotW + slotW / 2;
           return (
             <text key={wi} x={cx.toFixed(1)} y={T + CH + 20}

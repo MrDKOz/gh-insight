@@ -5,7 +5,7 @@ import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { AuthorTag } from "../components/AuthorTag";
-import { CHART_EMPTY_STATE_SX, FS, HOVER_CARD_BASE_SX, fmtDate, hoverCardPos, itemEndDate, makeChartColors, safeUrl } from "../utils/utils";
+import { CHART_EMPTY_STATE_SX, DOT_SX, FS, HOVER_CARD_BASE_SX, fmtDate, hoverCardPos, itemEndDate, makeChartColors, safeUrl } from "../utils/utils";
 import { ChartLegend } from "./ChartLegend";
 
 type Props = {
@@ -48,9 +48,13 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
   // Map login → contribution counts; fall back to author when no assignees
   const rows: ContribRow[] = useMemo(() => {
     const map = new Map<string, ContribRow>();
-    const ensure = (login: string) => {
-      if (!map.has(login)) {map.set(login, { login, issues: 0, merged: 0, closed: 0, open: 0, total: 0 });}
-      return map.get(login)!;
+    const ensure = (login: string): ContribRow => {
+      let entry = map.get(login);
+      if (!entry) {
+        entry = { login, issues: 0, merged: 0, closed: 0, open: 0, total: 0 };
+        map.set(login, entry);
+      }
+      return entry;
     };
     for (const item of items) {
       const logins = item.assignees.length > 0 ? item.assignees : [item.author];
@@ -162,7 +166,7 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
         >
           <AuthorTag login={hover.row.login} />
           <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: FS.md, fontWeight: 600 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: segColor(hover.segment), flexShrink: 0 }} />
+            <Box sx={{ ...DOT_SX, bgcolor: segColor(hover.segment) }} />
             {hover.count} {segLabel(hover.segment)}
           </Box>
           {hover.earliestDate && hover.latestDate && hover.earliestDate !== hover.latestDate && (

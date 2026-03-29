@@ -6,7 +6,7 @@ import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { AuthorWithAssignees } from "../components/AuthorWithAssignees";
-import { CHART_EMPTY_STATE_SX, MS, fmtDate, fmtDateTime, hoverCardPos, itemEndDate, makeChartColors, pluralize } from "../utils/utils";
+import { CARD_LABEL_SX, CHART_EMPTY_STATE_SX, DOT_SX, FS, MS, STAT_ROW_SX, fmtDate, fmtDateTime, hoverCardPos, itemEndDate, makeChartColors, pluralize } from "../utils/utils";
 import { ChartLegend } from "./ChartLegend";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -98,10 +98,9 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
 
   const sorted = [...pts.map((p) => p.days)].sort((a, b) => a - b);
   const mid    = Math.floor(sorted.length / 2);
-  // sorted is non-empty (pts.length > 0 guarded above); mid and mid-1 are always valid indices
   const median = sorted.length % 2 === 1
-    ? sorted[mid]!
-    : Math.round((sorted[mid - 1]! + sorted[mid]!) / 2);
+    ? (sorted[mid] ?? 0)
+    : Math.round(((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2);
   const mean   = Math.round(sorted.reduce((s, d) => s + d, 0) / sorted.length);
   const showMean = mean !== median && Math.abs(pyFn(mean) - pyFn(median)) > 16;
 
@@ -115,20 +114,23 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
   const CLUSTER_R = 14;
   const SPREAD_STEP = 13;
   const spreadOffsets: { dy: number }[] = pts.map(() => ({ dy: 0 }));
-  if (hoveredIdx !== null) {
-    // hoveredIdx is always a valid pts index (set by onEnter which receives the loop index)
-    const { x: hx, y: hy } = svgPts[hoveredIdx]!;
+  const hoveredPt = hoveredIdx !== null ? svgPts[hoveredIdx] : undefined;
+  if (hoveredPt) {
+    const { x: hx, y: hy } = hoveredPt;
     const cluster = pts
       .map((_, i) => i)
       .filter((i) => {
-        const dx = svgPts[i]!.x - hx, dy = svgPts[i]!.y - hy;
+        const pt = svgPts[i];
+        if (!pt) { return false; }
+        const dx = pt.x - hx, dy = pt.y - hy;
         return Math.sqrt(dx * dx + dy * dy) < CLUSTER_R;
       });
     if (cluster.length > 1) {
-      cluster.sort((a, b) => svgPts[a]!.y - svgPts[b]!.y);
+      cluster.sort((a, b) => (svgPts[a]?.y ?? 0) - (svgPts[b]?.y ?? 0));
       cluster.forEach((idx, rank) => {
-        // idx comes from pts.map((_, i) => i), guaranteed within spreadOffsets bounds
-        spreadOffsets[idx]! = { dy: (rank - (cluster.length - 1) / 2) * SPREAD_STEP };
+        if (spreadOffsets[idx] !== undefined) {
+          spreadOffsets[idx] = { dy: (rank - (cluster.length - 1) / 2) * SPREAD_STEP };
+        }
       });
     }
   }
@@ -169,23 +171,23 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
             ...cardStyle,
           }}
         >
-          <Box sx={{ display: "flex", alignItems: "center", fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>
-            <Box component="span" sx={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", bgcolor: hover.pt.col, mr: "5px", verticalAlign: "middle", flexShrink: 0 }} />
+          <Box sx={{ display: "flex", alignItems: "center", fontSize: FS.sm, fontWeight: 600, color: "text.secondary" }}>
+            <Box component="span" sx={{ ...DOT_SX, display: "inline-block", bgcolor: hover.pt.col, mr: "5px", verticalAlign: "middle" }} />
             {hover.pt.typeLabel} #{hover.pt.item.number}
           </Box>
-          <Typography sx={{ fontSize: "0.75rem", color: "text.primary", maxWidth: 210, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <Typography sx={{ fontSize: FS.base, color: "text.primary", maxWidth: 210, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {hover.pt.item.title}
           </Typography>
           <AuthorWithAssignees author={hover.pt.item.author} assignees={hover.pt.item.assignees} />
-          <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
+          <Box sx={STAT_ROW_SX}>
             {pluralize(hover.pt.days, "day")} cycle time
           </Box>
           {reviewWaitDays !== null && (
-            <Box sx={{ fontSize: "0.6875rem", fontWeight: 500, color: "text.secondary" }}>
+            <Box sx={{ fontSize: FS.sm, fontWeight: 500, color: "text.secondary" }}>
               ⏱ {reviewWaitDays}d to first review
             </Box>
           )}
-          <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>
+          <Box sx={CARD_LABEL_SX}>
             {DAY_NAMES[new Date(hover.pt.item.createdAt).getUTCDay()]} {fmtDateTime(hover.pt.item.createdAt)} → {DAY_NAMES[new Date(hover.pt.endDate).getUTCDay()]} {fmtDateTime(hover.pt.endDate)}
           </Box>
         </Paper>
@@ -233,7 +235,7 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
           if (t < minTime || t > minTime + totalMs) {return [];}
           const x = L + ((t - minTime) / totalMs) * CW;
           const w = Math.min((MS / totalMs) * CW, CW - (x - L));
-          return [<rect key={i} x={x.toFixed(1)} y={T} width={w.toFixed(1)} height={CH} fill="rgba(234,67,53,0.12)" className="chart-bank-holiday" />];
+          return [<rect key={i} x={x.toFixed(1)} y={T} width={w.toFixed(1)} height={CH} fill={COL.bankHoliday} className="chart-bank-holiday" />];
         })}
 
         {yLabels.map((d) => (
@@ -262,23 +264,28 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
           </>
         )}
 
-        {pts.map((p, i) => (
-          <g key={`${p.item.type}-${p.item.number}`}
-            style={{ transition: "transform 0.15s ease" }}
-            transform={`translate(0, ${spreadOffsets[i]!.dy})`}
-            role="button"
-            tabIndex={0}
-            aria-label={`${p.typeLabel} #${p.item.number}: ${p.item.title} — ${pluralize(p.days, "day")} cycle time`}
-            onClick={() => window.open(p.item.url, "_blank", "noreferrer")}
-            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); window.open(p.item.url, "_blank", "noreferrer"); } }}
-          >
-            <circle
-              cx={svgPts[i]!.x.toFixed(1)} cy={svgPts[i]!.y.toFixed(1)}
-              r={5} fill={p.col} opacity={0.82}
-              className="ct-dot"
-              onMouseEnter={(e) => onEnter(e, p, i)} />
-          </g>
-        ))}
+        {pts.map((p, i) => {
+          const svgPt = svgPts[i];
+          const offset = spreadOffsets[i];
+          if (!svgPt || !offset) { return null; }
+          return (
+            <g key={`${p.item.type}-${p.item.number}`}
+              style={{ transition: "transform 0.15s ease" }}
+              transform={`translate(0, ${offset.dy})`}
+              role="button"
+              tabIndex={0}
+              aria-label={`${p.typeLabel} #${p.item.number}: ${p.item.title} — ${pluralize(p.days, "day")} cycle time`}
+              onClick={() => window.open(p.item.url, "_blank", "noreferrer")}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); window.open(p.item.url, "_blank", "noreferrer"); } }}
+            >
+              <circle
+                cx={svgPt.x.toFixed(1)} cy={svgPt.y.toFixed(1)}
+                r={5} fill={p.col} opacity={0.82}
+                className="ct-dot"
+                onMouseEnter={(e) => onEnter(e, p, i)} />
+            </g>
+          );
+        })}
 
         <line x1={L} y1={T + CH} x2={L + CW} y2={T + CH} stroke={COL.axis} strokeWidth={1} className="chart-axis" />
         <line x1={L} y1={T}      x2={L}       y2={T + CH} stroke={COL.axis} strokeWidth={1} className="chart-axis" />

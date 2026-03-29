@@ -9,7 +9,8 @@ const cache = new Map<string, BankHoliday[]>();
 
 async function fetchHolidaysForYear(region: Region, year: number): Promise<BankHoliday[]> {
   const key = `${region}-${year}`;
-  if (cache.has(key)) { return cache.get(key)!; }
+  const cached = cache.get(key);
+  if (cached !== undefined) { return cached; }
 
   let holidays: BankHoliday[];
   if (region !== "US") {

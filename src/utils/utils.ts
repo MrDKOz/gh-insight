@@ -60,6 +60,8 @@ const COLORS = {
   chartTodayLabel: "rgba(248,81,73,0.9)",
   chartCursor:     "rgba(87,96,106,0.5)",
   weekendBand:     "rgba(0,0,0,0.04)",
+  /** Bank holiday band — red tint (SVG fill / Gantt band background, light mode). */
+  bankHoliday:     "rgba(234,67,53,0.12)",
 } as const;
 
 // Okabe-Ito palette — distinguishable for deuteranopia, protanopia and tritanopia.
@@ -82,6 +84,8 @@ const COLORS_CB = {
   chartTodayLabel: "rgba(248,81,73,0.9)",
   chartCursor:     "rgba(87,96,106,0.5)",
   weekendBand:     "rgba(0,0,0,0.04)",
+  /** Bank holiday band — Okabe-Ito amber (distinguishable for red-green colorblindness). */
+  bankHoliday:     "rgba(230,159,0,0.18)",
 } as const;
 
 /**
@@ -169,7 +173,7 @@ const assigneesOtherThanAuthor = (assignees: string[], author: string): string[]
 const upperBound = (arr: number[], t: number): number => {
   let lo = 0, hi = arr.length;
   // arr[mid] is always within bounds: mid = (lo+hi)>>>1, and lo < hi throughout the loop
-  while (lo < hi) { const mid = (lo + hi) >>> 1; arr[mid]! <= t ? (lo = mid + 1) : (hi = mid); }
+  while (lo < hi) { const mid = (lo + hi) >>> 1; (arr[mid] ?? Infinity) <= t ? (lo = mid + 1) : (hi = mid); }
   return lo;
 };
 
@@ -204,6 +208,7 @@ const makeChartColors = (colorblindMode: boolean) => {
     today:       p.chartToday,
     todayLabel:  p.chartTodayLabel,
     weekendBand: p.weekendBand,
+    bankHoliday: p.bankHoliday,
   };
 };
 
@@ -313,7 +318,7 @@ const forecastCompletion = (
   const closedCount  = closedIssues.length;
 
   const allCreatedTs  = issues.map((i) => new Date(i.createdAt).getTime());
-  const allClosedTs   = closedIssues.map((i) => new Date(i.closedAt!).getTime());
+  const allClosedTs   = closedIssues.flatMap((i) => i.closedAt ? [new Date(i.closedAt).getTime()] : []);
   const minTime       = Math.min(...allCreatedTs);
   const maxTime       = Math.max(...allCreatedTs, ...allClosedTs, todayMs);
   const totalDays     = Math.max(Math.ceil((maxTime - minTime) / MS), 1);
@@ -331,7 +336,8 @@ const forecastCompletion = (
   const n   = win.length;
   let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
   for (let i = 0; i < n; i++) {
-    sumX += i; sumY += win[i]!; sumXY += i * win[i]!; sumX2 += i * i;
+    const y = win[i] ?? 0;
+    sumX += i; sumY += y; sumXY += i * y; sumX2 += i * i;
   }
   const denom = n * sumX2 - sumX * sumX;
   let projectedT: number | null = null;

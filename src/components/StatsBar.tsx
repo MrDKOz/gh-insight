@@ -68,8 +68,10 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
       (i) => isOpen(i) && (now - new Date(i.updatedAt).getTime()) > STALE_THRESHOLD_MS,
     ).length;
 
-    const cycleTimes = closedIssues.map((i) =>
-      Math.round((new Date(i.closedAt!).getTime() - new Date(i.createdAt).getTime()) / MS),
+    const cycleTimes = closedIssues.flatMap((i) =>
+      i.closedAt !== null
+        ? [Math.round((new Date(i.closedAt).getTime() - new Date(i.createdAt).getTime()) / MS)]
+        : [],
     );
     const cycleStats = cycleTimes.length > 0 ? {
       avg:     Math.round(cycleTimes.reduce((a, b) => a + b, 0) / cycleTimes.length),
@@ -83,10 +85,10 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
   const reviewWait = useMemo(() => {
     if (view !== "Review Wait") {return null;}
     const prs = items.filter((i): i is Extract<TimelineItem, { type: "pr" }> => i.type === "pr");
-    const reviewed   = prs.filter((p) => p.firstReviewAt !== null);
+    const reviewed   = prs.filter((p): p is typeof p & { firstReviewAt: string } => p.firstReviewAt !== null);
     const unreviewed = prs.filter((p) => p.firstReviewAt === null);
     const waitDays   = reviewed.map((p) =>
-      Math.round((new Date(p.firstReviewAt!).getTime() - new Date(p.createdAt).getTime()) / MS),
+      Math.round((new Date(p.firstReviewAt).getTime() - new Date(p.createdAt).getTime()) / MS),
     );
     const waitDetails = waitDays.length > 0 ? {
       avg:     Math.round(waitDays.reduce((a, b) => a + b, 0) / waitDays.length),

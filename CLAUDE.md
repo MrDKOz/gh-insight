@@ -86,10 +86,19 @@ The CSP lives in `index.html`. The `stripDevCspPlugin` in `vite.config.ts` remov
 - Use `barCardStyle()` (local to `GanttView`) for fixed-position cards that need window-level edge detection
 - Never use native `title` attributes for meaningful data — use a MUI `Paper` card
 
+### Colour palette and colorblind mode
+
+**Every colour used in the app must be routed through the palette system** so it automatically respects the colorblind toggle:
+
+- Named colour tokens live in `COLORS` (default) and `COLORS_CB` (Okabe-Ito) in `src/utils/utils.ts`
+- `makeChartColors(colorblindMode)` exposes the right set for SVG charts — add new tokens to **both** objects and to the `makeChartColors` return value
+- The `body.colorblind` class (toggled in `App.tsx`) drives CSS overrides for Gantt/CSS-only colours — add `body.colorblind .your-class` and `body.dark.colorblind .your-class` rules alongside every new colour in `index.css`
+- Never hardcode a colour value in a chart, component, or CSS rule without also providing a colorblind-safe alternative in the same diff
+
 ### SVG charts (Burndown, CycleTime, Velocity, CumulativeFlow)
 
-- Hardcode presentation attribute colours (e.g. `fill="#0969da"`) as fallbacks for `html-to-image` export, which cannot resolve CSS custom properties in its cloned document
-- Add a CSS class (e.g. `className="chart-label"`) alongside the hardcoded attribute so dark-mode CSS overrides work at runtime
+- Hardcode presentation attribute colours via `COL.<token>` (from `makeChartColors`) as fallbacks for `html-to-image` export, which cannot resolve CSS custom properties in its cloned document — this also ensures the colorblind palette is applied to exported images
+- Add a CSS class (e.g. `className="chart-label"`) alongside the `COL` attribute so dark-mode and colorblind CSS overrides work at runtime
 - Provide a continuous mouse-tracking cursor line (`onMouseMove` on the wrapper `<div>`, compute SVG-space fraction, snap to nearest data point) rather than per-dot hover targets
 - Empty-state messages use MUI `Typography` with `color="text.secondary"`, not a custom CSS class
 - Interactive SVG elements (clickable dots, etc.) must be wrapped in a `<g role="button" tabIndex={0} aria-label={...} onClick={...} onKeyDown={...}>` — attach `onMouseEnter` to the inner shape, not the `<g>`, so hover and keyboard activation are independent

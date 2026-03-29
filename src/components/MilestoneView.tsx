@@ -13,7 +13,7 @@ import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Burndown } from "../charts/Burndown";
 import { Contributors } from "../charts/Contributors";
@@ -21,7 +21,8 @@ import { CumulativeFlow } from "../charts/CumulativeFlow";
 import { CycleTime } from "../charts/CycleTime";
 import { Velocity } from "../charts/Velocity";
 import { exportCSV, exportChartPDF, exportGanttPDF, exportMarkdown, exportPDF, exportPNG, exportReviewWaitCSV, exportReviewWaitMarkdown, exportReviewWaitPDF, exportReviewWaitXLSX, exportSVG, exportXLSX } from "../utils/export";
-import { MS, itemEndDate, snapToHour } from "../utils/utils";
+import { useGanttLayout } from "../hooks/useGanttLayout";
+
 import { FilterBar, applyFilters } from "./FilterBar";
 import { GanttView } from "./GanttView";
 import { ItemList } from "./ItemList";
@@ -84,8 +85,8 @@ const readViewFiltersFromUrl = (): { view: View; filters: Filters } => {
     showMergedPRs:    !hide.has("mp"),
     showClosedPRs:    !hide.has("cp"),
     // "|" separator; each value is URI-encoded so "|" inside a label/name is safe
-    activeLabels: p.get("labels") ? p.get("labels")!.split("|").filter(Boolean).map(decodeURIComponent) : [],
-    activePeople: p.get("people") ? p.get("people")!.split("|").filter(Boolean).map(decodeURIComponent) : [],
+    activeLabels: (p.get("labels") ?? "").split("|").filter(Boolean).map(decodeURIComponent),
+    activePeople: (p.get("people") ?? "").split("|").filter(Boolean).map(decodeURIComponent),
     peopleRole:   rawRole === "author" ? "author" : rawRole === "assignees" ? "assignees" : "either",
   };
   return { view, filters };
@@ -118,17 +119,11 @@ const syncFiltersToUrl = (filters: Filters): void => {
 };
 
 const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, bankHolidays, colorblindMode, view }) => {
-  const [labelWidth, setLabelWidth] = useState(400);
-  const [pixelsPerDay, setPixelsPerDay] = useState(30);
-  const [axisHeight, setAxisHeight] = useState(36);
   const [exportAnchor, setExportAnchor] = useState<HTMLElement | null>(null);
   const [exporting, setExporting] = useState<ExportFormat | null>(null);
   const [filters, setFilters] = useState<Filters>(() => readViewFiltersFromUrl().filters);
   const [exportError, setExportError] = useState<string | null>(null);
   const [copyTooltip, setCopyTooltip] = useState<"idle" | "copied">("idle");
-  const [snapMode, setSnapMode] = useState<"day" | "hour">(() =>
-    new URLSearchParams(window.location.search).get("snap") === "hour" ? "hour" : "day",
-  );
 
   const [toolbarSlot, setToolbarSlot] = useState<Element | null>(null);
   const [filterSlot, setFilterSlot] = useState<Element | null>(null);
@@ -137,19 +132,7 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
   const [cycleTimeIncludePRs, setCycleTimeIncludePRs] = useState(false);
   const [velocityIncludePRs, setVelocityIncludePRs] = useState(false);
 
-  const handleFitToScreen = useCallback(() => {
-    const el = trackColRef.current;
-    if (!el) { return; }
-    const { totalDays } = stateRef.current;
-    setPixelsPerDay(Math.max(4, Math.min(200, el.clientWidth / totalDays)));
-  }, []);
-
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const trackColRef = useRef<HTMLDivElement>(null);
-  const axisRef = useRef<HTMLDivElement>(null);
-  const stateRef = useRef({ pixelsPerDay, totalDays: 0, trackWidth: 0 });
-  const pendingScrollRef = useRef<number | null>(null);
-  const dragCleanupRef = useRef<(() => void) | null>(null);
 
   const milestoneColorMap = useMemo(() => new Map(milestones.map((m) => [m.number, m.color])), [milestones]);
   const isMultiMilestone = milestones.length > 1;
@@ -157,9 +140,9 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
     milestones.length === 0
       ? "Milestone"
       : milestones.length === 1
-        ? milestones[0]!.title
+        ? (milestones[0]?.title ?? "Milestone")
         : milestones.length === 2
-          ? `${milestones[0]!.title} + ${milestones[1]!.title}`
+          ? `${milestones[0]?.title ?? ""} + ${milestones[1]?.title ?? ""}`
           : `${milestones.length} milestones`;
 
   const { closedIssues, openIssues, prItems, mergedPRs } = useMemo(() => {
@@ -173,6 +156,23 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
 
   const filteredItems = useMemo(() => applyFilters(items, filters), [items, filters]);
 
+  const {
+    labelWidth,
+    axisHeight,
+    snapMode,
+    trackColRef,
+    axisRef,
+    todayMs,
+    minTime,
+    totalMs,
+    trackWidth,
+    sortedItems,
+    handleFitToScreen,
+    handleResizeStart,
+    handleResizeKeyDown,
+    handleSnapModeChange,
+  } = useGanttLayout(items, filteredItems, view);
+
   const counts = useMemo(
     () => ({
       openIssues: openIssues.length,
@@ -184,22 +184,9 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
     [openIssues, closedIssues, prItems, mergedPRs],
   );
 
-  const sortedItems = useMemo(
-    () => [...filteredItems].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
-    [filteredItems],
-  );
-
   const handleFiltersChange = useCallback((newFilters: Filters) => {
     setFilters(newFilters);
     syncFiltersToUrl(newFilters);
-  }, []);
-
-  const handleSnapModeChange = useCallback((mode: "day" | "hour") => {
-    setSnapMode(mode);
-    const p = new URLSearchParams(window.location.search);
-    if (mode === "hour") { p.set("snap", "hour"); } else { p.delete("snap"); }
-    const qs = p.toString();
-    window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
   }, []);
 
   // Read portal target nodes after mount — querying the DOM inline during
@@ -211,69 +198,6 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
     setFilterSlot(document.getElementById("filter-bar-slot"));
   }, []);
 
-  useEffect(() => () => {
-    dragCleanupRef.current?.();
-  }, []);
-
-  useEffect(() => {
-    const el = axisRef.current;
-    if (!el) {return;}
-    const measure = () => {
-      const { height } = el.getBoundingClientRect();
-      const marginBottom = parseFloat(getComputedStyle(el).marginBottom) || 0;
-      setAxisHeight(height + marginBottom);
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [view]);
-
-  useEffect(() => {
-    if (view !== "Gantt") { return; }
-    const el = trackColRef.current;
-    if (!el || items.length === 0) { setPixelsPerDay(30); return; }
-    const allTs = items.flatMap((item) => {
-      const end = itemEndDate(item);
-      return [new Date(item.createdAt).getTime(), ...(end ? [new Date(end).getTime()] : [])];
-    });
-    // Mirror the trackWidth useMemo exactly so the initial zoom fills the column:
-    // midnight-snap min, and only extend to today when there are open items.
-    const rawMin = Math.min(...allTs);
-    const min = new Date(new Date(rawMin).toISOString().slice(0, 10)).getTime();
-    const hasOpen = items.some((item) => !itemEndDate(item));
-    const max = hasOpen ? Math.max(...allTs, Date.now()) : Math.max(...allTs) + 3 * MS;
-    const days = Math.max(1, (max - min) / MS);
-    setPixelsPerDay(Math.max(4,Math.min(200, el.clientWidth / days)));
-  }, [items, view]);
-
-  // Non-passive wheel listener so we can call preventDefault for vertical scroll-zoom
-  useEffect(() => {
-    const el = trackColRef.current;
-    if (!el) {return;}
-    const onWheel = (e: WheelEvent) => {
-      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {return;}
-      e.preventDefault();
-      const { pixelsPerDay: ppd, totalDays: td, trackWidth: tw } = stateRef.current;
-      const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
-      const newPpd = Math.min(200, Math.max(4,ppd * factor));
-      const newTrackWidth = Math.max(500, Math.round(td * newPpd));
-      const cursorX = e.clientX - el.getBoundingClientRect().left;
-      const fraction = tw > 0 ? (cursorX + el.scrollLeft) / tw : 0;
-      pendingScrollRef.current = Math.max(0, fraction * newTrackWidth - cursorX);
-      setPixelsPerDay(newPpd);
-    };
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
-  }, [view]);
-
-  useEffect(() => {
-    if (pendingScrollRef.current !== null && trackColRef.current) {
-      trackColRef.current.scrollLeft = pendingScrollRef.current;
-      pendingScrollRef.current = null;
-    }
-  }, [pixelsPerDay]);
-
   const visibleFormats = useMemo(() => formatsForView(view), [view]);
 
   const handleExport = useCallback(
@@ -281,21 +205,23 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
       setExportAnchor(null);
       setExporting(fmt);
       try {
+        const container = wrapperRef.current;
+        if (!container) { throw new Error("Export container not mounted"); }
         if (view === "Review Wait") {
           if      (fmt === "CSV")                {exportReviewWaitCSV(filteredItems, title, milestones);}
           else if (fmt === "Markdown")           {exportReviewWaitMarkdown(filteredItems, title, milestones);}
           else if (fmt === "XLSX")               {await exportReviewWaitXLSX(filteredItems, title, milestones);}
           else if (fmt === "PDF")                {await exportReviewWaitPDF(filteredItems, title, milestones);}
-          else if (fmt === "PNG — Current view") {await exportPNG(wrapperRef.current!, trackColRef.current, title, "current");}
-        } else if (fmt === "SVG")                {exportSVG(wrapperRef.current!, title);}
+          else if (fmt === "PNG — Current view") {await exportPNG(container, trackColRef.current, title, "current");}
+        } else if (fmt === "SVG")                {exportSVG(container, title);}
         else if (fmt === "CSV")                  {exportCSV(filteredItems, title);}
         else if (fmt === "Markdown")             {exportMarkdown(filteredItems, title);}
         else if (fmt === "XLSX")                 {await exportXLSX(filteredItems, title);}
-        else if (fmt === "PNG — Current view")   {await exportPNG(wrapperRef.current!, trackColRef.current, title, "current");}
-        else if (fmt === "PNG — Full timeline")  {await exportPNG(wrapperRef.current!, trackColRef.current, title, "full");}
+        else if (fmt === "PNG — Current view")   {await exportPNG(container, trackColRef.current, title, "current");}
+        else if (fmt === "PNG — Full timeline")  {await exportPNG(container, trackColRef.current, title, "full");}
         else if (fmt === "PDF") {
-          if (view === "Gantt")          {await exportGanttPDF(wrapperRef.current!, trackColRef.current, title);}
-          else if (CHART_VIEWS.has(view)){await exportChartPDF(wrapperRef.current!, title);}
+          if (view === "Gantt")          {await exportGanttPDF(container, trackColRef.current, title);}
+          else if (CHART_VIEWS.has(view)){await exportChartPDF(container, title);}
           else                           {await exportPDF(filteredItems, title);}
         }
       } catch (e) {
@@ -306,72 +232,6 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
       }
     },
     [filteredItems, title, view],
-  );
-
-  const allTimestamps = useMemo(
-    () =>
-      filteredItems.flatMap((item) => {
-        const end = itemEndDate(item);
-        const ts = [new Date(item.createdAt).getTime()];
-        if (end) {ts.push(new Date(end).getTime());}
-        return ts;
-      }),
-    [filteredItems],
-  );
-
-  const { todayMs, minTime, totalMs, totalDays, trackWidth } = useMemo(() => {
-    const now = Date.now();
-    if (allTimestamps.length === 0) {
-      return { todayMs: now, minTime: now, totalMs: 1, totalDays: 1, trackWidth: 500 };
-    }
-    const rawMin = Math.min(...allTimestamps);
-    const min = snapMode === "hour"
-      ? snapToHour(rawMin)
-      : new Date(new Date(rawMin).toISOString().slice(0, 10)).getTime();
-    const hasOpenItems = filteredItems.some((item) => !itemEndDate(item));
-    const max = hasOpenItems
-      ? Math.max(...allTimestamps, now)
-      : Math.max(...allTimestamps) + 3 * MS;
-    const totalMs = max - min || 1;
-    const totalDays = totalMs / MS;
-    return {
-      todayMs: now,
-      minTime: min,
-      totalMs,
-      totalDays,
-      trackWidth: Math.max(500, Math.floor(totalDays * pixelsPerDay)),
-    };
-  }, [allTimestamps, filteredItems, pixelsPerDay, snapMode]);
-
-  // Keep ref values current for the wheel-zoom handler without adding them to its deps
-  useLayoutEffect(() => {
-    stateRef.current = { pixelsPerDay, totalDays, trackWidth };
-  }, [pixelsPerDay, totalDays, trackWidth]);
-
-  const handleResizeKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === "ArrowRight") { e.preventDefault(); setLabelWidth((w) => Math.min(800, w + 10)); }
-    else if (e.key === "ArrowLeft")  { e.preventDefault(); setLabelWidth((w) => Math.max(200, w - 10)); }
-  }, []);
-
-  const handleResizeStart = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      const startX = e.clientX;
-      const startWidth = labelWidth;
-      const onMove = (ev: MouseEvent) => setLabelWidth(Math.max(200, startWidth + (ev.clientX - startX)));
-      const onUp = () => {
-        window.removeEventListener("mousemove", onMove);
-        window.removeEventListener("mouseup", onUp);
-        dragCleanupRef.current = null;
-      };
-      dragCleanupRef.current = () => {
-        window.removeEventListener("mousemove", onMove);
-        window.removeEventListener("mouseup", onUp);
-      };
-      window.addEventListener("mousemove", onMove);
-      window.addEventListener("mouseup", onUp);
-    },
-    [labelWidth],
   );
 
   if (items.length === 0) {

@@ -580,7 +580,7 @@ const GanttView: FunctionComponent<Props> = ({
           {sortedItems.map((item) => {
             const isOpen = item.type === "issue" ? !item.closedAt : !(item.mergedAt || item.closedAt);
             const endDate = isOpen ? null : itemEndDate(item);
-            const endMs   = isOpen ? todayMs : new Date(endDate!).getTime();
+            const endMs   = endDate ? new Date(endDate).getTime() : todayMs;
 
             // Day mode: snap to UTC midnight; hour mode: snap to local hour.
             const startMs = snapMode === "hour"

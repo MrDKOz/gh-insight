@@ -1,5 +1,5 @@
 import type { TimelineItem } from "../../types";
-import { COLORS, COLORS_CB, MS, MS_HOUR, assigneesOtherThanAuthor, durationDays, fmtDate, fmtDateTime, hoverCardPos, itemEndDate, itemStatus, labelTextColor, makeChartColors, makeStatusChipSx, pluralize, safeUrl, snapToHour, upperBound } from "../utils";
+import { COLORS, COLORS_CB, MS, MS_HOUR, assigneesOtherThanAuthor, durationDays, fmtDate, fmtDateTime, forecastCompletion, hoverCardPos, itemEndDate, itemStatus, labelTextColor, makeChartColors, makeStatusChipSx, pluralize, safeUrl, snapToHour, upperBound } from "../utils";
 
 const issue = (overrides: Partial<{ closedAt: string | null }> = {}): TimelineItem => ({
   type: "issue", number: 1, title: "Test issue",
@@ -366,5 +366,145 @@ describe("hoverCardPos", () => {
     const pos = hoverCardPos(300, 200, 800, cardW, cardH);
 
     expect(pos.top).toBe(100);        // 200 - 100
+  });
+});
+
+// ---------------------------------------------------------------------------
+// forecastCompletion
+// ---------------------------------------------------------------------------
+
+// Use a fixed "today" far from epoch to avoid edge cases
+const TODAY_DAY = 500; // day 500 from epoch as the fixed "now"
+const TODAY_MS  = TODAY_DAY * MS;
+
+const mkForecastIssue = (
+  num: number,
+  createdDay: number,
+  closedDay: number | null,
+  milestoneNumber = 1,
+): TimelineItem => ({
+  type: "issue",
+  number: num,
+  title: `Issue ${num}`,
+  url: `https://github.com/o/r/issues/${num}`,
+  author: "alice",
+  createdAt: new Date(createdDay * MS).toISOString(),
+  updatedAt: new Date((closedDay ?? createdDay) * MS).toISOString(),
+  closedAt: closedDay !== null ? new Date(closedDay * MS).toISOString() : null,
+  linkedPRs: [],
+  milestoneNumber,
+  labels: [],
+  assignees: [],
+  reopenedCount: 0,
+});
+
+describe("forecastCompletion", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(TODAY_MS);
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it("returns null for an empty items array", () => {
+    expect(forecastCompletion([])).toBeNull();
+  });
+
+  it("returns null when all issues are closed", () => {
+    const items = [mkForecastIssue(1, 490, 495), mkForecastIssue(2, 490, 498)];
+    expect(forecastCompletion(items)).toBeNull();
+  });
+
+  it("returns null when there are no closed issues (velocity impossible)", () => {
+    const items = [mkForecastIssue(1, 499, null), mkForecastIssue(2, 499, null)];
+    expect(forecastCompletion(items)).toBeNull();
+  });
+
+  it("returns null when projection exceeds 365 days", () => {
+    // 1 closed issue, 500 open — average rate gives ~5000 days
+    const items = [
+      mkForecastIssue(1, 470, 490),
+      ...Array.from({ length: 500 }, (_, i) => mkForecastIssue(i + 2, 470, null)),
+    ];
+    expect(forecastCompletion(items)).toBeNull();
+  });
+
+  it("returns a result when there is a reasonable velocity", () => {
+    // 5 closed over 10 days, 2 open → daysPerClose = 10/5 = 2 → candidate = today + 4 days
+    const items = [
+      mkForecastIssue(1, 490, 492),
+      mkForecastIssue(2, 490, 494),
+      mkForecastIssue(3, 490, 496),
+      mkForecastIssue(4, 490, 498),
+      mkForecastIssue(5, 490, 500),
+      mkForecastIssue(6, 490, null),
+      mkForecastIssue(7, 490, null),
+    ];
+    const result = forecastCompletion(items);
+    expect(result).not.toBeNull();
+    expect(result?.projectedDate.getTime()).toBeGreaterThan(TODAY_MS);
+    expect(result?.projectedDate.getTime()).toBeLessThanOrEqual(TODAY_MS + 365 * MS);
+  });
+
+  it("reports correct openCount and closedCount", () => {
+    const items = [
+      mkForecastIssue(1, 490, 495),
+      mkForecastIssue(2, 490, 497),
+      mkForecastIssue(3, 490, null),
+    ];
+    const result = forecastCompletion(items);
+    expect(result?.openCount).toBe(1);
+    expect(result?.closedCount).toBe(2);
+  });
+
+  it("filters by milestoneNumber when provided", () => {
+    const items = [
+      mkForecastIssue(1, 490, 495, 1),  // ms 1, closed
+      mkForecastIssue(2, 490, null, 1), // ms 1, open
+      mkForecastIssue(3, 490, null, 2), // ms 2, open — should be ignored
+      mkForecastIssue(4, 490, null, 2), // ms 2, open — should be ignored
+    ];
+    const result = forecastCompletion(items, 1);
+    expect(result?.openCount).toBe(1);
+    expect(result?.closedCount).toBe(1);
+  });
+
+  it("ignores non-issue items (PRs) regardless of milestone", () => {
+    const pr: TimelineItem = {
+      type: "pr", number: 99, title: "A PR",
+      url: "https://github.com/o/r/pull/99", author: "bob",
+      createdAt: new Date(490 * MS).toISOString(),
+      updatedAt: new Date(495 * MS).toISOString(),
+      mergedAt: new Date(495 * MS).toISOString(),
+      closedAt: new Date(495 * MS).toISOString(),
+      isDraft: false, reviewDecision: null, additions: 5, deletions: 2,
+      linkedIssue: null, milestoneNumber: 1,
+      labels: [], assignees: [], firstReviewAt: null,
+    };
+    const items = [pr, mkForecastIssue(1, 490, null)];
+    // Only 1 open issue, 0 closed → no forecast possible
+    expect(forecastCompletion(items)).toBeNull();
+  });
+
+  it("method is either 'regression' or 'velocity'", () => {
+    const items = [
+      mkForecastIssue(1, 470, 480),
+      mkForecastIssue(2, 470, 485),
+      mkForecastIssue(3, 470, 490),
+      mkForecastIssue(4, 470, null),
+    ];
+    const result = forecastCompletion(items);
+    if (result !== null) {
+      expect(["regression", "velocity"]).toContain(result.method);
+    }
+  });
+
+  it("totalDays reflects the span from first creation to today", () => {
+    const items = [
+      mkForecastIssue(1, 490, 495), // created day 490
+      mkForecastIssue(2, 490, null),
+    ];
+    const result = forecastCompletion(items);
+    // totalDays = ceil((today - day490) / MS) = 10
+    expect(result?.totalDays).toBe(10);
   });
 });

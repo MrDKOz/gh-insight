@@ -313,8 +313,24 @@ body.dark .tl-bank-holiday-band {
   background: rgba(234, 67, 53, 0.18);
 }
 
+body.colorblind .tl-bank-holiday-band {
+  background: rgba(230, 159, 0, 0.18);
+}
+
+body.dark.colorblind .tl-bank-holiday-band {
+  background: rgba(230, 159, 0, 0.22);
+}
+
 body.dark .chart-bank-holiday {
   fill: rgba(234, 67, 53, 0.18);
+}
+
+body.colorblind .chart-bank-holiday {
+  fill: rgba(230, 159, 0, 0.18);
+}
+
+body.dark.colorblind .chart-bank-holiday {
+  fill: rgba(230, 159, 0, 0.22);
 }
 
 /* ── Gantt today marker ── */

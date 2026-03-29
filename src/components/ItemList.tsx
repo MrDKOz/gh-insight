@@ -139,7 +139,7 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
   const statusChipSx = makeStatusChipSx(colorblindMode);
 
   // Helper to build the onResize handler for a given column index.
-  const resize = (i: number) => (e: React.MouseEvent) => startResize(i, e, widths[i]!);
+  const resize = (i: number) => (e: React.MouseEvent) => startResize(i, e, widths[i] ?? 0);
 
   // Column indices shift when milestone is visible.
   const ci = isMulti

@@ -5,7 +5,7 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useMemo, useRef, useState } from "react";
-import { CHART_EMPTY_STATE_SX, HOVER_CARD_BASE_SX, MS, fmtDate, hoverCardPos, itemEndDate, makeChartColors, upperBound } from "../utils/utils";
+import { CARD_LABEL_SX, CHART_EMPTY_STATE_SX, DOT_SX, HOVER_CARD_BASE_SX, MS, STAT_ROW_SX, fmtDate, hoverCardPos, itemEndDate, makeChartColors, upperBound } from "../utils/utils";
 import { ChartLegend } from "./ChartLegend";
 
 type Props = {
@@ -134,17 +134,17 @@ const pts: DayPt[] = Array.from({ length: totalDays + 1 }, (_, i) => {
     >
       {hovered && hover && (
         <Paper elevation={2} sx={{ ...HOVER_CARD_BASE_SX, ...cardStyle }}>
-          <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>{hover.date}</Box>
-          {hover.holidayName && <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "error.main" }}>{hover.holidayName}</Box>}
-          <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: openedLine, flexShrink: 0 }} />
+          <Box sx={CARD_LABEL_SX}>{hover.date}</Box>
+          {hover.holidayName && <Box sx={{ ...CARD_LABEL_SX, color: "error.main" }}>{hover.holidayName}</Box>}
+          <Box sx={STAT_ROW_SX}>
+            <Box sx={{ ...DOT_SX, bgcolor: openedLine }} />
             {hovered.opened} created
           </Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: closedLine, flexShrink: 0 }} />
+          <Box sx={STAT_ROW_SX}>
+            <Box sx={{ ...DOT_SX, bgcolor: closedLine }} />
             {hovered.closed} completed
           </Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600, color: "text.secondary" }}>
+          <Box sx={{ ...STAT_ROW_SX, color: "text.secondary" }}>
             {hovered.opened - hovered.closed} open
           </Box>
         </Paper>
@@ -190,7 +190,7 @@ const pts: DayPt[] = Array.from({ length: totalDays + 1 }, (_, i) => {
           const idx = (t - minTime) / MS;
           const x = L + (idx / totalDays) * CW;
           const w = Math.min((1 / totalDays) * CW, CW - (x - L));
-          return [<rect key={i} x={x.toFixed(1)} y={T} width={w.toFixed(1)} height={CH} fill="rgba(234,67,53,0.12)" className="chart-bank-holiday" />];
+          return [<rect key={i} x={x.toFixed(1)} y={T} width={w.toFixed(1)} height={CH} fill={COL.bankHoliday} className="chart-bank-holiday" />];
         })}
 
         {yLabels.map((c) => (
@@ -232,7 +232,7 @@ const pts: DayPt[] = Array.from({ length: totalDays + 1 }, (_, i) => {
           <text key={pi} x={pxFn(pi)} y={T + CH + 20}
             textAnchor={li === 0 ? "start" : li === numX - 1 ? "end" : "middle"}
             fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">
-            {fmtDate(new Date(pts[pi]!.t).toISOString())}
+            {fmtDate(new Date(pts[pi]?.t ?? 0).toISOString())}
           </text>
         ))}
 
