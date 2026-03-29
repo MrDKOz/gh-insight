@@ -51,7 +51,7 @@ type BarHover = {
 
 const barCardStyle = (clientX: number, clientY: number) => {
   const cardW = 300; // slightly over maxWidth:280 so flip triggers before clipping
-  const cardH = 260; // generous — varies with assignees / labels rows
+  const cardH = 380; // generous upper bound — author + assignees + labels + review + dates
   const rawLeft = clientX + 14 + cardW > window.innerWidth ? clientX - cardW - 14 : clientX + 14;
   const left = Math.max(8, Math.min(rawLeft, window.innerWidth - cardW - 8));
   const top  = Math.max(8, Math.min(clientY - cardH / 2, window.innerHeight - cardH - 8));

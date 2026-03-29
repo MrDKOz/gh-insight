@@ -48,10 +48,9 @@ type Props = {
   milestones: MilestoneMeta[];
   view: string;
   colorblindMode: boolean;
-  title: string;
 };
 
-const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblindMode, title }) => {
+const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblindMode }) => {
   const palette = colorblindMode ? COLORS_CB : COLORS;
 
   const general = useMemo(() => {
@@ -99,18 +98,13 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
 
   const { closedIssues, openIssues, mergedPRs, closedPRs, cycleStats, staleCount } = general;
 
-  const forecastTooltip = (f: NonNullable<typeof singleForecast>) =>
+  const forecastTooltip = (f: NonNullable<ReturnType<typeof forecastCompletion>>) =>
     f.method === "regression"
       ? `Estimated by linear regression over recent issue close rate (${f.closedCount} closed over ${f.totalDays} days). The trend line projects when open issues reach zero.`
       : `Estimated by average close rate: ${f.closedCount} issue${f.closedCount !== 1 ? "s" : ""} closed over ${f.totalDays} day${f.totalDays !== 1 ? "s" : ""} → ~${(f.totalDays / f.closedCount).toFixed(1)} days per issue. ${f.openCount} issue${f.openCount !== 1 ? "s" : ""} remaining.`;
 
-  const singleForecast = useMemo(() => {
-    if (milestones.length !== 1) { return null; }
-    return forecastCompletion(items);
-  }, [milestones.length, items]);
-
   const milestoneComparison = useMemo(() => {
-    if (milestones.length <= 1) { return null; }
+    if (milestones.length === 0) { return null; }
     const now = Date.now();
     return milestones.map((ms) => {
       const msItems = items.filter((i) => i.milestoneNumber === ms.number);
@@ -138,13 +132,6 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
 
   return (
     <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
-      <Typography
-        variant="subtitle2"
-        fontWeight={700}
-        sx={{ whiteSpace: "nowrap", letterSpacing: "-0.01em", pt: 0.75 }}
-      >
-        {title}
-      </Typography>
       <Stack
         direction="row"
         alignItems="center"
@@ -212,21 +199,6 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
                   darkColor={COLORS.warningDark}
                   title={`${pluralize(staleCount, "open item")} with no activity for more than 7 days`}
                 />
-              </>
-            )}
-            {singleForecast !== null && (
-              <>
-                <Divider orientation="vertical" flexItem />
-                <Tooltip title={forecastTooltip(singleForecast)} placement="bottom" arrow>
-                  <Box sx={{ textAlign: "center", cursor: "help" }}>
-                    <Typography variant="h6" fontWeight={700} lineHeight={1} sx={(theme) => ({ color: theme.palette.mode === "dark" ? COLORS.successDark : COLORS.success })}>
-                      ~{fmtDate(singleForecast.projectedDate.toISOString())}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" display="block" sx={{ whiteSpace: "nowrap", mt: 0.25 }}>
-                      Est. completion
-                    </Typography>
-                  </Box>
-                </Tooltip>
               </>
             )}
           </>
