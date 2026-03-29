@@ -346,7 +346,7 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
             />
             <text
               x={dm.flipLeft ? dm.xNum - 4 : dm.xNum + 4}
-              y={T + 11}
+              y={showToday && Math.abs(dm.xNum - todayXNum) < 60 ? T + 22 : T + 11}
               textAnchor={dm.flipLeft ? "end" : "start"}
               fill={dm.color} fontSize={10} fontFamily="inherit" opacity={0.9}
             >
