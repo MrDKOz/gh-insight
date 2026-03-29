@@ -1,4 +1,5 @@
 import type { MilestoneMeta, TimelineItem } from "../types";
+import type { BankHoliday } from "../api/bankHolidayApi";
 import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
@@ -11,6 +12,7 @@ type Props = {
   items: TimelineItem[];
   milestones: MilestoneMeta[];
   highlightWeekends: boolean;
+  bankHolidays: BankHoliday[];
   colorblindMode: boolean;
   includePRs: boolean;
 };
@@ -29,13 +31,16 @@ type HoverInfo = {
   y: number;
   svgX: number;
   date: string;
+  holidayName?: string | undefined;
   // single mode
   count?: number;
   // multi mode — all milestones at this date
   series?: Array<{ color: string; title: string; count: number }>;
 };
 
-const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, colorblindMode, includePRs }) => {
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, bankHolidays, colorblindMode, includePRs }) => {
   const COL = makeChartColors(colorblindMode);
   const isMulti = milestones.length > 1;
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -152,6 +157,21 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
     return bands;
   }, [highlightWeekends, totalDays, minTime, issues.length]);
 
+  // ── Bank holiday bands ────────────────────────────────────────────────────────
+  const bankHolidayMap = useMemo(() => new Map(bankHolidays.map((h) => [h.date, h.name])), [bankHolidays]);
+
+  const bankHolidayBands = useMemo(() => {
+    if (bankHolidays.length === 0 || issues.length === 0) {return [];}
+    const dayWidth = (1 / totalDays) * CW;
+    return bankHolidays.flatMap(({ date }) => {
+      const t = new Date(date).getTime();
+      if (t < minTime || t > minTime + totalDays * MS) {return [];}
+      const i = (t - minTime) / MS;
+      const x = L + (i / totalDays) * CW;
+      return [{ x: x.toFixed(1), w: Math.min(dayWidth, CW - (x - L)).toFixed(1) }];
+    });
+  }, [bankHolidays, totalDays, minTime, issues.length]);
+
   if (issues.length === 0) {
     return <Typography sx={CHART_EMPTY_STATE_SX}>No {includePRs ? "items" : "issues"} to plot a burndown for.</Typography>;
   }
@@ -164,15 +184,18 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
     if (svgX < L || svgX > L + CW) { setHover(null); return; }
 
     const frac  = (svgX - L) / CW;
-    const ptIdx = Math.max(0, Math.min(totalDays, Math.round(frac * totalDays)));
+    const ptIdx = Math.max(0, Math.min(totalDays - 1, Math.floor(frac * totalDays)));
+    const ptMs  = minTime + ptIdx * MS;
+    const ptIso = new Date(ptMs).toISOString();
+    const ptDate = `${DAY_NAMES[new Date(ptMs).getUTCDay()]} · ${fmtDate(ptIso)}`;
+    const holidayName = bankHolidayMap.get(ptIso.slice(0, 10));
 
     if (isMulti) {
       if (msSeries.length === 0) { setHover(null); return; }
-      const svgXPx = pxFn(ptIdx, totalDays + 1);
       setHover({
         x: wrapX, y: e.clientY - rect.top,
-        svgX: svgXPx,
-        date: fmtDate(new Date(minTime + ptIdx * MS).toISOString()),
+        svgX: pxFn(ptIdx, totalDays + 1),
+        date: ptDate, holidayName,
         series: msSeries.map((s) => ({
           color: s.ms.color,
           title: s.ms.title,
@@ -180,11 +203,11 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
         })),
       });
     } else if (singleSeries) {
-      const { t, count } = singleSeries.points[ptIdx]!;
+      const { count } = singleSeries.points[ptIdx]!;
       setHover({
         x: wrapX, y: e.clientY - rect.top,
         svgX: pxFn(ptIdx, singleSeries.points.length),
-        date: fmtDate(new Date(t).toISOString()),
+        date: ptDate, holidayName,
         series: [{ color: singleSeries.ms.color, title: singleSeries.ms.title, count }],
       });
     }
@@ -198,6 +221,7 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
       {hover && (
         <Paper elevation={2} sx={{ ...HOVER_CARD_BASE_SX, ...hoverCardStyle }}>
           <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>{hover.date}</Box>
+          {hover.holidayName && <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "error.main" }}>{hover.holidayName}</Box>}
           {hover.series
             ? hover.series.map((s) => (
                 <Box key={s.title} sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem" }}>
@@ -249,6 +273,9 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
         {weekendBands.map((b, idx) => (
           <rect key={idx} x={b.x} y={T} width={b.w} height={CH} fill={COL.weekendBand} className="chart-weekend" />
         ))}
+        {bankHolidayBands.map((b, idx) => (
+          <rect key={idx} x={b.x} y={T} width={b.w} height={CH} fill="rgba(234,67,53,0.12)" className="chart-bank-holiday" />
+        ))}
 
         {yLabels.map((count) => (
           <line key={count}
@@ -272,10 +299,10 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
 
         {hover && (
           <>
-            <line
-              x1={hover.svgX.toFixed(1)} y1={T}
-              x2={hover.svgX.toFixed(1)} y2={T + CH}
-              stroke={COL.cursor} strokeWidth={1.5} strokeDasharray="4 3"
+            <rect
+              x={hover.svgX.toFixed(1)} y={T}
+              width={(CW / totalDays).toFixed(1)} height={CH}
+              fill="rgba(87,96,106,0.12)" className="chart-cursor-band"
               style={{ pointerEvents: "none" }}
             />
             {hover.series

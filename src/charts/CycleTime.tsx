@@ -1,4 +1,5 @@
 import type { MilestoneMeta, TimelineItem } from "../types";
+import type { BankHoliday } from "../api/bankHolidayApi";
 import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
@@ -8,10 +9,13 @@ import { AuthorWithAssignees } from "../components/AuthorWithAssignees";
 import { CHART_EMPTY_STATE_SX, MS, fmtDate, fmtDateTime, hoverCardPos, itemEndDate, makeChartColors, pluralize } from "../utils/utils";
 import { ChartLegend } from "./ChartLegend";
 
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
 type Props = {
   items: TimelineItem[];
   milestones: MilestoneMeta[];
   highlightWeekends: boolean;
+  bankHolidays: BankHoliday[];
   colorblindMode: boolean;
   includePRs: boolean;
 };
@@ -37,7 +41,7 @@ type Hover = {
   url: string;
 };
 
-const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, colorblindMode, includePRs }) => {
+const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, bankHolidays, colorblindMode, includePRs }) => {
   const filteredItems = includePRs ? items : items.filter((i) => i.type === "issue");
   const COL = makeChartColors(colorblindMode);
   const isMulti = milestones.length > 1;
@@ -182,7 +186,7 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
             </Box>
           )}
           <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>
-            {fmtDateTime(hover.pt.item.createdAt)} → {fmtDateTime(hover.pt.endDate)}
+            {DAY_NAMES[new Date(hover.pt.item.createdAt).getUTCDay()]} {fmtDateTime(hover.pt.item.createdAt)} → {DAY_NAMES[new Date(hover.pt.endDate).getUTCDay()]} {fmtDateTime(hover.pt.endDate)}
           </Box>
         </Paper>
       )}
@@ -223,6 +227,13 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
           const x = L + (i * MS / totalMs) * CW;
           const w = Math.min((2 * MS / totalMs) * CW, CW - (x - L));
           return <rect key={i} x={x.toFixed(1)} y={T} width={w.toFixed(1)} height={CH} fill={COL.weekendBand} className="chart-weekend" />;
+        })}
+        {bankHolidays.flatMap(({ date }, i) => {
+          const t = new Date(date).getTime();
+          if (t < minTime || t > minTime + totalMs) {return [];}
+          const x = L + ((t - minTime) / totalMs) * CW;
+          const w = Math.min((MS / totalMs) * CW, CW - (x - L));
+          return [<rect key={i} x={x.toFixed(1)} y={T} width={w.toFixed(1)} height={CH} fill="rgba(234,67,53,0.12)" className="chart-bank-holiday" />];
         })}
 
         {yLabels.map((d) => (

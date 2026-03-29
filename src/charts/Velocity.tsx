@@ -16,6 +16,7 @@ type Props = {
 };
 
 const DAY_MS = 86_400_000;
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const weekStart = (ms: number): number => {
   const d = new Date(ms);
@@ -149,7 +150,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
         {hover && (
           <Paper elevation={2} sx={{ ...HOVER_CARD_BASE_SX, ...cardStyle }}>
             <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>
-              {fmtDate(new Date(hover.week.startMs).toISOString())} – {fmtDate(new Date(hover.week.endMs).toISOString())}
+              {DAY_NAMES[new Date(hover.week.startMs).getUTCDay()]} {fmtDate(new Date(hover.week.startMs).toISOString())} – {DAY_NAMES[new Date(hover.week.endMs).getUTCDay()]} {fmtDate(new Date(hover.week.endMs).toISOString())}
             </Box>
             {hover.week.issues > 0 && (
               <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
@@ -296,7 +297,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
             {msHover.msTitle}
           </Box>
           <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>
-            {fmtDate(new Date(msHover.week.startMs).toISOString())} – {fmtDate(new Date(msHover.week.endMs).toISOString())}
+            {DAY_NAMES[new Date(msHover.week.startMs).getUTCDay()]} {fmtDate(new Date(msHover.week.startMs).toISOString())} – {DAY_NAMES[new Date(msHover.week.endMs).getUTCDay()]} {fmtDate(new Date(msHover.week.endMs).toISOString())}
           </Box>
           <Box sx={{ fontSize: "0.8125rem", fontWeight: 600 }}>
             {pluralize(msHover.week.total, "item")} completed

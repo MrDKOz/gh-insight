@@ -1,15 +1,17 @@
 import type { TimelineItem } from "../types";
+import type { BankHoliday } from "../api/bankHolidayApi";
 import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
-import { memo, useRef, useState } from "react";
+import { memo, useMemo, useRef, useState } from "react";
 import { CHART_EMPTY_STATE_SX, HOVER_CARD_BASE_SX, MS, fmtDate, hoverCardPos, itemEndDate, makeChartColors, upperBound } from "../utils/utils";
 import { ChartLegend } from "./ChartLegend";
 
 type Props = {
   items: TimelineItem[];
   highlightWeekends: boolean;
+  bankHolidays: BankHoliday[];
   colorblindMode: boolean;
   includePRs: boolean;
 };
@@ -28,9 +30,13 @@ type HoverState = {
   wrapX: number;
   wrapY: number;
   dayIdx: number;
+  date: string;
+  holidayName?: string | undefined;
 };
 
-const CumulativeFlowInner: FunctionComponent<Props> = ({ items, highlightWeekends, colorblindMode, includePRs }) => {
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+const CumulativeFlowInner: FunctionComponent<Props> = ({ items, highlightWeekends, bankHolidays, colorblindMode, includePRs }) => {
   const filteredItems = includePRs ? items : items.filter((i) => i.type === "issue");
   const COL = makeChartColors(colorblindMode);
   // chart-specific derived colours not in the shared factory
@@ -40,6 +46,7 @@ const CumulativeFlowInner: FunctionComponent<Props> = ({ items, highlightWeekend
   const openedLine  = COL.axis;
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<HoverState | null>(null);
+  const bankHolidayMap = useMemo(() => new Map(bankHolidays.map((h) => [h.date, h.name])), [bankHolidays]);
 
   if (filteredItems.length === 0) {
     return <Typography sx={CHART_EMPTY_STATE_SX}>No items to plot cumulative flow for.</Typography>;
@@ -96,9 +103,13 @@ const pts: DayPt[] = Array.from({ length: totalDays + 1 }, (_, i) => {
     const wrapX = e.clientX - rect.left;
     const svgX  = (wrapX / rect.width) * W;
     if (svgX >= L && svgX <= L + CW) {
-      const frac   = (svgX - L) / CW;
-      const dayIdx = Math.max(0, Math.min(pts.length - 1, Math.round(frac * (pts.length - 1))));
-      setHover({ wrapX, wrapY: e.clientY - rect.top, dayIdx });
+      const frac     = (svgX - L) / CW;
+      const dayIdx   = Math.max(0, Math.min(totalDays - 1, Math.floor(frac * totalDays)));
+      const ptMs     = minTime + dayIdx * MS;
+      const ptIso    = new Date(ptMs).toISOString();
+      const date     = `${DAY_NAMES[new Date(ptMs).getUTCDay()]} · ${fmtDate(ptIso)}`;
+      const holidayName = bankHolidayMap.get(ptIso.slice(0, 10));
+      setHover({ wrapX, wrapY: e.clientY - rect.top, dayIdx, date, holidayName });
     } else {
       setHover(null);
     }
@@ -123,7 +134,8 @@ const pts: DayPt[] = Array.from({ length: totalDays + 1 }, (_, i) => {
     >
       {hovered && hover && (
         <Paper elevation={2} sx={{ ...HOVER_CARD_BASE_SX, ...cardStyle }}>
-          <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>{fmtDate(new Date(hovered.t).toISOString())}</Box>
+          <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>{hover.date}</Box>
+          {hover.holidayName && <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "error.main" }}>{hover.holidayName}</Box>}
           <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
             <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: openedLine, flexShrink: 0 }} />
             {hovered.opened} created
@@ -172,6 +184,14 @@ const pts: DayPt[] = Array.from({ length: totalDays + 1 }, (_, i) => {
           const w = Math.min((2 / totalDays) * CW, CW - (x - L));
           return <rect key={i} x={x.toFixed(1)} y={T} width={w.toFixed(1)} height={CH} fill={COL.weekendBand} className="chart-weekend" />;
         })}
+        {bankHolidays.flatMap(({ date }, i) => {
+          const t = new Date(date).getTime();
+          if (t < minTime || t > minTime + totalDays * MS) {return [];}
+          const idx = (t - minTime) / MS;
+          const x = L + (idx / totalDays) * CW;
+          const w = Math.min((1 / totalDays) * CW, CW - (x - L));
+          return [<rect key={i} x={x.toFixed(1)} y={T} width={w.toFixed(1)} height={CH} fill="rgba(234,67,53,0.12)" className="chart-bank-holiday" />];
+        })}
 
         {yLabels.map((c) => (
           <line key={c}
@@ -187,10 +207,10 @@ const pts: DayPt[] = Array.from({ length: totalDays + 1 }, (_, i) => {
 
         {hover !== null && hovered !== null && (
           <>
-            <line
-              x1={hoverSvgX.toFixed(1)} y1={T}
-              x2={hoverSvgX.toFixed(1)} y2={T + CH}
-              stroke={COL.cursor} strokeWidth={1.5} strokeDasharray="4 3"
+            <rect
+              x={hoverSvgX.toFixed(1)} y={T}
+              width={(CW / totalDays).toFixed(1)} height={CH}
+              fill="rgba(87,96,106,0.12)" className="chart-cursor-band"
               style={{ pointerEvents: "none" }}
             />
             <circle cx={hoverSvgX.toFixed(1)} cy={pyFn(hovered.closed).toFixed(1)} r={4} fill={closedLine} style={{ pointerEvents: "none" }} />
