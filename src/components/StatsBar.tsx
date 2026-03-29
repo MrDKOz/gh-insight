@@ -138,31 +138,19 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
 
   return (
     <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
-      <Stack direction="row" alignItems="baseline" flexWrap="wrap" gap={2} sx={{ pt: 0.5, pb: 0.5 }}>
-        <Typography
-          variant="subtitle2"
-          fontWeight={700}
-          sx={{ whiteSpace: "nowrap", letterSpacing: "-0.01em" }}
-        >
-          {title}
-        </Typography>
-        {milestoneComparison !== null && (
-          <Stack direction="row" flexWrap="wrap" gap={1.5}>
-            {milestoneComparison.map(({ ms }) => (
-              <Stack key={ms.number} direction="row" alignItems="center" gap={0.75}>
-                <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: ms.color, flexShrink: 0 }} />
-                <Typography variant="caption" fontWeight={500} color="text.secondary" sx={{ whiteSpace: "nowrap" }}>{ms.title}</Typography>
-              </Stack>
-            ))}
-          </Stack>
-        )}
-      </Stack>
+      <Typography
+        variant="subtitle2"
+        fontWeight={700}
+        sx={{ whiteSpace: "nowrap", letterSpacing: "-0.01em", pt: 0.75 }}
+      >
+        {title}
+      </Typography>
       <Stack
         direction="row"
         alignItems="center"
         gap={2.5}
         flexWrap="wrap"
-        sx={{ pb: 1.5 }}
+        sx={{ py: 0.75 }}
       >
         {reviewWait ? (
           <>
