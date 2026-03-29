@@ -70,22 +70,24 @@ const ContextBar: FunctionComponent<Props> = memo(({
         getOptionLabel={(r) => r.fullName}
         isOptionEqualToValue={(a, b) => a.fullName === b.fullName}
         renderOption={(props, option) => (
-          <Box component="li" {...props}>
-            <Stack direction="row" alignItems="center" gap={0.75}>
-              {option.private && <LockIcon />}
-              <Typography variant="body2">{option.fullName}</Typography>
+          <Box component="li" {...props} sx={{ ...(props as React.HTMLAttributes<HTMLLIElement>).style, width: "100%" }}>
+            <Box sx={{ display: "flex", flexDirection: "column", minWidth: 0, width: "100%" }}>
+              <Stack direction="row" alignItems="center" gap={0.75}>
+                {option.private && <LockIcon />}
+                <Typography variant="body2" noWrap>{option.fullName}</Typography>
+              </Stack>
               {option.description && (
-                <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
-                  — {option.description}
+                <Typography variant="caption" color="text.secondary" noWrap sx={{ opacity: 0.8 }}>
+                  {option.description}
                 </Typography>
               )}
-            </Stack>
+            </Box>
           </Box>
         )}
         renderInput={(params) => (
           <TextField {...params} label="Repository" size="small" placeholder="Search repos…" />
         )}
-        sx={{ width: 280, flexShrink: 0 }}
+        sx={{ width: 300, flexShrink: 0 }}
         noOptionsText={isDemo ? "No demo repos" : "No repositories found"}
       />
 
