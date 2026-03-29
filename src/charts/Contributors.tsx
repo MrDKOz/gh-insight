@@ -154,7 +154,7 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
   ];
 
   return (
-    <Box className="chart-wrap" ref={wrapRef} style={{ position: "relative" }}>
+    <Box className="chart-wrap" ref={wrapRef} role="presentation" style={{ position: "relative" }}>
       {hover && (
         <Paper
           elevation={2}

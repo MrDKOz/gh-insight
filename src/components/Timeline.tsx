@@ -132,6 +132,8 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
   const [filterSlot, setFilterSlot] = useState<Element | null>(null);
   const [burndownIncludePRs, setBurndownIncludePRs] = useState(false);
   const [cumulativeFlowIncludePRs, setCumulativeFlowIncludePRs] = useState(false);
+  const [cycleTimeIncludePRs, setCycleTimeIncludePRs] = useState(false);
+  const [velocityIncludePRs, setVelocityIncludePRs] = useState(false);
 
   const handleFitToScreen = useCallback(() => {
     const el = trackColRef.current;
@@ -456,8 +458,26 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
           <Burndown items={filteredItems} milestones={milestones} highlightWeekends={highlightWeekends} colorblindMode={colorblindMode} includePRs={burndownIncludePRs} />
         </>
       )}
-      {!noFilteredItems && view === "Cycle Time" && <CycleTime items={filteredItems} milestones={milestones} highlightWeekends={highlightWeekends} colorblindMode={colorblindMode} />}
-      {!noFilteredItems && view === "Velocity" && <Velocity items={filteredItems} milestones={milestones} colorblindMode={colorblindMode} />}
+      {!noFilteredItems && view === "Cycle Time" && (
+        <>
+          <FormControlLabel
+            control={<Checkbox size="small" checked={cycleTimeIncludePRs} onChange={(e) => setCycleTimeIncludePRs(e.target.checked)} />}
+            label="Include PRs"
+            sx={{ alignSelf: "flex-start", ml: 0 }}
+          />
+          <CycleTime items={filteredItems} milestones={milestones} highlightWeekends={highlightWeekends} colorblindMode={colorblindMode} includePRs={cycleTimeIncludePRs} />
+        </>
+      )}
+      {!noFilteredItems && view === "Velocity" && (
+        <>
+          <FormControlLabel
+            control={<Checkbox size="small" checked={velocityIncludePRs} onChange={(e) => setVelocityIncludePRs(e.target.checked)} />}
+            label="Include PRs"
+            sx={{ alignSelf: "flex-start", ml: 0 }}
+          />
+          <Velocity items={filteredItems} milestones={milestones} colorblindMode={colorblindMode} includePRs={velocityIncludePRs} />
+        </>
+      )}
       {!noFilteredItems && view === "Cumulative Flow" && (
         <>
           <FormControlLabel

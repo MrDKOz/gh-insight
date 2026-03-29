@@ -12,6 +12,7 @@ type Props = {
   items: TimelineItem[];
   milestones: MilestoneMeta[];
   colorblindMode: boolean;
+  includePRs: boolean;
 };
 
 const DAY_MS = 86_400_000;
@@ -59,7 +60,8 @@ type MilestoneHover = {
   week: MilestoneWeek;
 };
 
-const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblindMode }) => {
+const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblindMode, includePRs }) => {
+  const filteredItems = includePRs ? items : items.filter((i) => i.type === "issue");
   const COL = makeChartColors(colorblindMode);
   const isMulti = milestones.length > 1;
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -70,7 +72,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
   const weeks = useMemo(() => {
     if (isMulti) {return [];}
     const buckets = new Map<number, Week>();
-    for (const item of items) {
+    for (const item of filteredItems) {
       const endDate = itemEndDate(item);
       if (!endDate) {continue;}
       const ws = weekStart(new Date(endDate).getTime());
@@ -84,7 +86,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
       if (!w.authors.includes(item.author)) {w.authors.push(item.author);}
     }
     return [...buckets.values()].sort((a, b) => a.startMs - b.startMs);
-  }, [items, isMulti]);
+  }, [filteredItems, isMulti]);
 
   // ── Multi-milestone mode (one color per milestone) ───────────────────────────
   const { allWeekStarts, msWeekMap } = useMemo(() => {
@@ -93,7 +95,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
     const msWeekMap = new Map<number, Map<number, MilestoneWeek>>();
     for (const ms of milestones) {msWeekMap.set(ms.number, new Map());}
 
-    for (const item of items) {
+    for (const item of filteredItems) {
       const endDate = itemEndDate(item);
       if (!endDate) {continue;}
       const ws = weekStart(new Date(endDate).getTime());
@@ -106,7 +108,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
       bucket.get(ws)!.total++;
     }
     return { allWeekStarts: [...weekSet].sort((a, b) => a - b), msWeekMap };
-  }, [items, milestones, isMulti]);
+  }, [filteredItems, milestones, isMulti]);
 
   const onMsEnter = useCallback((e: React.MouseEvent, ms: MilestoneMeta, week: MilestoneWeek) => {
     const rect = wrapRef.current?.getBoundingClientRect();
@@ -115,7 +117,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
   }, []);
 
   if ((isMulti ? allWeekStarts.length : weeks.length) === 0) {
-    return <Typography sx={CHART_EMPTY_STATE_SX}>No completed items to plot velocity for.</Typography>;
+    return <Typography sx={CHART_EMPTY_STATE_SX}>No completed {includePRs ? "items" : "issues"} to plot velocity for.</Typography>;
   }
 
   // ── Single-milestone rendering ───────────────────────────────────────────────
@@ -143,7 +145,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
       : {};
 
     return (
-      <Box className="chart-wrap" ref={wrapRef} style={{ position: "relative" }}>
+      <Box className="chart-wrap" ref={wrapRef} role="presentation" style={{ position: "relative" }}>
         {hover && (
           <Paper elevation={2} sx={{ ...HOVER_CARD_BASE_SX, ...cardStyle }}>
             <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>
@@ -222,8 +224,8 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
             return (
               <g key={week.startMs}>
                 {week.issues > 0 && <rect x={bx.toFixed(1)} y={yIssue.toFixed(1)} width={barW.toFixed(1)} height={hIssue.toFixed(1)} fill={COL.issue} opacity={0.88} rx={2} />}
-                {week.merged > 0 && <rect x={bx.toFixed(1)} y={yMerged.toFixed(1)} width={barW.toFixed(1)} height={hMerged.toFixed(1)} fill={COL.prMerged} opacity={0.88} rx={2} />}
-                {week.closed > 0 && <rect x={bx.toFixed(1)} y={yClosed.toFixed(1)} width={barW.toFixed(1)} height={hClosed.toFixed(1)} fill={COL.prClosed} opacity={0.88} rx={2} />}
+                {includePRs && week.merged > 0 && <rect x={bx.toFixed(1)} y={yMerged.toFixed(1)} width={barW.toFixed(1)} height={hMerged.toFixed(1)} fill={COL.prMerged} opacity={0.88} rx={2} />}
+                {includePRs && week.closed > 0 && <rect x={bx.toFixed(1)} y={yClosed.toFixed(1)} width={barW.toFixed(1)} height={hClosed.toFixed(1)} fill={COL.prClosed} opacity={0.88} rx={2} />}
                 <rect x={bx.toFixed(1)} y={T} width={barW.toFixed(1)} height={CH} fill="transparent" className="vel-hover-area" onMouseEnter={(e) => onEnter(e, week)} />
               </g>
             );
@@ -246,8 +248,10 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
           <ChartLegend
             items={[
               { color: COL.issue,    label: "Issues closed" },
-              { color: COL.prMerged, label: "PRs merged" },
-              { color: COL.prClosed, label: "PRs closed" },
+              ...(includePRs ? [
+                { color: COL.prMerged, label: "PRs merged" },
+                { color: COL.prClosed, label: "PRs closed" },
+              ] : []),
             ]}
             cx={L + CW / 2}
             y={T - 8}

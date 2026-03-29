@@ -13,6 +13,7 @@ type Props = {
   milestones: MilestoneMeta[];
   highlightWeekends: boolean;
   colorblindMode: boolean;
+  includePRs: boolean;
 };
 
 const L = 56, R = 20, T = 32, B = 48, W = 1200, H = 320;
@@ -36,7 +37,8 @@ type Hover = {
   url: string;
 };
 
-const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, colorblindMode }) => {
+const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, colorblindMode, includePRs }) => {
+  const filteredItems = includePRs ? items : items.filter((i) => i.type === "issue");
   const COL = makeChartColors(colorblindMode);
   const isMulti = milestones.length > 1;
   const milestoneColorMap = useMemo(
@@ -47,7 +49,7 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
   const [hover, setHover] = useState<Hover | null>(null);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
-  const pts: Pt[] = useMemo(() => items.flatMap((item) => {
+  const pts: Pt[] = useMemo(() => filteredItems.flatMap((item) => {
     const endDate = itemEndDate(item);
     if (!endDate) {return [];}
     const days = Math.round(
@@ -65,7 +67,7 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
                              : "PR (closed)";
     const firstReviewAt = item.type === "pr" ? item.firstReviewAt : null;
     return [{ item, endDate, endMs: new Date(endDate).getTime(), days, col, typeLabel, firstReviewAt }];
-  }), [items, isMulti, milestoneColorMap, COL.issue, COL.prMerged, COL.prClosed]);
+  }), [filteredItems, isMulti, milestoneColorMap, COL.issue, COL.prMerged, COL.prClosed]);
 
   const onEnter = useCallback((e: React.MouseEvent, p: Pt, idx: number) => {
     const rect = wrapRef.current?.getBoundingClientRect();
@@ -75,7 +77,7 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
   }, []);
 
   if (pts.length === 0) {
-    return <Typography sx={CHART_EMPTY_STATE_SX}>No completed items to plot cycle times for.</Typography>;
+    return <Typography sx={CHART_EMPTY_STATE_SX}>No completed {includePRs ? "items" : "issues"} to plot cycle times for.</Typography>;
   }
 
   const endTimes = pts.map((p) => p.endMs);
@@ -139,7 +141,7 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
     : null;
 
   return (
-    <Box className="chart-wrap" ref={wrapRef} style={{ position: "relative" }}>
+    <Box className="chart-wrap" ref={wrapRef} role="presentation" style={{ position: "relative" }}>
       {hover && (
         <Paper
           component="a"
@@ -296,8 +298,10 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
             ? milestones.map((ms) => ({ color: ms.color, label: ms.title }))
             : [
                 { color: COL.issue,    label: "Issues" },
-                { color: COL.prMerged, label: "PRs merged" },
-                { color: COL.prClosed, label: "PRs closed" },
+                ...(includePRs ? [
+                  { color: COL.prMerged, label: "PRs merged" },
+                  { color: COL.prClosed, label: "PRs closed" },
+                ] : []),
               ]
           }
           cx={L + CW / 2}
