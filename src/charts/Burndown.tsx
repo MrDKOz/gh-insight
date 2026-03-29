@@ -27,11 +27,12 @@ const CH = H - T - B;
 type HoverInfo = {
   x: number;
   y: number;
-  date: string;
-  count: number;
   svgX: number;
-  msColor?: string;
-  msTitle?: string;
+  date: string;
+  // single mode
+  count?: number;
+  // multi mode — all milestones at this date
+  series?: Array<{ color: string; title: string; count: number }>;
 };
 
 const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, colorblindMode, includePRs }) => {
@@ -169,21 +170,17 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
     const ptIdx = Math.max(0, Math.min(totalDays, Math.round(frac * totalDays)));
 
     if (isMulti) {
-      // Show the milestone with the most open issues at this point in time
-      let best: { count: number; series: typeof msSeries[0] } | null = null;
-      for (const s of msSeries) {
-        const count = s.points[ptIdx]?.count ?? 0;
-        if (!best || count > best.count) {best = { count, series: s };}
-      }
-      if (!best) { setHover(null); return; }
+      if (msSeries.length === 0) { setHover(null); return; }
       const svgXPx = pxFn(ptIdx, totalDays + 1);
       setHover({
         x: wrapX, y: e.clientY - rect.top,
-        date: fmtDate(new Date(minTime + ptIdx * MS).toISOString()),
-        count: best.count,
         svgX: svgXPx,
-        msColor: best.series.ms.color,
-        msTitle: best.series.ms.title,
+        date: fmtDate(new Date(minTime + ptIdx * MS).toISOString()),
+        series: msSeries.map((s) => ({
+          color: s.ms.color,
+          title: s.ms.title,
+          count: s.points[ptIdx]?.count ?? 0,
+        })),
       });
     } else if (singleSeries) {
       // ptIdx is clamped to [0, totalDays] and points has totalDays+1 elements
@@ -192,23 +189,29 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
     }
   };
 
-  const hoverCardStyle = hover ? hoverCardPos(hover.x, hover.y, wrapRef.current?.offsetWidth ?? 800, 200, 68) : {};
+  const hoverCardH = hover?.series ? 36 + hover.series.length * 24 : 68;
+  const hoverCardStyle = hover ? hoverCardPos(hover.x, hover.y, wrapRef.current?.offsetWidth ?? 800, hoverCardH + 40, hoverCardH) : {};
 
   return (
     <Box role="presentation" className="burndown-wrap" ref={wrapRef} style={{ position: "relative" }} onMouseMove={handleMouseMove} onMouseLeave={() => setHover(null)}>
       {hover && (
         <Paper elevation={2} sx={{ ...HOVER_CARD_BASE_SX, ...hoverCardStyle }}>
           <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>{hover.date}</Box>
-          {hover.msColor && (
-            <Box sx={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary" }}>
-              <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: hover.msColor, flexShrink: 0 }} />
-              {hover.msTitle}
-            </Box>
-          )}
-          <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: hover.msColor ?? COL.issue, flexShrink: 0 }} />
-            {pluralize(hover.count, includePRs ? "open item" : "open issue")}
-          </Box>
+          {hover.series
+            ? hover.series.map((s) => (
+                <Box key={s.title} sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem" }}>
+                  <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: s.color, flexShrink: 0 }} />
+                  <Box component="span" sx={{ fontSize: "0.6875rem", color: "text.secondary", mr: "2px" }}>{s.title}:</Box>
+                  <Box component="span" sx={{ fontWeight: 600 }}>{pluralize(s.count, includePRs ? "open item" : "open issue")}</Box>
+                </Box>
+              ))
+            : (
+                <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
+                  <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: COL.issue, flexShrink: 0 }} />
+                  {pluralize(hover.count ?? 0, includePRs ? "open item" : "open issue")}
+                </Box>
+              )
+          }
         </Paper>
       )}
 
@@ -285,10 +288,20 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
               stroke={COL.cursor} strokeWidth={1.5} strokeDasharray="4 3"
               style={{ pointerEvents: "none" }}
             />
-            <circle
-              cx={hover.svgX.toFixed(1)} cy={pyFn(hover.count).toFixed(1)}
-              r={4} fill={hover.msColor ?? COL.issue} style={{ pointerEvents: "none" }}
-            />
+            {hover.series
+              ? hover.series.map((s) => (
+                  <circle key={s.title}
+                    cx={hover.svgX.toFixed(1)} cy={pyFn(s.count).toFixed(1)}
+                    r={4} fill={s.color} style={{ pointerEvents: "none" }}
+                  />
+                ))
+              : (
+                  <circle
+                    cx={hover.svgX.toFixed(1)} cy={pyFn(hover.count ?? 0).toFixed(1)}
+                    r={4} fill={COL.issue} style={{ pointerEvents: "none" }}
+                  />
+                )
+            }
           </>
         )}
 
