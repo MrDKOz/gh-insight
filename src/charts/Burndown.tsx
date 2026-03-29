@@ -110,8 +110,8 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
       if (isNaN(dueMs)) {continue;}
       // Only render if dueMs is within the visible range (with a 30-day slack on the right)
       if (dueMs < minTime - MS || dueMs > maxTime + 30 * MS) {continue;}
-      const xNum = L + ((dueMs - minTime) / (maxTime - minTime)) * CW;
-      const frac = (dueMs - minTime) / (maxTime - minTime);
+      const frac  = (dueMs - minTime) / (maxTime - minTime);
+      const xNum  = L + Math.min(frac, 1) * CW;
       const color = isMulti ? ms.color : "#8250df";
       const label = `Due ${fmtDate(ms.dueOn)}`;
       markers.push({ xNum, label, color, flipLeft: frac > 0.85 });
