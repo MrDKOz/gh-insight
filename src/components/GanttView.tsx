@@ -1,6 +1,7 @@
 import type { MilestoneMeta, TimelineItem } from "../types";
 import type { FunctionComponent, MouseEvent, RefObject } from "react";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import ToggleButton from "@mui/material/ToggleButton";
@@ -30,6 +31,7 @@ type Props = {
   colorblindMode: boolean;
   snapMode: "day" | "hour";
   onSnapModeChange: (mode: "day" | "hour") => void;
+  onFitToScreen: () => void;
 };
 
 const ROW_HEIGHT = 31;
@@ -62,9 +64,10 @@ type GanttLegendProps = {
   colorblindMode: boolean;
   snapMode: "day" | "hour";
   onSnapModeChange: (mode: "day" | "hour") => void;
+  onFitToScreen: () => void;
 };
 
-const GanttLegend: FunctionComponent<GanttLegendProps> = ({ hasOpenIssues, isMultiMilestone, milestones, colorblindMode, snapMode, onSnapModeChange }) => {
+const GanttLegend: FunctionComponent<GanttLegendProps> = ({ hasOpenIssues, isMultiMilestone, milestones, colorblindMode, snapMode, onSnapModeChange, onFitToScreen }) => {
   const p = colorblindMode ? COLORS_CB : COLORS;
   // 0x73 hex ≈ 0.45 alpha — used for the open-issue dashed bar fill
   const issueClosed = `linear-gradient(135deg, ${p.issue} 0%, ${p.issueDark} 100%)`;
@@ -89,17 +92,21 @@ const GanttLegend: FunctionComponent<GanttLegendProps> = ({ hasOpenIssues, isMul
           </Box>
         ))}
       </Box>
-      <ToggleButtonGroup
-        value={snapMode}
-        exclusive
-        size="small"
-        onChange={(_, val: "day" | "hour" | null) => { if (val) { onSnapModeChange(val); } }}
-        aria-label="Bar snap granularity"
-        sx={{ flexShrink: 0 }}
-      >
-        <ToggleButton value="day"  aria-label="Snap bars to day boundaries">Day</ToggleButton>
-        <ToggleButton value="hour" aria-label="Snap bars to hour boundaries">Hour</ToggleButton>
-      </ToggleButtonGroup>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>
+        <Button size="small" variant="outlined" onClick={onFitToScreen} aria-label="Fit timeline to screen width">
+          Fit to screen
+        </Button>
+        <ToggleButtonGroup
+          value={snapMode}
+          exclusive
+          size="small"
+          onChange={(_, val: "day" | "hour" | null) => { if (val) { onSnapModeChange(val); } }}
+          aria-label="Bar snap granularity"
+        >
+          <ToggleButton value="day"  aria-label="Snap bars to day boundaries">Day</ToggleButton>
+          <ToggleButton value="hour" aria-label="Snap bars to hour boundaries">Hour</ToggleButton>
+        </ToggleButtonGroup>
+      </Box>
     </Box>
 
     {isMultiMilestone && (
@@ -209,6 +216,7 @@ const GanttView: FunctionComponent<Props> = ({
   colorblindMode,
   snapMode,
   onSnapModeChange,
+  onFitToScreen,
 }) => {
   const [hoverItem, setHoverItem] = useState<TimelineItem | null>(null);
   const [cardPos, setCardPos] = useState({ top: 0, left: 0 });
@@ -281,7 +289,7 @@ const GanttView: FunctionComponent<Props> = ({
 
   return (
     <>
-      <GanttLegend hasOpenIssues={hasOpenIssues} isMultiMilestone={isMultiMilestone} milestones={milestones} colorblindMode={colorblindMode} snapMode={snapMode} onSnapModeChange={onSnapModeChange} />
+      <GanttLegend hasOpenIssues={hasOpenIssues} isMultiMilestone={isMultiMilestone} milestones={milestones} colorblindMode={colorblindMode} snapMode={snapMode} onSnapModeChange={onSnapModeChange} onFitToScreen={onFitToScreen} />
 
       <Box className="tl-body">
         <Box className="tl-label-col" style={{ width: labelWidth }}>

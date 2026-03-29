@@ -132,6 +132,13 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
   const [filterSlot, setFilterSlot] = useState<Element | null>(null);
   const [burndownIncludePRs, setBurndownIncludePRs] = useState(false);
 
+  const handleFitToScreen = useCallback(() => {
+    const el = trackColRef.current;
+    if (!el) { return; }
+    const { totalDays } = stateRef.current;
+    setPixelsPerDay(Math.max(4, Math.min(200, el.clientWidth / totalDays)));
+  }, []);
+
   const wrapperRef = useRef<HTMLDivElement>(null);
   const trackColRef = useRef<HTMLDivElement>(null);
   const axisRef = useRef<HTMLDivElement>(null);
@@ -476,6 +483,7 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
           colorblindMode={colorblindMode}
           snapMode={snapMode}
           onSnapModeChange={setSnapMode}
+          onFitToScreen={handleFitToScreen}
         />
       )}
     </Paper>
