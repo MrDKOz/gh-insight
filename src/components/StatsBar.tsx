@@ -3,6 +3,11 @@ import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
 import { useMemo } from "react";
 import Tooltip from "@mui/material/Tooltip";
@@ -133,7 +138,7 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
 
   return (
     <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
-      <Stack direction="row" alignItems="baseline" flexWrap="wrap" gap={2} sx={{ pt: 1.5, pb: 0.5 }}>
+      <Stack direction="row" alignItems="baseline" flexWrap="wrap" gap={2} sx={{ pt: 0.5, pb: 0.5 }}>
         <Typography
           variant="subtitle2"
           fontWeight={700}
@@ -240,6 +245,73 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
         )}
       </Stack>
 
+      {milestoneComparison !== null && (
+        <Box sx={{ pb: 1.5 }}>
+          <Table size="small" sx={{ "& .MuiTableCell-root": { py: 0.5, px: 1 } }}>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 700, color: "text.secondary", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.06em", border: 0 }}>Milestone</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700, color: "text.secondary", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.06em", border: 0 }}>Open</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700, color: "text.secondary", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.06em", border: 0 }}>Closed/Merged</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700, color: "text.secondary", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.06em", border: 0 }}>Avg cycle</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700, color: "text.secondary", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.06em", border: 0 }}>Est. completion</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700, color: "text.secondary", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.06em", border: 0 }}>Stale</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {milestoneComparison.map(({ ms, openCount, closedMergedCount, avgCycle, stale, forecast }) => (
+                <TableRow key={ms.number} sx={{ "&:last-child td": { border: 0 } }}>
+                  <TableCell>
+                    <Stack direction="row" alignItems="center" gap={0.75}>
+                      <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: ms.color, flexShrink: 0 }} />
+                      <Typography variant="caption" fontWeight={500} sx={{ lineHeight: 1.3 }}>{ms.title}</Typography>
+                    </Stack>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography
+                      variant="caption"
+                      fontWeight={600}
+                      sx={(theme) => ({ color: openCount > 0 ? (theme.palette.mode === "dark" ? COLORS.warningDark : COLORS.warning) : "text.secondary" })}
+                    >
+                      {openCount}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="caption" fontWeight={600}>{closedMergedCount}</Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="caption" color="text.secondary">{avgCycle !== null ? `${avgCycle}d` : "—"}</Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    {forecast !== null ? (
+                      <Tooltip title={forecastTooltip(forecast)} placement="left" arrow>
+                        <Typography
+                          variant="caption"
+                          fontWeight={600}
+                          sx={(theme) => ({ color: theme.palette.mode === "dark" ? COLORS.successDark : COLORS.success, cursor: "help" })}
+                        >
+                          ~{fmtDate(forecast.projectedDate.toISOString())}
+                        </Typography>
+                      </Tooltip>
+                    ) : (
+                      <Typography variant="caption" color="text.secondary">—</Typography>
+                    )}
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography
+                      variant="caption"
+                      fontWeight={stale > 0 ? 600 : 400}
+                      sx={(theme) => ({ color: stale > 0 ? (theme.palette.mode === "dark" ? COLORS.warningDark : COLORS.warning) : "text.secondary" })}
+                    >
+                      {stale > 0 ? stale : "—"}
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Box>
+      )}
     </Box>
   );
 };
