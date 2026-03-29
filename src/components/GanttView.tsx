@@ -492,7 +492,7 @@ const GanttView: FunctionComponent<Props> = ({
             const reopenPrefix = item.type === "issue" && item.reopenedCount > 0 ? "↺ " : "";
             const isShortDuration = durationText === "Same day" || durationText.match(/^[0-9]+h$/);
             // Effective width available for text (subtract review badge space if present)
-            const effectiveBarPx = barWidthPx - (barWidthPx >= 60 && item.type === "pr" && item.reviewDecision ? 26 : 0);
+            const effectiveBarPx = barWidthPx - (barWidthPx >= 60 && item.type === "pr" && item.reviewDecision ? 26 : 0) - (reopenPrefix ? 12 : 0);
             const barLabel =
               effectiveBarPx < 40
                 ? ""

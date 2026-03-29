@@ -3,6 +3,8 @@ import type { Filters } from "./FilterBar";
 import type { FunctionComponent } from "react";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
@@ -128,6 +130,7 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
 
   const [toolbarSlot, setToolbarSlot] = useState<Element | null>(null);
   const [filterSlot, setFilterSlot] = useState<Element | null>(null);
+  const [burndownIncludePRs, setBurndownIncludePRs] = useState(false);
 
   const wrapperRef = useRef<HTMLDivElement>(null);
   const trackColRef = useRef<HTMLDivElement>(null);
@@ -266,10 +269,10 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
       setExporting(fmt);
       try {
         if (view === "Review Wait") {
-          if      (fmt === "CSV")                {exportReviewWaitCSV(filteredItems, title);}
-          else if (fmt === "Markdown")           {exportReviewWaitMarkdown(filteredItems, title);}
-          else if (fmt === "XLSX")               {await exportReviewWaitXLSX(filteredItems, title);}
-          else if (fmt === "PDF")                {await exportReviewWaitPDF(filteredItems, title);}
+          if      (fmt === "CSV")                {exportReviewWaitCSV(filteredItems, title, milestones);}
+          else if (fmt === "Markdown")           {exportReviewWaitMarkdown(filteredItems, title, milestones);}
+          else if (fmt === "XLSX")               {await exportReviewWaitXLSX(filteredItems, title, milestones);}
+          else if (fmt === "PDF")                {await exportReviewWaitPDF(filteredItems, title, milestones);}
           else if (fmt === "PNG — Current view") {await exportPNG(wrapperRef.current!, trackColRef.current, title, "current");}
         } else if (fmt === "SVG")                {exportSVG(wrapperRef.current!, title);}
         else if (fmt === "CSV")                  {exportCSV(filteredItems, title);}
@@ -435,7 +438,16 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
           No items match the current filters.
         </Typography>
       )}
-      {!noFilteredItems && view === "Burndown" && <Burndown items={filteredItems} milestones={milestones} highlightWeekends={highlightWeekends} colorblindMode={colorblindMode} />}
+      {!noFilteredItems && view === "Burndown" && (
+        <>
+          <FormControlLabel
+            control={<Checkbox size="small" checked={burndownIncludePRs} onChange={(e) => setBurndownIncludePRs(e.target.checked)} />}
+            label="Include PRs"
+            sx={{ alignSelf: "flex-start", ml: 0 }}
+          />
+          <Burndown items={filteredItems} milestones={milestones} highlightWeekends={highlightWeekends} colorblindMode={colorblindMode} includePRs={burndownIncludePRs} />
+        </>
+      )}
       {!noFilteredItems && view === "Cycle Time" && <CycleTime items={filteredItems} milestones={milestones} highlightWeekends={highlightWeekends} colorblindMode={colorblindMode} />}
       {!noFilteredItems && view === "Velocity" && <Velocity items={filteredItems} milestones={milestones} colorblindMode={colorblindMode} />}
       {!noFilteredItems && view === "Cumulative Flow" && <CumulativeFlow items={filteredItems} highlightWeekends={highlightWeekends} colorblindMode={colorblindMode} />}

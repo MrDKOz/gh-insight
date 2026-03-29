@@ -12,6 +12,7 @@ type Props = {
   milestones: MilestoneMeta[];
   highlightWeekends: boolean;
   colorblindMode: boolean;
+  includePRs: boolean;
 };
 
 const L = 52; // left padding (y-axis labels)
@@ -33,7 +34,7 @@ type HoverInfo = {
   msTitle?: string;
 };
 
-const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, colorblindMode }) => {
+const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, colorblindMode, includePRs }) => {
   const COL = makeChartColors(colorblindMode);
   // chart-specific colours not covered by the shared factory
   const areaFill   = colorblindMode ? "rgba(0,114,178,0.12)" : "rgba(9,105,218,0.12)";
@@ -42,7 +43,7 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<HoverInfo | null>(null);
 
-  const issues = items.filter((i) => i.type === "issue");
+  const issues = includePRs ? items : items.filter((i) => i.type === "issue");
 
   const todayMs = Date.now();
   const hasOpenIssues = issues.some((i) => !i.closedAt);
@@ -139,7 +140,7 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
   }, [highlightWeekends, totalDays, minTime, issues.length]);
 
   if (issues.length === 0) {
-    return <Typography sx={CHART_EMPTY_STATE_SX}>No issues to plot a burndown for.</Typography>;
+    return <Typography sx={CHART_EMPTY_STATE_SX}>No {includePRs ? "items" : "issues"} to plot a burndown for.</Typography>;
   }
 
   // ── Hover handler ─────────────────────────────────────────────────────────────
@@ -191,13 +192,13 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
           )}
           <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "0.8125rem", fontWeight: 600 }}>
             <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: hover.msColor ?? COL.issue, flexShrink: 0 }} />
-            {pluralize(hover.count, "open issue")}
+            {pluralize(hover.count, includePRs ? "open item" : "open issue")}
           </Box>
         </Paper>
       )}
 
       <table className="sr-only" aria-label="Burndown chart data">
-        <caption>Open issue count over time{isMulti ? " by milestone" : ""}</caption>
+        <caption>Open {includePRs ? "item" : "issue"} count over time{isMulti ? " by milestone" : ""}</caption>
         <thead>
           <tr>
             <th scope="col">Date</th>

@@ -18,6 +18,7 @@ type ContribRow = {
   issues: number;
   merged: number;
   closed: number;
+  open: number;
   total: number;
 };
 
@@ -25,7 +26,7 @@ type Hover = {
   x: number;
   y: number;
   row: ContribRow;
-  segment: "issues" | "merged" | "closed";
+  segment: "issues" | "merged" | "closed" | "open";
   count: number;
   earliestDate: string | null;
   latestDate: string | null;
@@ -48,18 +49,23 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
   const rows: ContribRow[] = useMemo(() => {
     const map = new Map<string, ContribRow>();
     const ensure = (login: string) => {
-      if (!map.has(login)) {map.set(login, { login, issues: 0, merged: 0, closed: 0, total: 0 });}
+      if (!map.has(login)) {map.set(login, { login, issues: 0, merged: 0, closed: 0, open: 0, total: 0 });}
       return map.get(login)!;
     };
     for (const item of items) {
       const logins = item.assignees.length > 0 ? item.assignees : [item.author];
       const endDate = itemEndDate(item);
-      if (!endDate) {continue;} // only count completed items
       for (const login of logins) {
         const r = ensure(login);
-        if (item.type === "issue") {r.issues++;}
-        else if (item.mergedAt) {r.merged++;}
-        else {r.closed++;}
+        if (!endDate) {
+          r.open++;
+        } else if (item.type === "issue") {
+          r.issues++;
+        } else if (item.mergedAt) {
+          r.merged++;
+        } else {
+          r.closed++;
+        }
         r.total++;
       }
     }
@@ -73,8 +79,8 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
       const endDate = itemEndDate(item);
       if (!endDate) {continue;}
       const logins = item.assignees.length > 0 ? item.assignees : [item.author];
-      const seg: "issues" | "merged" | "closed" =
-        item.type === "issue" ? "issues" : item.mergedAt ? "merged" : "closed";
+      const seg: "issues" | "merged" | "closed" | "open" =
+        !endDate ? "open" : item.type === "issue" ? "issues" : item.mergedAt ? "merged" : "closed";
       for (const login of logins) {
         const key = `${login}:${seg}`;
         const existing = idx.get(key);
@@ -90,7 +96,7 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
   }, [items]);
 
   const onEnter = useCallback(
-    (e: React.MouseEvent, row: ContribRow, segment: "issues" | "merged" | "closed", count: number) => {
+    (e: React.MouseEvent, row: ContribRow, segment: "issues" | "merged" | "closed" | "open", count: number) => {
       const rect = wrapRef.current?.getBoundingClientRect();
       if (!rect) {return;}
       const dates = dateIndex.get(`${row.login}:${segment}`);
@@ -126,11 +132,11 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
     ? hoverCardPos(hover.x, hover.y, wrapRef.current?.offsetWidth ?? 800, 210, 110)
     : {};
 
-  const segLabel = (s: "issues" | "merged" | "closed") =>
-    s === "issues" ? "issues closed" : s === "merged" ? "PRs merged" : "PRs closed";
+  const segLabel = (s: "issues" | "merged" | "closed" | "open") =>
+    s === "issues" ? "issues closed" : s === "merged" ? "PRs merged" : s === "closed" ? "PRs closed" : "open";
 
-  const segColor = (s: "issues" | "merged" | "closed") =>
-    s === "issues" ? COL.issue : s === "merged" ? COL.prMerged : COL.prClosed;
+  const segColor = (s: "issues" | "merged" | "closed" | "open") =>
+    s === "issues" ? COL.issue : s === "merged" ? COL.prMerged : s === "closed" ? COL.prClosed : COL.grid;
 
   // Tick marks on x-axis
   const xStep  = maxTotal <= 10 ? 1 : maxTotal <= 30 ? 5 : Math.ceil(maxTotal / 6);
@@ -144,6 +150,7 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
     { seg: "issues" as const, label: "Issues closed" },
     { seg: "merged" as const, label: "PRs merged" },
     { seg: "closed" as const, label: "PRs closed" },
+    { seg: "open"   as const, label: "Open" },
   ];
 
   return (
@@ -177,6 +184,7 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
             <th scope="col">Issues closed</th>
             <th scope="col">PRs merged</th>
             <th scope="col">PRs closed</th>
+            <th scope="col">Open</th>
             <th scope="col">Total</th>
           </tr>
         </thead>
@@ -187,6 +195,7 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
               <td>{row.issues}</td>
               <td>{row.merged}</td>
               <td>{row.closed}</td>
+              <td>{row.open}</td>
               <td>{row.total}</td>
             </tr>
           ))}
@@ -218,10 +227,11 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
           const cy = T + ri * ROW_H + ROW_H / 2 - BAR_H / 2;
           let offset = 0;
 
-          const segments: Array<{ seg: "issues" | "merged" | "closed"; count: number }> = [
+          const segments: Array<{ seg: "issues" | "merged" | "closed" | "open"; count: number }> = [
             { seg: "issues", count: row.issues },
             { seg: "merged", count: row.merged },
             { seg: "closed", count: row.closed },
+            { seg: "open",   count: row.open   },
           ];
 
           const profileUrl = safeUrl(`https://github.com/${row.login}`);

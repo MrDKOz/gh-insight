@@ -4,6 +4,7 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { AuthorTag } from "../components/AuthorTag";
 import { CHART_EMPTY_STATE_SX, HOVER_CARD_BASE_SX, fmtDate, hoverCardPos, itemEndDate, makeChartColors, pluralize } from "../utils/utils";
 import { ChartLegend } from "./ChartLegend";
 
@@ -33,6 +34,7 @@ type Week = {
   issues:  number;
   merged:  number;
   closed:  number;
+  authors: string[];
 };
 
 // Multi-milestone: one count per milestone per week
@@ -73,12 +75,13 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
       if (!endDate) {continue;}
       const ws = weekStart(new Date(endDate).getTime());
       if (!buckets.has(ws)) {
-        buckets.set(ws, { startMs: ws, endMs: ws + 6 * DAY_MS, issues: 0, merged: 0, closed: 0 });
+        buckets.set(ws, { startMs: ws, endMs: ws + 6 * DAY_MS, issues: 0, merged: 0, closed: 0, authors: [] });
       }
       const w = buckets.get(ws)!;
       if (item.type === "issue")      {w.issues++;}
       else if (item.mergedAt)         {w.merged++;}
       else                            {w.closed++;}
+      if (!w.authors.includes(item.author)) {w.authors.push(item.author);}
     }
     return [...buckets.values()].sort((a, b) => a.startMs - b.startMs);
   }, [items, isMulti]);
@@ -167,6 +170,14 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
             <Box sx={{ fontSize: "0.6875rem", fontWeight: 600, color: "text.secondary", borderTop: 1, borderColor: "divider", pt: "4px", mt: "2px" }}>
               Total: {hover.week.issues + hover.week.merged + hover.week.closed}
             </Box>
+            {hover.week.authors.length > 0 && (
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: "3px", pt: "2px" }}>
+                {hover.week.authors.slice(0, 6).map((a) => <AuthorTag key={a} login={a} showName={false} size={16} />)}
+                {hover.week.authors.length > 6 && (
+                  <Box sx={{ fontSize: "0.6875rem", color: "text.secondary", alignSelf: "center" }}>+{hover.week.authors.length - 6}</Box>
+                )}
+              </Box>
+            )}
           </Paper>
         )}
 

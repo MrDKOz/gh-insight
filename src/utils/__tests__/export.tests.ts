@@ -209,12 +209,12 @@ describe("buildRows — linked item rendering", () => {
 });
 
 describe("buildRows — sort order", () => {
-  it("sorts rows by createdAt ascending regardless of input order", () => {
+  it("sorts rows by number ascending regardless of input order", () => {
     const rows = buildRows([mergedPR, closedIssue, issueNoLinks]);
 
-    // closedIssue: Jan 1, mergedPR: Jan 5, issueNoLinks: Feb 1
-    expect(rows[0]!.num).toBe("#42");
-    expect(rows[1]!.num).toBe("#7");
+    // mergedPR: #7, closedIssue: #42, issueNoLinks: #99
+    expect(rows[0]!.num).toBe("#7");
+    expect(rows[1]!.num).toBe("#42");
     expect(rows[2]!.num).toBe("#99");
   });
 });
@@ -233,6 +233,27 @@ describe("buildRows — open items", () => {
 
     expect(row.status).toBe("Open");
     expect(row.duration).toBe("—");
+  });
+});
+
+describe("buildRows — reopened", () => {
+  it("shows the reopened count for an issue that was reopened", () => {
+    const item: TimelineItem = { ...closedIssue, reopenedCount: 2 };
+    const row = buildRows([item])[0]!;
+
+    expect(row.reopened).toBe("2");
+  });
+
+  it("shows '—' for an issue that was never reopened", () => {
+    const row = buildRows([closedIssue])[0]!; // reopenedCount: 0
+
+    expect(row.reopened).toBe("—");
+  });
+
+  it("shows '—' for a PR (no reopened concept)", () => {
+    const row = buildRows([mergedPR])[0]!;
+
+    expect(row.reopened).toBe("—");
   });
 });
 
@@ -398,6 +419,19 @@ describe("buildReviewWaitRows — field mapping", () => {
     const row = buildReviewWaitRows([slowPR])[0]!;
 
     expect(row.labels).toBe("—");
+  });
+
+  it("uses milestone title when milestones are provided", () => {
+    const ms = [{ number: 1, title: "Sprint 1", color: "#0969DA", dueOn: null }];
+    const row = buildReviewWaitRows([reviewedPR], ms)[0]!;
+
+    expect(row.milestone).toBe("Sprint 1");
+  });
+
+  it("falls back to milestone number when no milestones provided", () => {
+    const row = buildReviewWaitRows([reviewedPR])[0]!;
+
+    expect(row.milestone).toBe("1");
   });
 
   it("filters out issues — only PRs are included", () => {
