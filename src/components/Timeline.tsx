@@ -231,7 +231,7 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
     const hasOpen = items.some((item) => !itemEndDate(item));
     const max = hasOpen ? Math.max(...allTs, Date.now()) : Math.max(...allTs) + 3 * MS;
     const days = Math.max(1, (max - min) / MS);
-    setPixelsPerDay(Math.max(8, Math.min(200, el.clientWidth / days)));
+    setPixelsPerDay(Math.max(4,Math.min(200, el.clientWidth / days)));
   }, [items, view]);
 
   // Non-passive wheel listener so we can call preventDefault for vertical scroll-zoom
@@ -243,7 +243,7 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
       e.preventDefault();
       const { pixelsPerDay: ppd, totalDays: td, trackWidth: tw } = stateRef.current;
       const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
-      const newPpd = Math.min(200, Math.max(8, ppd * factor));
+      const newPpd = Math.min(200, Math.max(4,ppd * factor));
       const newTrackWidth = Math.max(500, Math.round(td * newPpd));
       const cursorX = e.clientX - el.getBoundingClientRect().left;
       const fraction = tw > 0 ? (cursorX + el.scrollLeft) / tw : 0;
