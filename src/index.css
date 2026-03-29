@@ -115,6 +115,7 @@ body.dark {
   align-items: center;
   gap: 6px;
   font-size: 12px;
+  padding-left: 6px;
   padding-right: 10px;
   position: relative;
   overflow: hidden;
