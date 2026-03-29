@@ -24,8 +24,8 @@ import { AppHeader } from "./components/AppHeader";
 import { ContextBar } from "./components/ContextBar";
 import { KeyboardShortcuts } from "./components/KeyboardShortcuts";
 import { SplashScreen } from "./components/SplashScreen";
-import { DEFAULT_VIEW, Timeline, readViewFiltersFromUrl } from "./components/Timeline";
-import type { View } from "./components/Timeline";
+import { DEFAULT_VIEW, MilestoneView, readViewFiltersFromUrl } from "./components/MilestoneView";
+import type { View } from "./components/MilestoneView";
 import { DEMO_DATA_BY_REPO, DEMO_REPOS, DEMO_USER } from "./data/demo";
 import { useNewVersionAvailable } from "./hooks/useNewVersionAvailable";
 import { useSettings } from "./hooks/useSettings";
@@ -607,7 +607,7 @@ const App: FunctionComponent = () => {
             {/* Main content */}
             {allItems.length > 0 && milestonesMeta.length > 0 && (
               <Box sx={{ flex: 1, px: 2, pt: 1.5, pb: 2, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-                <Timeline
+                <MilestoneView
                   items={allItems}
                   milestones={milestonesMeta}
                   highlightWeekends={settings.highlightWeekends}

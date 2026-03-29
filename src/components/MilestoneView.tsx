@@ -117,7 +117,7 @@ const syncFiltersToUrl = (filters: Filters): void => {
   window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
 };
 
-const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, bankHolidays, colorblindMode, view }) => {
+const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, bankHolidays, colorblindMode, view }) => {
   const [labelWidth, setLabelWidth] = useState(400);
   const [pixelsPerDay, setPixelsPerDay] = useState(30);
   const [axisHeight, setAxisHeight] = useState(36);
@@ -536,5 +536,5 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
   );
 };
 
-export { Timeline, VIEWS, DEFAULT_VIEW, readViewFiltersFromUrl };
+export { MilestoneView, VIEWS, DEFAULT_VIEW, readViewFiltersFromUrl };
 export type { View };
