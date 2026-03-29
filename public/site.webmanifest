@@ -1,0 +1,16 @@
+{
+  "name": "GitHub Work Visualiser",
+  "short_name": "GH Visualiser",
+  "description": "Visualise GitHub milestone progress as Gantt charts, burndown charts, cycle-time scatter plots, and velocity graphs.",
+  "start_url": "/GitHubWorkVisualiser/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0969da",
+  "icons": [
+    {
+      "src": "/GitHubWorkVisualiser/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ]
+}
