@@ -138,21 +138,20 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
 
   return (
     <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+      <Typography
+        variant="subtitle2"
+        fontWeight={700}
+        sx={{ whiteSpace: "nowrap", letterSpacing: "-0.01em", pt: 1.5, pb: 0.5 }}
+      >
+        {title}
+      </Typography>
       <Stack
         direction="row"
         alignItems="center"
         gap={2.5}
         flexWrap="wrap"
-        sx={{ py: 1.5 }}
+        sx={{ pb: 1.5 }}
       >
-        <Typography
-          variant="subtitle2"
-          fontWeight={700}
-          sx={{ whiteSpace: "nowrap", letterSpacing: "-0.01em" }}
-        >
-          {title}
-        </Typography>
-        <Divider orientation="vertical" flexItem sx={{ my: 0.25 }} />
         {reviewWait ? (
           <>
             <Stat value={String(reviewWait.total)}    label="PRs total"    title="Total pull requests shown" />
