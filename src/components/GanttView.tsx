@@ -1,4 +1,5 @@
 import type { MilestoneMeta, TimelineItem } from "../types";
+import type { BankHoliday } from "../api/bankHolidayApi";
 import type { FunctionComponent, MouseEvent, RefObject } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -28,6 +29,7 @@ type Props = {
   onResizeStart: (e: MouseEvent<HTMLDivElement>) => void;
   onResizeKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void;
   highlightWeekends: boolean;
+  bankHolidays: BankHoliday[];
   colorblindMode: boolean;
   snapMode: "day" | "hour";
   onSnapModeChange: (mode: "day" | "hour") => void;
@@ -36,7 +38,7 @@ type Props = {
 
 const ROW_HEIGHT = 31;
 
-type CursorInfo = { pct: number; clientX: number; clientY: number };
+type CursorInfo = { snappedMs: number; clientX: number; clientY: number };
 
 type BarHover = {
   clientX: number;
@@ -60,15 +62,13 @@ const barCardStyle = (clientX: number, clientY: number) => {
 
 type GanttLegendProps = {
   hasOpenIssues: boolean;
-  isMultiMilestone: boolean;
-  milestones: MilestoneMeta[];
   colorblindMode: boolean;
   snapMode: "day" | "hour";
   onSnapModeChange: (mode: "day" | "hour") => void;
   onFitToScreen: () => void;
 };
 
-const GanttLegend: FunctionComponent<GanttLegendProps> = ({ hasOpenIssues, isMultiMilestone, milestones, colorblindMode, snapMode, onSnapModeChange, onFitToScreen }) => {
+const GanttLegend: FunctionComponent<GanttLegendProps> = ({ hasOpenIssues, colorblindMode, snapMode, onSnapModeChange, onFitToScreen }) => {
   const p = colorblindMode ? COLORS_CB : COLORS;
   // 0x73 hex ≈ 0.45 alpha — used for the open-issue dashed bar fill
   const issueClosed = `linear-gradient(135deg, ${p.issue} 0%, ${p.issueDark} 100%)`;
@@ -204,6 +204,7 @@ const GanttView: FunctionComponent<Props> = ({
   onResizeStart,
   onResizeKeyDown,
   highlightWeekends,
+  bankHolidays,
   colorblindMode,
   snapMode,
   onSnapModeChange,
@@ -259,14 +260,97 @@ const GanttView: FunctionComponent<Props> = ({
     return bands;
   }, [highlightWeekends, minTime, totalMs]);
 
+  const bankHolidayMap = useMemo(
+    () => new Map(bankHolidays.map((h) => [h.date, h.name])),
+    [bankHolidays],
+  );
+
+  const bankHolidayBands = useMemo(() => {
+    if (bankHolidays.length === 0) {return [];}
+    return bankHolidays.flatMap(({ date }) => {
+      const t = new Date(date).getTime();
+      if (t < minTime || t >= minTime + totalMs) {return [];}
+      const leftPct  = ((t - minTime) / totalMs) * 100;
+      const widthPct = (MS / totalMs) * 100;
+      return [{ leftPct, widthPct }];
+    });
+  }, [bankHolidays, minTime, totalMs]);
+
   const STALE_MS = 7 * MS;
 
   const todayLeftPct = ((todayMs - minTime) / totalMs) * 100;
   const showToday = todayMs >= minTime && todayMs <= minTime + totalMs;
-  const numDateLabels = Math.max(4, Math.min(24, Math.floor(trackWidth / 110)));
-  const dateLabels = Array.from({ length: numDateLabels }, (_, i) =>
-    fmtDate(new Date(minTime + (totalMs * i) / (numDateLabels - 1)).toISOString()),
-  );
+
+  // Calendar-aware date labels: snap to day / week / month / quarter / year boundaries
+  // so labels always fall on meaningful calendar dates at every zoom level.
+  const dateLabels = useMemo(() => {
+    if (trackWidth === 0 || totalMs === 0) { return []; }
+    const maxTime = minTime + totalMs;
+    const dayWidthPx = (MS / totalMs) * trackWidth;
+    // Include year in label text when the range spans more than one year
+    const withYear = totalMs > 365 * MS;
+    const labels: { label: string; centerPct: number }[] = [];
+
+    // Center label text in the middle of its representative day (noon = t + MS/2)
+    const add = (t: number, label: string) => {
+      const centerPct = ((t + MS / 2 - minTime) / totalMs) * 100;
+      if (centerPct > -10 && centerPct < 110) {
+        labels.push({ label, centerPct });
+      }
+    };
+
+    const dayLabel = (t: number) => fmtDate(new Date(t).toISOString(), withYear);
+
+    if (dayWidthPx >= 90) {
+      // Every day
+      for (let t = Math.ceil(minTime / MS) * MS; t < maxTime; t += MS) {
+        add(t, dayLabel(t));
+      }
+    } else if (dayWidthPx >= 13) {
+      // Every Monday (7 days × 13 px ≈ 91 px between labels)
+      const firstMidnight = Math.ceil(minTime / MS) * MS;
+      const dow = new Date(firstMidnight).getUTCDay(); // 0=Sun
+      const daysToMon = dow === 1 ? 0 : dow === 0 ? 1 : 8 - dow;
+      for (let t = firstMidnight + daysToMon * MS; t < maxTime; t += 7 * MS) {
+        add(t, dayLabel(t));
+      }
+    } else if (dayWidthPx >= 7) {
+      // Every other Monday (14 days × 7 px ≈ 98 px)
+      const firstMidnight = Math.ceil(minTime / MS) * MS;
+      const dow = new Date(firstMidnight).getUTCDay();
+      const daysToMon = dow === 1 ? 0 : dow === 0 ? 1 : 8 - dow;
+      for (let t = firstMidnight + daysToMon * MS; t < maxTime; t += 14 * MS) {
+        add(t, dayLabel(t));
+      }
+    } else if (dayWidthPx >= 3) {
+      // 1st of each month (≈30 days × 3 px ≈ 90 px)
+      const d = new Date(minTime);
+      let y = d.getUTCFullYear(), m = d.getUTCMonth();
+      while (true) {
+        const t = Date.UTC(y, m, 1);
+        if (t >= maxTime) { break; }
+        add(t, new Date(t).toLocaleDateString("en-GB", { month: "short", year: "numeric", timeZone: "UTC" }));
+        if (++m > 11) { m = 0; y++; }
+      }
+    } else if (dayWidthPx >= 1) {
+      // 1st of each quarter (≈91 days × 1 px ≈ 91 px)
+      const d = new Date(minTime);
+      let y = d.getUTCFullYear(), m = Math.floor(d.getUTCMonth() / 3) * 3;
+      while (true) {
+        const t = Date.UTC(y, m, 1);
+        if (t >= maxTime) { break; }
+        add(t, new Date(t).toLocaleDateString("en-GB", { month: "short", year: "numeric", timeZone: "UTC" }));
+        m += 3;
+        if (m > 11) { m = 0; y++; }
+      }
+    } else {
+      // 1 Jan of each year
+      for (let y = new Date(minTime).getUTCFullYear(); Date.UTC(y, 0, 1) < maxTime; y++) {
+        add(Date.UTC(y, 0, 1), String(y));
+      }
+    }
+    return labels;
+  }, [minTime, totalMs, trackWidth]);
 
   const todayDateStr = new Date(todayMs).toISOString().slice(0, 10);
 
@@ -284,7 +368,7 @@ const GanttView: FunctionComponent<Props> = ({
 
   return (
     <>
-      <GanttLegend hasOpenIssues={hasOpenIssues} isMultiMilestone={isMultiMilestone} milestones={milestones} colorblindMode={colorblindMode} snapMode={snapMode} onSnapModeChange={onSnapModeChange} onFitToScreen={onFitToScreen} />
+      <GanttLegend hasOpenIssues={hasOpenIssues} colorblindMode={colorblindMode} snapMode={snapMode} onSnapModeChange={onSnapModeChange} onFitToScreen={onFitToScreen} />
 
       <Box className="tl-body">
         <Box className="tl-label-col" style={{ width: labelWidth }}>
@@ -358,15 +442,20 @@ const GanttView: FunctionComponent<Props> = ({
             const x = e.clientX - rect.left + e.currentTarget.scrollLeft;
             const rawMs = minTime + (x / trackWidth) * totalMs;
             const snapUnit = snapMode === "hour" ? MS_HOUR : MS;
-            const snappedMs = Math.round(rawMs / snapUnit) * snapUnit;
-            const pct = Math.max(0, Math.min(100, ((snappedMs - minTime) / totalMs) * 100));
-            setCursorInfo({ pct, clientX: e.clientX, clientY: e.clientY });
+            // Floor (not round) so we always highlight the column the cursor is IN
+            const snappedMs = Math.floor(rawMs / snapUnit) * snapUnit;
+            setCursorInfo({ snappedMs, clientX: e.clientX, clientY: e.clientY });
           }}
           onMouseLeave={() => setCursorInfo(null)}
         >
           <Box className="tl-date-axis" ref={axisRef} style={{ width: trackWidth }}>
-            {dateLabels.map((label, i) => (
-              <Box component="span" key={i} className="tl-date-label">
+            {dateLabels.map(({ label, centerPct }, i) => (
+              <Box
+                component="span"
+                key={i}
+                className="tl-date-label"
+                style={{ left: `${centerPct}%`, transform: "translateX(-50%)" }}
+              >
                 {label}
               </Box>
             ))}
@@ -427,6 +516,37 @@ const GanttView: FunctionComponent<Props> = ({
               Today · Due
             </Box>
           ))}
+          {/* Day separator lines — one per calendar day */}
+          {trackWidth > 0 && (() => {
+            const dayWidthPx = (MS / totalMs) * trackWidth;
+            if (dayWidthPx < 4) { return null; } // too dense to be useful
+            const firstMidnight = Math.ceil(minTime / MS) * MS;
+            const offsetPx = firstMidnight === minTime ? 0 : ((firstMidnight - minTime) / totalMs) * trackWidth;
+            const totalH = sortedItems.length * ROW_HEIGHT;
+            return (
+              <Box
+                aria-hidden="true"
+                style={{
+                  position: "absolute", top: 0, left: 0, width: "100%", height: totalH,
+                  pointerEvents: "none", zIndex: 1,
+                  backgroundImage: `repeating-linear-gradient(to right, transparent 0px, transparent calc(${dayWidthPx}px - 1px), var(--tl-day-sep) calc(${dayWidthPx}px - 1px), var(--tl-day-sep) ${dayWidthPx}px)`,
+                  backgroundPosition: `${offsetPx}px 0`,
+                }}
+              />
+            );
+          })()}
+          {bankHolidayBands.length > 0 && (
+            <Box
+              aria-hidden="true"
+              style={{
+                position: "absolute", inset: 0, pointerEvents: "none",
+              }}
+            >
+              {bankHolidayBands.map((b) => (
+                <Box key={b.leftPct} className="tl-bank-holiday-band" style={{ left: `${b.leftPct}%`, width: `${b.widthPct}%` }} />
+              ))}
+            </Box>
+          )}
           {weekendBands.length > 0 && (
             <Box
               aria-hidden="true"
@@ -444,6 +564,19 @@ const GanttView: FunctionComponent<Props> = ({
               ))}
             </Box>
           )}
+          {cursorInfo !== null && (() => {
+            const snapUnit = snapMode === "hour" ? MS_HOUR : MS;
+            const leftPct  = ((cursorInfo.snappedMs - minTime) / totalMs) * 100;
+            const widthPct = (snapUnit / totalMs) * 100;
+            return (
+              <Box
+                aria-hidden="true"
+                style={{ position: "absolute", top: 0, left: 0, width: "100%", height: `${sortedItems.length * ROW_HEIGHT}px`, pointerEvents: "none" }}
+              >
+                <Box className="tl-cursor-band" style={{ left: `${leftPct}%`, width: `${widthPct}%` }} />
+              </Box>
+            );
+          })()}
           {sortedItems.map((item) => {
             const isOpen = item.type === "issue" ? !item.closedAt : !(item.mergedAt || item.closedAt);
             const endDate = isOpen ? null : itemEndDate(item);
@@ -527,7 +660,6 @@ const GanttView: FunctionComponent<Props> = ({
               <Box key={`trk-${item.type}-${item.number}`} className="tl-track-row" style={{ height: ROW_HEIGHT }}>
                 <Box className="tl-track" style={{ width: trackWidth }}>
                   {showToday && <Box className="tl-today-marker" style={{ left: `${todayLeftPct}%` }} />}
-                  {cursorInfo !== null && <Box className="tl-cursor-line" style={{ left: `${cursorInfo.pct}%` }} />}
                   <a
                     href={safeUrl(item.url)}
                     target="_blank"
@@ -580,15 +712,27 @@ const GanttView: FunctionComponent<Props> = ({
         />
       )}
 
-      {cursorInfo !== null && barHover === null && (
-        <Paper elevation={2} sx={{ position: "fixed", top: cursorInfo.clientY - 34, left: cursorInfo.clientX, transform: "translateX(-50%)", px: 1, py: 0.5, pointerEvents: "none", zIndex: 150, userSelect: "none", whiteSpace: "nowrap" }}>
-          <Box sx={{ fontSize: FS.sm, fontWeight: 600, color: "text.secondary" }}>
-            {snapMode === "hour"
-              ? fmtDateTime(new Date(minTime + (cursorInfo.pct / 100) * totalMs).toISOString())
-              : fmtDate(new Date(minTime + (cursorInfo.pct / 100) * totalMs).toISOString())}
-          </Box>
-        </Paper>
-      )}
+      {cursorInfo !== null && barHover === null && (() => {
+        const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const d = new Date(cursorInfo.snappedMs);
+        const dayName = DAY_NAMES[d.getUTCDay()];
+        const dateStr = snapMode === "hour"
+          ? fmtDateTime(d.toISOString())
+          : fmtDate(d.toISOString());
+        const holidayName = bankHolidayMap.get(d.toISOString().slice(0, 10));
+        return (
+          <Paper elevation={2} sx={{ position: "fixed", bottom: `${window.innerHeight - cursorInfo.clientY + 10}px`, left: cursorInfo.clientX, transform: "translateX(-50%)", px: 1, py: 0.5, pointerEvents: "none", zIndex: 150, userSelect: "none", whiteSpace: "nowrap" }}>
+            <Box sx={{ fontSize: FS.sm, fontWeight: 600, color: "text.secondary" }}>
+              {snapMode === "hour" ? dateStr : `${dayName} · ${dateStr}`}
+            </Box>
+            {holidayName && (
+              <Box sx={{ fontSize: FS.tiny, fontWeight: 600, color: "error.main", mt: 0.25 }}>
+                {holidayName}
+              </Box>
+            )}
+          </Paper>
+        );
+      })()}
 
       {barHover && <BarHoverCard barHover={barHover} snapMode={snapMode} />}
     </>

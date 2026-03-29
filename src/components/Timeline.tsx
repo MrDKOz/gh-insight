@@ -1,4 +1,5 @@
 import type { MilestoneMeta, TimelineItem } from "../types";
+import type { BankHoliday } from "../api/bankHolidayApi";
 import type { Filters } from "./FilterBar";
 import type { FunctionComponent } from "react";
 import Alert from "@mui/material/Alert";
@@ -31,6 +32,7 @@ type Props = {
   items: TimelineItem[];
   milestones: MilestoneMeta[];
   highlightWeekends: boolean;
+  bankHolidays: BankHoliday[];
   colorblindMode: boolean;
   view: View;
   onViewChange: (v: View) => void;
@@ -115,7 +117,7 @@ const syncFiltersToUrl = (filters: Filters): void => {
   window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
 };
 
-const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, colorblindMode, view }) => {
+const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, bankHolidays, colorblindMode, view }) => {
   const [labelWidth, setLabelWidth] = useState(400);
   const [pixelsPerDay, setPixelsPerDay] = useState(30);
   const [axisHeight, setAxisHeight] = useState(36);
@@ -187,17 +189,18 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
     [filteredItems],
   );
 
-  // Keep filter params in URL in sync (view param is owned by App)
-  useEffect(() => {
-    syncFiltersToUrl(filters);
-  }, [filters]);
+  const handleFiltersChange = useCallback((newFilters: Filters) => {
+    setFilters(newFilters);
+    syncFiltersToUrl(newFilters);
+  }, []);
 
-  useEffect(() => {
+  const handleSnapModeChange = useCallback((mode: "day" | "hour") => {
+    setSnapMode(mode);
     const p = new URLSearchParams(window.location.search);
-    if (snapMode === "hour") { p.set("snap", "hour"); } else { p.delete("snap"); }
+    if (mode === "hour") { p.set("snap", "hour"); } else { p.delete("snap"); }
     const qs = p.toString();
     window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
-  }, [snapMode]);
+  }, []);
 
   // Read portal target nodes after mount — querying the DOM inline during
   // render returns null on first paint because sibling components haven't
@@ -435,7 +438,7 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
         items={items}
         filters={filters}
         counts={counts}
-        onChange={setFilters}
+        onChange={handleFiltersChange}
         colorblindMode={colorblindMode}
       />,
       filterSlot,
@@ -455,7 +458,7 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
             label="Include PRs"
             sx={{ alignSelf: "flex-start", ml: 0 }}
           />
-          <Burndown items={filteredItems} milestones={milestones} highlightWeekends={highlightWeekends} colorblindMode={colorblindMode} includePRs={burndownIncludePRs} />
+          <Burndown items={filteredItems} milestones={milestones} highlightWeekends={highlightWeekends} bankHolidays={bankHolidays} colorblindMode={colorblindMode} includePRs={burndownIncludePRs} />
         </>
       )}
       {!noFilteredItems && view === "Cycle Time" && (
@@ -465,7 +468,7 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
             label="Include PRs"
             sx={{ alignSelf: "flex-start", ml: 0 }}
           />
-          <CycleTime items={filteredItems} milestones={milestones} highlightWeekends={highlightWeekends} colorblindMode={colorblindMode} includePRs={cycleTimeIncludePRs} />
+          <CycleTime items={filteredItems} milestones={milestones} highlightWeekends={highlightWeekends} bankHolidays={bankHolidays} colorblindMode={colorblindMode} includePRs={cycleTimeIncludePRs} />
         </>
       )}
       {!noFilteredItems && view === "Velocity" && (
@@ -485,7 +488,7 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
             label="Include PRs"
             sx={{ alignSelf: "flex-start", ml: 0 }}
           />
-          <CumulativeFlow items={filteredItems} highlightWeekends={highlightWeekends} colorblindMode={colorblindMode} includePRs={cumulativeFlowIncludePRs} />
+          <CumulativeFlow items={filteredItems} highlightWeekends={highlightWeekends} bankHolidays={bankHolidays} colorblindMode={colorblindMode} includePRs={cumulativeFlowIncludePRs} />
         </>
       )}
       {!noFilteredItems && view === "Contributors" && <Contributors items={filteredItems} colorblindMode={colorblindMode} />}
@@ -510,9 +513,10 @@ const Timeline: FunctionComponent<Props> = ({ items, milestones, highlightWeeken
           onResizeStart={handleResizeStart}
           onResizeKeyDown={handleResizeKeyDown}
           highlightWeekends={highlightWeekends}
+          bankHolidays={bankHolidays}
           colorblindMode={colorblindMode}
           snapMode={snapMode}
-          onSnapModeChange={setSnapMode}
+          onSnapModeChange={handleSnapModeChange}
           onFitToScreen={handleFitToScreen}
         />
       )}

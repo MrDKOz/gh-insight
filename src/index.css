@@ -10,6 +10,7 @@
   --bg-page:        #f5f5f5;
   --bg-surface:     #ffffff;
   --border:         #d0d7de;
+  --tl-day-sep:     rgba(0, 0, 0, 0.07);
   --text-primary:   #24292f;
   --text-secondary: #57606a;
   --text-muted:     #333333;
@@ -21,6 +22,7 @@ body.dark {
   --bg-page:        #0d1117;
   --bg-surface:     #161b22;
   --border:         #30363d;
+  --tl-day-sep:     rgba(255, 255, 255, 0.05);
   --text-primary:   #e6edf3;
   --text-secondary: #8b949e;
   --text-muted:     #c9d1d9;
@@ -91,20 +93,37 @@ body.dark {
 /* ── Gantt date axis ── */
 
 .tl-date-axis {
-  display: flex;
-  justify-content: space-between;
+  position: relative;
+  height: 26px;
   font-size: 11px;
   font-weight: 600;
   color: var(--text-muted);
-  margin-bottom: 8px;
-  padding-bottom: 6px;
-  border-bottom: 2px solid var(--date-axis-line);
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--date-axis-line);
+  flex-shrink: 0;
 }
 
 .tl-date-label {
+  position: absolute;
+  bottom: 4px;
   background: var(--date-label-bg);
-  padding: 2px 5px;
+  padding: 1px 5px;
   border-radius: 3px;
+  white-space: nowrap;
+  /* tick mark centered under label */
+}
+
+/* The tick is suppressed for first/last labels via inline transform override */
+.tl-date-label::after {
+  content: "";
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1px;
+  height: 4px;
+  background: var(--date-axis-line);
+  opacity: 0.6;
 }
 
 /* ── Gantt label column ── */
@@ -242,16 +261,22 @@ body.dark {
   text-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
 }
 
-/* ── Gantt cursor crosshair ── */
+/* ── Gantt cursor column highlight ── */
 
-.tl-cursor-line {
+.tl-cursor-band {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 1px;
-  background: rgba(87, 96, 106, 0.35);
+  background: rgba(87, 96, 106, 0.15);
+  border-left: 1px solid rgba(87, 96, 106, 0.35);
+  border-right: 1px solid rgba(87, 96, 106, 0.35);
   pointer-events: none;
   z-index: 4;
+}
+
+body.dark .tl-cursor-band {
+  background: rgba(200, 210, 220, 0.12);
+  border-color: rgba(200, 210, 220, 0.3);
 }
 
 /* ── Gantt weekend bands ── */
@@ -271,6 +296,25 @@ body.dark .tl-weekend-band {
 
 body.dark .chart-weekend {
   fill: rgba(255, 255, 255, 0.04);
+}
+
+/* ── Gantt bank holiday bands ── */
+
+.tl-bank-holiday-band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(234, 67, 53, 0.12);
+  pointer-events: none;
+  z-index: 1;
+}
+
+body.dark .tl-bank-holiday-band {
+  background: rgba(234, 67, 53, 0.18);
+}
+
+body.dark .chart-bank-holiday {
+  fill: rgba(234, 67, 53, 0.18);
 }
 
 /* ── Gantt today marker ── */

@@ -8,12 +8,18 @@ import CssBaseline from "@mui/material/CssBaseline";
 import Divider from "@mui/material/Divider";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Popover from "@mui/material/Popover";
+import Checkbox from "@mui/material/Checkbox";
+import ListItemText from "@mui/material/ListItemText";
+import MenuItem from "@mui/material/MenuItem";
+import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import Typography from "@mui/material/Typography";
 import { ThemeProvider } from "@mui/material/styles";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { fetchMilestoneItems, fetchMilestones, fetchUserProfile, fetchUserRepos } from "./api/github";
+import { fetchBankHolidays } from "./api/bankHolidayApi";
+import type { BankHoliday } from "./api/bankHolidayApi";
 import { AppHeader } from "./components/AppHeader";
 import { ContextBar } from "./components/ContextBar";
 import { KeyboardShortcuts } from "./components/KeyboardShortcuts";
@@ -84,6 +90,7 @@ const App: FunctionComponent = () => {
   const [isDemo, setIsDemo]         = useState(false);
   const [settingsAnchor, setSettingsAnchor] = useState<HTMLElement | null>(null);
   const { settings, updateSetting } = useSettings();
+  const [bankHolidays, setBankHolidays] = useState<BankHoliday[]>([]);
   const newVersionAvailable = useNewVersionAvailable();
 
   const [view, setView] = useState<View>(() => readViewFiltersFromUrl().view);
@@ -203,12 +210,14 @@ const App: FunctionComponent = () => {
     syncUrlParams(activeRepo, state.selected.map((m) => m.number), isDemo);
   }, [activeRepo, state.selected, isDemo]);
 
-  useEffect(() => {
+
+  const handleViewChange = useCallback((v: View) => {
+    setView(v);
     const p = new URLSearchParams(window.location.search);
-    if (view !== DEFAULT_VIEW) { p.set("view", view); } else { p.delete("view"); }
+    if (v !== DEFAULT_VIEW) { p.set("view", v); } else { p.delete("view"); }
     const qs = p.toString();
     window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
-  }, [view]);
+  }, []);
 
   const handleConnect = useCallback(async (inputToken: string) => {
     setAuthError(null);
@@ -365,8 +374,10 @@ const App: FunctionComponent = () => {
         }
         if (typeof c.settings === "object" && c.settings !== null) {
           const s = c.settings as Record<string, unknown>;
-          if (typeof s.highlightWeekends === "boolean") { updateSetting("highlightWeekends", s.highlightWeekends); }
-          if (typeof s.colorblindMode    === "boolean") { updateSetting("colorblindMode",    s.colorblindMode); }
+          if (typeof s.highlightWeekends     === "boolean") { updateSetting("highlightWeekends",     s.highlightWeekends); }
+          if (typeof s.colorblindMode        === "boolean") { updateSetting("colorblindMode",        s.colorblindMode); }
+          if (typeof s.highlightBankHolidays === "boolean") { updateSetting("highlightBankHolidays", s.highlightBankHolidays); }
+          if (Array.isArray(s.bankHolidayRegions)) { updateSetting("bankHolidayRegions", (s.bankHolidayRegions as string[]).filter((v) => ["england-and-wales", "scotland", "northern-ireland", "US"].includes(v)) as import("./api/bankHolidayApi").Region[]); }
         }
         setSettingsAnchor(null);
       } catch (err) {
@@ -380,6 +391,19 @@ const App: FunctionComponent = () => {
     () => state.selected.flatMap((ms) => state.itemsCache[ms.number] ?? []),
     [state.selected, state.itemsCache],
   );
+
+  useEffect(() => {
+    if (!settings.highlightBankHolidays || settings.bankHolidayRegions.length === 0 || allItems.length === 0) {
+      setBankHolidays([]);
+      return;
+    }
+    const timestamps = allItems.map((i) => new Date(i.createdAt).getTime());
+    const minTime = Math.min(...timestamps);
+    const maxTime = Math.max(...timestamps, Date.now());
+    fetchBankHolidays(settings.bankHolidayRegions, minTime, maxTime)
+      .then(setBankHolidays)
+      .catch(() => { /* silently ignore — feature is non-critical */ });
+  }, [settings.highlightBankHolidays, settings.bankHolidayRegions, allItems]);
 
   const milestonesMeta = useMemo(
     () => state.selected.map((ms) => ({
@@ -436,11 +460,51 @@ const App: FunctionComponent = () => {
             <Box sx={{ p: 2, minWidth: 220 }}>
               <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Settings</Typography>
               <Divider sx={{ mb: 1.5 }} />
-              <Stack direction="column">
+              <Stack direction="column" gap={0.5}>
                 <FormControlLabel
                   control={<Switch size="small" checked={settings.highlightWeekends} onChange={(e) => updateSetting("highlightWeekends", e.target.checked)} />}
                   label={<Typography variant="body2">Highlight weekends</Typography>}
                 />
+                <FormControlLabel
+                  control={<Switch size="small" checked={settings.highlightBankHolidays} onChange={(e) => updateSetting("highlightBankHolidays", e.target.checked)} />}
+                  label={<Typography variant="body2">Highlight bank holidays</Typography>}
+                />
+                {settings.highlightBankHolidays && (
+                  <Box sx={{ pl: 4.5, pb: 0.5 }}>
+                    {(() => {
+                      const REGION_LABELS: Record<string, string> = {
+                        "england-and-wales": "England & Wales",
+                        "scotland": "Scotland",
+                        "northern-ireland": "Northern Ireland",
+                        "US": "United States",
+                      };
+                      const ALL_REGIONS = ["england-and-wales", "scotland", "northern-ireland", "US"] as const;
+                      return (
+                        <Select
+                          multiple
+                          size="small"
+                          displayEmpty
+                          value={settings.bankHolidayRegions}
+                          onChange={(e) => updateSetting("bankHolidayRegions", e.target.value as import("./api/bankHolidayApi").Region[])}
+                          renderValue={(sel) => {
+                            const s = sel as string[];
+                            if (s.length === 0) { return <em style={{ opacity: 0.5 }}>None</em>; }
+                            if (s.length === 1) { return REGION_LABELS[s[0] ?? ""] ?? s[0]; }
+                            return `${s.length} regions`;
+                          }}
+                          sx={{ width: "100%", fontSize: "0.8rem" }}
+                        >
+                          {ALL_REGIONS.map((r) => (
+                            <MenuItem key={r} value={r} dense>
+                              <Checkbox size="small" checked={settings.bankHolidayRegions.includes(r)} sx={{ py: 0 }} />
+                              <ListItemText primary={REGION_LABELS[r]} primaryTypographyProps={{ variant: "body2" }} />
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      );
+                    })()}
+                  </Box>
+                )}
                 <FormControlLabel
                   control={<Switch size="small" checked={settings.colorblindMode} onChange={(e) => updateSetting("colorblindMode", e.target.checked)} />}
                   label={<Typography variant="body2">Colorblind-friendly palette</Typography>}
@@ -484,7 +548,7 @@ const App: FunctionComponent = () => {
             onRemove={removeMilestone}
             onRefresh={refreshMilestones}
             view={view}
-            onViewChange={setView}
+            onViewChange={handleViewChange}
             hasItems={allItems.length > 0}
           />
 
@@ -547,9 +611,10 @@ const App: FunctionComponent = () => {
                   items={allItems}
                   milestones={milestonesMeta}
                   highlightWeekends={settings.highlightWeekends}
+                  bankHolidays={bankHolidays}
                   colorblindMode={settings.colorblindMode}
                   view={view}
-                  onViewChange={setView}
+                  onViewChange={handleViewChange}
                 />
               </Box>
             )}
