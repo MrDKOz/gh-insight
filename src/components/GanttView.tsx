@@ -109,16 +109,6 @@ const GanttLegend: FunctionComponent<GanttLegendProps> = ({ hasOpenIssues, isMul
       </Box>
     </Box>
 
-    {isMultiMilestone && (
-      <Box sx={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", pt: "6px", pb: "2px", borderTop: 1, borderColor: "divider", mt: "4px" }}>
-        {milestones.map((m) => (
-          <Box key={m.number} sx={{ display: "flex", alignItems: "center", gap: "6px", fontSize: FS.base, color: "text.secondary" }}>
-            <Box sx={{ width: 10, height: 10, borderRadius: "2px", flexShrink: 0, bgcolor: m.color }} />
-            {m.title}
-          </Box>
-        ))}
-      </Box>
-    )}
   </>
   );
 };
