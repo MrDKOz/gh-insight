@@ -23,21 +23,41 @@ const GH_CANDIDATES = [
 // invocation instead of racing over the credential store.
 let inflight: Promise<string> | null = null;
 
-async function doGetGhToken(): Promise<string> {
+const delay = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
+
+async function tryGhCandidates(): Promise<string | null> {
   let lastErr: unknown;
   for (const candidate of GH_CANDIDATES) {
     try {
-      const { stdout } = await execFileAsync(candidate, ["auth", "token"], { timeout: 10_000 });
+      const { stdout, stderr } = await execFileAsync(candidate, ["auth", "token"], { timeout: 10_000 });
       const token = stdout.trim();
       if (token) { return token; }
+      // Succeeded but empty stdout — gh may have written an error to stderr
+      if (stderr.trim()) { console.warn("[gh-token] empty stdout, stderr:", stderr.trim()); }
     } catch (err) {
       lastErr = err;
+      console.warn(`[gh-token] candidate "${candidate}" failed:`, err);
     }
   }
+  if (lastErr) { console.error("[gh-token] all candidates failed, last error:", lastErr); }
+  return null;
+}
+
+async function doGetGhToken(): Promise<string> {
+  // First attempt
+  const token = await tryGhCandidates();
+  if (token) { return token; }
+
+  // On Linux the credential store (gnome-keyring, pass, …) may need a moment
+  // to unlock on first access — retry once after a short pause.
+  console.warn("[gh-token] first attempt returned no token, retrying in 600 ms…");
+  await delay(600);
+  const retry = await tryGhCandidates();
+  if (retry) { return retry; }
+
   throw new Error(
     "GitHub CLI (gh) not found or not authenticated. " +
     "Install gh from https://cli.github.com and run `gh auth login`.",
-    { cause: lastErr },
   );
 }
 

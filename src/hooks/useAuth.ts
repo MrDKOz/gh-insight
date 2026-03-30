@@ -96,6 +96,7 @@ const useAuth = (initialPhase: AppPhase): UseAuthReturn => {
       setRepos(repoList);
       setPhase("dashboard");
     } catch (e) {
+      console.error("[connectWithGhCli] auth failed:", e);
       setAuthError(e instanceof Error ? e.message : String(e));
       setPhase("splash");
     }
