@@ -14,34 +14,7 @@ import { useMemo } from "react";
 import { COLORS, COLORS_CB } from "../utils/colorUtils";
 import { MS, STALE_MS, fmtDate, forecastCompletion } from "../utils/dateUtils";
 import { pluralize } from "../utils/displayUtils";
-
-type StatProps = {
-  value: string;
-  label: string;
-  title?: string;
-  lightColor?: string;
-  darkColor?: string;
-};
-
-const Stat: FunctionComponent<StatProps> = ({ value, label, title, lightColor, darkColor }) => (
-  <Box title={title} sx={{ textAlign: "center" }}>
-    <Typography
-      variant="h6"
-      fontWeight={700}
-      lineHeight={1}
-      sx={
-        lightColor
-          ? (theme) => ({ color: theme.palette.mode === "dark" ? (darkColor ?? lightColor) : lightColor })
-          : undefined
-      }
-    >
-      {value}
-    </Typography>
-    <Typography variant="caption" color="text.secondary" display="block" sx={{ whiteSpace: "nowrap", mt: 0.25 }}>
-      {label}
-    </Typography>
-  </Box>
-);
+import { Stat } from "./Stat";
 
 type Props = {
   items: TimelineItem[];
