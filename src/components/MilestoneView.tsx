@@ -26,6 +26,7 @@ import { GanttView } from "../charts/GanttView";
 import { Velocity } from "../charts/Velocity";
 
 import { applyFilters } from "../types/FilterTypes";
+import { partitionItems } from "../utils/displayUtils";
 import { exportCSV, exportChartPDF, exportGanttPDF, exportMarkdown, exportPDF, exportPNG, exportReviewWaitCSV, exportReviewWaitMarkdown, exportReviewWaitPDF, exportReviewWaitXLSX, exportSVG, exportXLSX } from "../utils/export";
 import { FilterBar } from "./FilterBar";
 import { ItemList } from "./ItemList";
@@ -82,14 +83,10 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
           ? `${milestones[0]?.title ?? ""} + ${milestones[1]?.title ?? ""}`
           : `${milestones.length} milestones`;
 
-  const { closedIssues, openIssues, prItems, mergedPRs } = useMemo(() => {
-    const issueItems = items.filter((i) => i.type === "issue");
-    const prItems = items.filter((i) => i.type === "pr");
-    const closedIssues = issueItems.filter((i) => i.closedAt);
-    const openIssues = issueItems.filter((i) => !i.closedAt);
-    const mergedPRs = prItems.filter((i) => i.mergedAt);
-    return { prItems, closedIssues, openIssues, mergedPRs };
-  }, [items]);
+  const { closedIssues, openIssues, prItems, mergedPRs, closedPRs } = useMemo(
+    () => partitionItems(items),
+    [items],
+  );
 
   const filteredItems = useMemo(() => applyFilters(items, filters), [items, filters]);
 
@@ -99,9 +96,9 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
       closedIssues: closedIssues.length,
       openPRs: prItems.filter((i) => !i.mergedAt && !i.closedAt).length,
       mergedPRs: mergedPRs.length,
-      closedPRs: prItems.filter((i) => !i.mergedAt && !!i.closedAt).length,
+      closedPRs: closedPRs.length,
     }),
-    [openIssues, closedIssues, prItems, mergedPRs],
+    [openIssues, closedIssues, prItems, mergedPRs, closedPRs],
   );
 
   const handleFiltersChange = useCallback((newFilters: Filters) => {

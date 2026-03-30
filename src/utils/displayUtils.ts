@@ -85,4 +85,21 @@ const itemEndDate = (item: TimelineItem): string | null =>
 const buildMilestoneMap = (milestones: MilestoneMeta[]): Map<number, MilestoneMeta> =>
   new Map(milestones.map((m) => [m.number, m]));
 
-export { FS, assigneesOtherThanAuthor, buildMilestoneMap, hoverCardPos, itemEndDate, itemStatus, pluralize, safeUrl, upperBound };
+/**
+ * Splits a TimelineItem array into the standard issue/PR partitions shared
+ * across MilestoneView, StatsBar, and similar views.
+ */
+const partitionItems = (items: TimelineItem[]) => {
+  const issueItems = items.filter((i) => i.type === "issue");
+  const prItems    = items.filter((i) => i.type === "pr");
+  return {
+    issueItems,
+    prItems,
+    closedIssues: issueItems.filter((i) => i.closedAt),
+    openIssues:   issueItems.filter((i) => !i.closedAt),
+    mergedPRs:    prItems.filter((i) => i.mergedAt),
+    closedPRs:    prItems.filter((i) => !i.mergedAt && i.closedAt),
+  };
+};
+
+export { FS, assigneesOtherThanAuthor, buildMilestoneMap, hoverCardPos, itemEndDate, itemStatus, partitionItems, pluralize, safeUrl, upperBound };

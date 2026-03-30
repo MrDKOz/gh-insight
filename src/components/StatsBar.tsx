@@ -13,7 +13,7 @@ import Typography from "@mui/material/Typography";
 import { useMemo } from "react";
 import { COLORS, COLORS_CB } from "../utils/colorUtils";
 import { MS_PER_DAY, STALE_MS, fmtDate, forecastCompletion } from "../utils/dateUtils";
-import { pluralize } from "../utils/displayUtils";
+import { partitionItems, pluralize } from "../utils/displayUtils";
 import { TABLE_HEADER_LABEL_SX } from "../utils/sxTokens";
 import { Stat } from "./Stat";
 
@@ -37,12 +37,7 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
 
   const general = useMemo(() => {
     const now = Date.now();
-    const issueItems = items.filter((i) => i.type === "issue");
-    const prItems    = items.filter((i) => i.type === "pr");
-    const closedIssues = issueItems.filter((i) => i.closedAt);
-    const openIssues   = issueItems.filter((i) => !i.closedAt);
-    const mergedPRs    = prItems.filter((i) => i.mergedAt);
-    const closedPRs    = prItems.filter((i) => !i.mergedAt && i.closedAt);
+    const { closedIssues, openIssues, mergedPRs, closedPRs } = partitionItems(items);
 
     const staleCount = items.filter(
       (i) => isOpen(i) && (now - new Date(i.updatedAt).getTime()) > STALE_MS,
