@@ -179,7 +179,7 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
           <Table size="small" sx={{ "& .MuiTableCell-root": { py: 0.5, px: 1 } }}>
             <TableHead>
               <TableRow>
-                <TableCell sx={TABLE_HEADER_LABEL_SX}>Milestone</TableCell>
+                <TableCell sx={TABLE_HEADER_LABEL_SX}>Item</TableCell>
                 <TableCell align="right" sx={TABLE_HEADER_LABEL_SX}>Open</TableCell>
                 <TableCell align="right" sx={TABLE_HEADER_LABEL_SX}>Closed/Merged</TableCell>
                 <TableCell align="right" sx={TABLE_HEADER_LABEL_SX}>Avg cycle</TableCell>
