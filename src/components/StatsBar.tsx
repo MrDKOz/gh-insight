@@ -11,7 +11,9 @@ import TableRow from "@mui/material/TableRow";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useMemo } from "react";
-import { COLORS, COLORS_CB, MS, STALE_MS, fmtDate, forecastCompletion, pluralize } from "../utils/utils";
+import { COLORS, COLORS_CB } from "../utils/colorUtils";
+import { MS, STALE_MS, fmtDate, forecastCompletion } from "../utils/dateUtils";
+import { pluralize } from "../utils/displayUtils";
 
 type StatProps = {
   value: string;

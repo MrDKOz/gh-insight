@@ -8,7 +8,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
-import { pluralize } from "../utils/utils";
+import { pluralize } from "../utils/displayUtils";
 
 type Props = {
   milestones: Milestone[];

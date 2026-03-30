@@ -11,7 +11,8 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useMemo, useState } from "react";
-import { COLORS, COLORS_CB, FS, itemEndDate, labelTextColor } from "../utils/utils";
+import { COLORS, COLORS_CB, labelTextColor } from "../utils/colorUtils";
+import { FS, itemEndDate } from "../utils/displayUtils";
 
 type PeopleRole = "author" | "assignees" | "either";
 

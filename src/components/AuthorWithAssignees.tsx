@@ -1,6 +1,6 @@
 import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
-import { assigneesOtherThanAuthor } from "../utils/utils";
+import { assigneesOtherThanAuthor } from "../utils/displayUtils";
 import { AuthorTag, RoleLabel } from "./AuthorTag";
 
 type Props = {

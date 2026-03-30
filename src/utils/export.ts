@@ -1,5 +1,6 @@
 import type { MilestoneMeta, TimelineItem } from "../types/GitHubTypes";
-import { MS, fmtDate, itemEndDate, itemStatus } from "./utils";
+import { MS, fmtDate } from "./dateUtils";
+import { itemEndDate, itemStatus } from "./displayUtils";
 
 const safeFilename = (s: string): string =>
   s

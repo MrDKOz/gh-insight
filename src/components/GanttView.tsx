@@ -10,7 +10,9 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { useGanttLayout } from "../hooks/useGanttLayout";
-import { COLORS, COLORS_CB, FS, MS, MS_HOUR, STALE_MS, durationDays, fmtDate, fmtDateTime, itemEndDate, pluralize, safeUrl, snapToHour } from "../utils/utils";
+import { COLORS, COLORS_CB } from "../utils/colorUtils";
+import { MS, MS_HOUR, STALE_MS, durationDays, fmtDate, fmtDateTime, snapToHour } from "../utils/dateUtils";
+import { FS, itemEndDate, pluralize, safeUrl } from "../utils/displayUtils";
 import { AuthorCard, AuthorTag } from "./AuthorTag";
 import { LabelBadge } from "./LabelBadge";
 

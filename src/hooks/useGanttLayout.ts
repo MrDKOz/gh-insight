@@ -1,6 +1,7 @@
 import type { TimelineItem } from "../types/GitHubTypes";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { MS, itemEndDate, snapToHour } from "../utils/utils";
+import { MS, snapToHour } from "../utils/dateUtils";
+import { itemEndDate } from "../utils/displayUtils";
 
 type GanttLayout = {
   // State

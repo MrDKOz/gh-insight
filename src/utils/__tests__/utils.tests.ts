@@ -1,5 +1,7 @@
 import type { TimelineItem } from "../../types/GitHubTypes";
-import { COLORS, COLORS_CB, MS, MS_HOUR, assigneesOtherThanAuthor, durationDays, fmtDate, fmtDateTime, forecastCompletion, hoverCardPos, itemEndDate, itemStatus, labelTextColor, makeChartColors, makeStatusChipSx, pluralize, safeUrl, snapToHour, upperBound } from "../utils";
+import { COLORS, COLORS_CB, labelTextColor, makeChartColors, makeStatusChipSx } from "../colorUtils";
+import { MS, MS_HOUR, durationDays, fmtDate, fmtDateTime, forecastCompletion, snapToHour } from "../dateUtils";
+import { assigneesOtherThanAuthor, hoverCardPos, itemEndDate, itemStatus, pluralize, safeUrl, upperBound } from "../displayUtils";
 
 const issue = (overrides: Partial<{ closedAt: string | null }> = {}): TimelineItem => ({
   type: "issue", number: 1, title: "Test issue",

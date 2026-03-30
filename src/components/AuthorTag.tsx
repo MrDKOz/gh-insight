@@ -3,7 +3,7 @@ import Box from "@mui/material/Box";
 import Link from "@mui/material/Link";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
-import { FS, safeUrl } from "../utils/utils";
+import { FS, safeUrl } from "../utils/displayUtils";
 
 type TagProps = {
   login: string;

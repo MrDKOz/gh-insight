@@ -5,7 +5,10 @@ import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useCallback, useId, useMemo, useRef, useState } from "react";
 import { AuthorTag } from "../components/AuthorTag";
-import { CHART_EMPTY_STATE_SX, DOT_SX, FS, HOVER_CARD_BASE_SX, fmtDate, hoverCardPos, itemEndDate, makeChartColors, safeUrl } from "../utils/utils";
+import { makeChartColors } from "../utils/colorUtils";
+import { fmtDate } from "../utils/dateUtils";
+import { FS, hoverCardPos, itemEndDate, safeUrl } from "../utils/displayUtils";
+import { CHART_EMPTY_STATE_SX, DOT_SX, HOVER_CARD_BASE_SX } from "../utils/sxTokens";
 import { ChartLegend } from "./ChartLegend";
 
 type Props = {

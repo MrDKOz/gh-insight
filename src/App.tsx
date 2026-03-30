@@ -24,7 +24,7 @@ import { useSettings } from "./hooks/useSettings";
 import { initialState, milestoneReducer } from "./state/milestoneReducer";
 import { muiDarkTheme, muiLightTheme } from "./theme";
 import { EncryptionUnavailableError, decryptToken, encryptToken } from "./utils/tokenCrypto";
-import { COLORS } from "./utils/utils";
+import { COLORS } from "./utils/colorUtils";
 
 const LS_TOKEN = "gmt_token";
 const LS_DARK  = "gmt_dark";

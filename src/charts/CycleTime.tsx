@@ -6,7 +6,10 @@ import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { AuthorWithAssignees } from "../components/AuthorWithAssignees";
-import { CARD_LABEL_SX, CHART_EMPTY_STATE_SX, DOT_SX, FS, MS, STAT_ROW_SX, fmtDate, fmtDateTime, hoverCardPos, itemEndDate, makeChartColors, pluralize } from "../utils/utils";
+import { makeChartColors } from "../utils/colorUtils";
+import { MS, fmtDate, fmtDateTime } from "../utils/dateUtils";
+import { FS, hoverCardPos, itemEndDate, pluralize } from "../utils/displayUtils";
+import { CARD_LABEL_SX, CHART_EMPTY_STATE_SX, DOT_SX, STAT_ROW_SX } from "../utils/sxTokens";
 import { ChartLegend } from "./ChartLegend";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
