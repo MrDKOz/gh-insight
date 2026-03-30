@@ -1,9 +1,10 @@
 import type { TimelineItem } from "../../types/GitHubTypes";
-import type { Filters } from "../FilterBar";
+import type { Filters } from "../../types/FilterTypes";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { fireEvent, render } from "@testing-library/react";
 import { useState } from "react";
-import { DEFAULT_FILTERS, FilterBar } from "../FilterBar";
+import { DEFAULT_FILTERS } from "../../types/FilterTypes";
+import { FilterBar } from "../FilterBar";
 
 const theme = createTheme();
 const wrap = (ui: React.ReactElement) =>

@@ -1,7 +1,7 @@
 import type { BankHoliday } from "../api/bankHolidayApi";
 import type { MilestoneMeta, TimelineItem } from "../types/GitHubTypes";
 import type { ExportFormat, View } from "../types/AppTypes";
-import type { Filters } from "./FilterBar";
+import type { Filters } from "../types/FilterTypes";
 import type { GanttHandle } from "../types/AppTypes";
 import type { FunctionComponent } from "react";
 import Alert from "@mui/material/Alert";
@@ -25,7 +25,8 @@ import { Velocity } from "../charts/Velocity";
 import { exportCSV, exportChartPDF, exportGanttPDF, exportMarkdown, exportPDF, exportPNG, exportReviewWaitCSV, exportReviewWaitMarkdown, exportReviewWaitPDF, exportReviewWaitXLSX, exportSVG, exportXLSX } from "../utils/export";
 
 import { DEFAULT_VIEW, VIEWS } from "../types/AppTypes";
-import { FilterBar, applyFilters } from "./FilterBar";
+import { applyFilters } from "../types/FilterTypes";
+import { FilterBar } from "./FilterBar";
 import { GanttView } from "./GanttView";
 import { ItemList } from "./ItemList";
 import { ReviewWaitList } from "./ReviewWaitList";

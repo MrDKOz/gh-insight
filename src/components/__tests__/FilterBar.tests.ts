@@ -1,6 +1,6 @@
 import type { TimelineItem } from "../../types/GitHubTypes";
-import type { Filters } from "../FilterBar";
-import { DEFAULT_FILTERS, applyFilters } from "../FilterBar";
+import type { Filters } from "../../types/FilterTypes";
+import { DEFAULT_FILTERS, applyFilters } from "../../types/FilterTypes";
 
 const issue = (overrides: Partial<{ createdAt: string; closedAt: string | null; number: number }> = {}): TimelineItem => ({
   type: "issue", number: 1, title: "Bug",
