@@ -11,10 +11,14 @@ const MILESTONE_COLORS = [
   COLORS.warning, COLORS.prClosed, COLORS.issueDark,
 ];
 
+type LoadMilestonesOpts = {
+  autoSelectNums?: number[];
+  overrideToken?:  string;
+};
+
 type UseMilestonesOptions = {
   activeRepo: Repo | null;
   token: string;
-  initialMilestoneNums: number[];
 };
 
 type UseMilestonesReturn = {
@@ -22,7 +26,7 @@ type UseMilestonesReturn = {
   allItems: TimelineItem[];
   milestonesMeta: MilestoneMeta[];
   milestoneColorFor: (num: number) => string;
-  loadMilestonesForRepo: (repo: Repo) => Promise<void>;
+  loadMilestonesForRepo: (repo: Repo, opts?: LoadMilestonesOpts) => Promise<void>;
   loadDemoForRepo: (repo: Repo, urlMilestoneNums: number[]) => void;
   addMilestone: (ms: Milestone) => Promise<void>;
   removeMilestone: (num: number) => void;
@@ -30,10 +34,9 @@ type UseMilestonesReturn = {
   resetMilestones: () => void;
 };
 
-const useMilestones = ({ activeRepo, token, initialMilestoneNums }: UseMilestonesOptions): UseMilestonesReturn => {
+const useMilestones = ({ activeRepo, token }: UseMilestonesOptions): UseMilestonesReturn => {
   const [state, dispatch] = useReducer(milestoneReducer, initialState);
 
-  const pendingUrlMilestones = useRef<number[]>(initialMilestoneNums);
   const loadAbortRef    = useRef<AbortController | null>(null);
   const refreshAbortRef = useRef<AbortController | null>(null);
   const itemAbortRefs   = useRef<Map<number, AbortController>>(new Map());
@@ -67,27 +70,39 @@ const useMilestones = ({ activeRepo, token, initialMilestoneNums }: UseMilestone
     });
   }, []);
 
-  const loadMilestonesForRepo = useCallback(async (repo: Repo) => {
+  const loadMilestonesForRepo = useCallback(async (repo: Repo, opts?: LoadMilestonesOpts) => {
     loadAbortRef.current?.abort();
     const ac = new AbortController();
     loadAbortRef.current = ac;
+    const effectiveToken = opts?.overrideToken ?? token;
     dispatch({ type: "FETCH_LIST_START" });
     try {
-      const milestones = await fetchMilestones(repo.owner, repo.name, token, ac.signal);
+      const milestones = await fetchMilestones(repo.owner, repo.name, effectiveToken, ac.signal);
       dispatch({ type: "FETCH_LIST_SUCCESS", milestones });
+
+      // Auto-select milestones from URL params (first load only, passed by caller)
+      const autoNums = opts?.autoSelectNums ?? [];
+      if (autoNums.length > 0) {
+        const toSelect = milestones.filter((m) => autoNums.includes(m.number));
+        for (const ms of toSelect) {
+          dispatch({ type: "SELECT_MILESTONE", milestone: ms });
+          const ac2 = new AbortController();
+          itemAbortRefs.current.set(ms.number, ac2);
+          dispatch({ type: "FETCH_ITEMS_START", milestoneNumber: ms.number });
+          fetchMilestoneItems(repo.owner, repo.name, effectiveToken, ms.number, ac2.signal)
+            .then((items) => { dispatch({ type: "FETCH_ITEMS_SUCCESS", milestoneNumber: ms.number, items }); })
+            .catch((e) => {
+              if (e instanceof DOMException && e.name === "AbortError") { return; }
+              dispatch({ type: "FETCH_ITEMS_ERROR", milestoneNumber: ms.number, error: e instanceof Error ? e.message : String(e) });
+            })
+            .finally(() => { itemAbortRefs.current.delete(ms.number); });
+        }
+      }
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") { return; }
       dispatch({ type: "FETCH_LIST_ERROR", error: e instanceof Error ? e.message : String(e) });
     }
   }, [token]);
-
-  // Auto-load milestones when an activeRepo is set from URL params on page load
-  const didAutoLoadRepo = useRef(false);
-  useEffect(() => {
-    if (didAutoLoadRepo.current || state.isDemo || !activeRepo || !token) { return; }
-    didAutoLoadRepo.current = true;
-    void loadMilestonesForRepo(activeRepo);
-  }, [activeRepo, state.isDemo, token, loadMilestonesForRepo]);
 
   const addMilestone = useCallback(async (ms: Milestone) => {
     if (state.selected.some((m) => m.number === ms.number)) { return; }
@@ -133,18 +148,6 @@ const useMilestones = ({ activeRepo, token, initialMilestoneNums }: UseMilestone
   const resetMilestones = useCallback(() => {
     dispatch({ type: "RESET" });
   }, []);
-
-  // Auto-select milestones from URL params once the milestone list loads
-  const autoLoadedRef = useRef(false);
-  useEffect(() => {
-    const pending = pendingUrlMilestones.current;
-    if (autoLoadedRef.current || pending.length === 0 || state.milestones.length === 0) { return; }
-    autoLoadedRef.current = true;
-    for (const num of pending) {
-      const ms = state.milestones.find((m) => m.number === num);
-      if (ms) { void addMilestone(ms); }
-    }
-  }, [state.milestones, addMilestone]);
 
   const allItems = useMemo(
     () => state.selected.flatMap((ms) => state.itemsCache[ms.number] ?? []),

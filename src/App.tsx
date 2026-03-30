@@ -48,7 +48,6 @@ const App: FunctionComponent = () => {
   const milestones = useMilestones({
     activeRepo,
     token: auth.token,
-    initialMilestoneNums: INITIAL_URL_PARAMS.milestoneNums,
   });
 
   const bankHolidays = useBankHolidays({
@@ -60,7 +59,7 @@ const App: FunctionComponent = () => {
   // ── Auth orchestration ────────────────────────────────────────────────────
 
   const { setToken, setUserProfile, setRepos, setPhase, saveToken, disconnect } = auth;
-  const { loadDemoForRepo, resetMilestones } = milestones;
+  const { loadDemoForRepo, loadMilestonesForRepo, resetMilestones } = milestones;
 
   const transitionToDashboard = useCallback((
     rawToken: string, profile: UserProfile, repoList: Repo[],
@@ -77,7 +76,13 @@ const App: FunctionComponent = () => {
       : null;
     setActiveRepo(autoRepo);
     setPhase("dashboard");
-  }, [setToken, setUserProfile, setRepos, setPhase]);
+    if (autoRepo) {
+      void loadMilestonesForRepo(autoRepo, {
+        autoSelectNums: INITIAL_URL_PARAMS.milestoneNums,
+        overrideToken:  rawToken,
+      });
+    }
+  }, [setToken, setUserProfile, setRepos, setPhase, loadMilestonesForRepo]);
 
   const handleDemo = useCallback(() => {
     const firstRepo = DEMO_REPOS[0] ?? null;
