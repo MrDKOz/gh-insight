@@ -144,7 +144,7 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
       return {
         item, end, status, isOpen, days, age, staleDays,
         badgeKey: item.type === "issue" ? "issue" : isClosedPR ? "pr-closed" : "pr",
-        ms:       milestoneMap.get(item.milestoneNumber),
+        milestoneMeta: milestoneMap.get(item.milestoneNumber),
         isStale:  isOpen && staleDays > 7,
       } as const;
     });
@@ -168,7 +168,7 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
 
   return (
     <TableContainer sx={{ border: 1, borderColor: "divider", borderRadius: 1, overflowX: "auto" }}>
-      <Table size="small" sx={{ tableLayout: "fixed", minWidth: widths.reduce((s, w) => s + w, 0) }}>
+      <Table size="small" sx={{ tableLayout: "fixed", minWidth: widths.reduce((sum, w) => sum + w, 0) }}>
         <colgroup>
           {widths.map((w, i) => <col key={i} style={{ width: w }} />)}
         </colgroup>
@@ -187,7 +187,7 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
           </TableRow>
         </TableHead>
         <TableBody>
-          {sorted.map(({ item, end, status, isOpen, days, age, staleDays, badgeKey, ms, isStale }) => (
+          {sorted.map(({ item, end, status, isOpen, days, age, staleDays, badgeKey, milestoneMeta, isStale }) => (
               <TableRow
                 key={`${item.type}-${item.number}`}
                 sx={{ opacity: isOpen ? 0.65 : 1, "&:hover": { opacity: 1, bgcolor: "action.hover" } }}
@@ -327,7 +327,7 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                 </TableCell>
                 {isMulti && (
                   <TableCell sx={{ overflow: "hidden" }}>
-                    {ms && <MilestonePill color={ms.color} title={ms.title} />}
+                    {milestoneMeta && <MilestonePill color={milestoneMeta.color} title={milestoneMeta.title} />}
                   </TableCell>
                 )}
                 <TableCell sx={{ overflow: "hidden", whiteSpace: "nowrap", color: "text.secondary", fontSize: FS.base }}>

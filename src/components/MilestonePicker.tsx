@@ -15,7 +15,7 @@ type Props = {
   selected: Milestone[];
   loadingNums: number[];
   colorFor: (num: number) => string;
-  onAdd: (ms: Milestone) => void;
+  onAdd: (milestone: Milestone) => void;
   onRemove: (num: number) => void;
 };
 
@@ -25,14 +25,14 @@ const MilestonePicker: FunctionComponent<Props> = ({ milestones, selected, loadi
 
   return (
     <Stack direction="row" flexWrap="wrap" alignItems="center" gap={0.75}>
-      {selected.map((ms) => (
+      {selected.map((milestone) => (
         <Chip
-          key={ms.number}
-          label={loadingNums.includes(ms.number) ? "…" : ms.title}
-          onDelete={() => onRemove(ms.number)}
+          key={milestone.number}
+          label={loadingNums.includes(milestone.number) ? "…" : milestone.title}
+          onDelete={() => onRemove(milestone.number)}
           size="small"
           sx={{
-            bgcolor: colorFor(ms.number),
+            bgcolor: colorFor(milestone.number),
             color: "#fff",
             fontWeight: 500,
             "& .MuiChip-deleteIcon": {
@@ -59,23 +59,23 @@ const MilestonePicker: FunctionComponent<Props> = ({ milestones, selected, loadi
             onClose={() => setAnchorEl(null)}
             slotProps={{ paper: { sx: { maxHeight: 260, minWidth: 240, maxWidth: 340 } } }}
           >
-            {unselected.map((ms) => (
+            {unselected.map((milestone) => (
               <MenuItem
-                key={ms.number}
+                key={milestone.number}
                 onClick={() => {
-                  onAdd(ms);
+                  onAdd(milestone);
                   setAnchorEl(null);
                 }}
                 dense
               >
                 <Box
-                  sx={{ width: 9, height: 9, borderRadius: "50%", bgcolor: colorFor(ms.number), mr: 1.5, flexShrink: 0 }}
+                  sx={{ width: 9, height: 9, borderRadius: "50%", bgcolor: colorFor(milestone.number), mr: 1.5, flexShrink: 0 }}
                 />
                 <Typography noWrap sx={{ flex: 1, fontSize: "0.8125rem" }}>
-                  {ms.title}
+                  {milestone.title}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ ml: 1.5, whiteSpace: "nowrap" }}>
-                  {pluralize(ms.openIssues + ms.closedIssues, "issue")} ({ms.state})
+                  {pluralize(milestone.openIssues + milestone.closedIssues, "issue")} ({milestone.state})
                 </Typography>
               </MenuItem>
             ))}

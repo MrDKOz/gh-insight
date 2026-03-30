@@ -33,29 +33,29 @@ const authHeaders = (token: string): Record<string, string> => ({
 
 const GHErrorBodyCodec = t.partial({ message: t.string });
 
-const checkResponse = async (res: Response): Promise<void> => {
-  if (!res.ok) {
+const checkResponse = async (response: Response): Promise<void> => {
+  if (!response.ok) {
     let ghMessage = "";
     try {
-      const body = decodeSafe(await res.json() as unknown, GHErrorBodyCodec);
+      const body = decodeSafe(await response.json() as unknown, GHErrorBodyCodec);
       if (body?.message) {ghMessage = body.message;}
     } catch {
       // ignore
     }
 
-    if (res.status === 401) {
+    if (response.status === 401) {
       throw new Error(
         `Authentication failed (401) — check that your token is valid and not expired.${ghMessage ? ` GitHub: ${ghMessage}` : ""}`,
       );
     }
-    if (res.status === 404) {
+    if (response.status === 404) {
       throw new Error(
         "Repository not found (404) — verify the owner/repo names are correct. " +
           "For private repos, ensure your token has the \"repo\" scope (classic) or \"Contents: Read\" permission (fine-grained)." +
           `${ghMessage ? ` GitHub: ${ghMessage}` : ""}`,
       );
     }
-    throw new Error(`GitHub API error ${res.status}${ghMessage ? `: ${ghMessage}` : ""}`);
+    throw new Error(`GitHub API error ${response.status}${ghMessage ? `: ${ghMessage}` : ""}`);
   }
 };
 
@@ -64,12 +64,12 @@ const fetchMilestones = async (owner: string, repo: string, token: string, signa
   let page = 1;
 
   while (true) {
-    const res = await fetch(
+    const response = await fetch(
       `${GH_API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/milestones?state=all&per_page=100&page=${page}`,
       { headers: authHeaders(token), signal: signal ?? null },
     );
-    await checkResponse(res);
-    const data = decodeOrThrow(await res.json() as unknown, t.array(RawMilestoneCodec));
+    await checkResponse(response);
+    const data = decodeOrThrow(await response.json() as unknown, t.array(RawMilestoneCodec));
     results.push(...data.map(mapMilestone));
     if (data.length < 100) {break;}
     page++;
@@ -252,14 +252,14 @@ const gqlFetch = async <T>(
   token: string,
   signal?: AbortSignal,
 ): Promise<T> => {
-  const res = await fetch(GH_GRAPHQL, {
+  const response = await fetch(GH_GRAPHQL, {
     method: "POST",
     headers: { ...authHeaders(token), "Content-Type": "application/json" },
     body: JSON.stringify({ query, variables }),
     signal: signal ?? null,
   });
-  await checkResponse(res);
-  const envelope = decodeOrThrow(await res.json() as unknown, GQLEnvelopeCodec);
+  await checkResponse(response);
+  const envelope = decodeOrThrow(await response.json() as unknown, GQLEnvelopeCodec);
   if (envelope.errors && envelope.errors.length > 0) {throw new Error(envelope.errors[0]?.message ?? "GraphQL error");}
   if (envelope.data == null) {throw new Error("GraphQL response contained no data");}
   return envelope.data as T;
@@ -407,9 +407,9 @@ const UserProfileResponseCodec = t.type({
 });
 
 const fetchUserProfile = async (token: string): Promise<UserProfile> => {
-  const res = await fetch(`${GH_API}/user`, { headers: authHeaders(token) });
-  await checkResponse(res);
-  const data = decodeOrThrow(await res.json() as unknown, UserProfileResponseCodec);
+  const response = await fetch(`${GH_API}/user`, { headers: authHeaders(token) });
+  await checkResponse(response);
+  const data = decodeOrThrow(await response.json() as unknown, UserProfileResponseCodec);
   return { login: data.login, name: data.name, avatarUrl: data.avatar_url };
 };
 
@@ -426,12 +426,12 @@ const fetchUserRepos = async (token: string, signal?: AbortSignal): Promise<Repo
   const results: Repo[] = [];
   let page = 1;
   while (true) {
-    const res = await fetch(
+    const response = await fetch(
       `${GH_API}/user/repos?per_page=100&page=${page}&sort=updated&affiliation=owner,collaborator,organization_member`,
       { headers: authHeaders(token), signal: signal ?? null },
     );
-    await checkResponse(res);
-    const data = decodeOrThrow(await res.json() as unknown, t.array(RawRepoCodec));
+    await checkResponse(response);
+    const data = decodeOrThrow(await response.json() as unknown, t.array(RawRepoCodec));
     results.push(...data.map((r) => ({
       id: r.id,
       owner: r.owner.login,

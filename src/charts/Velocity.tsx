@@ -71,7 +71,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
   const filteredItems = includePRs ? items : items.filter((i) => i.type === "issue");
   const chartColors = makeChartColors(colorblindMode);
   const isMulti = milestones.length > 1;
-  const wrapRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<Hover | null>(null);
   const [msHover, setMsHover] = useState<MilestoneHover | null>(null);
 
@@ -101,7 +101,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
     if (!isMulti) {return { allWeekStarts: [], msWeekMap: new Map<number, Map<number, MilestoneWeek>>() };}
     const weekSet = new Set<number>();
     const msWeekMap = new Map<number, Map<number, MilestoneWeek>>();
-    for (const ms of milestones) {msWeekMap.set(ms.number, new Map());}
+    for (const milestone of milestones) {msWeekMap.set(milestone.number, new Map());}
 
     for (const item of filteredItems) {
       const endDate = itemEndDate(item);
@@ -121,15 +121,15 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
   }, [filteredItems, milestones, isMulti]);
 
   const onEnter = useCallback((e: React.MouseEvent, week: Week) => {
-    const rect = wrapRef.current?.getBoundingClientRect();
+    const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) { return; }
     setHover({ x: e.clientX - rect.left, y: e.clientY - rect.top, week });
   }, []);
 
-  const onMsEnter = useCallback((e: React.MouseEvent, ms: MilestoneMeta, week: MilestoneWeek) => {
-    const rect = wrapRef.current?.getBoundingClientRect();
+  const onMsEnter = useCallback((e: React.MouseEvent, milestone: MilestoneMeta, week: MilestoneWeek) => {
+    const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) {return;}
-    setMsHover({ x: e.clientX - rect.left, y: e.clientY - rect.top, msNum: ms.number, msTitle: ms.title, msColor: ms.color, week });
+    setMsHover({ x: e.clientX - rect.left, y: e.clientY - rect.top, msNum: milestone.number, msTitle: milestone.title, msColor: milestone.color, week });
   }, []);
 
   // Pre-compute axis scales for each mode (two memos so TypeScript can infer distinct field shapes)
@@ -141,16 +141,16 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
     const getBarX   = (i: number) => PADDING_LEFT + i * slotWidth + (slotWidth - barWidth) / 2;
     const yStep   = calcYAxisStep(maxTotal);
     const yLabels = Array.from({ length: Math.floor(maxTotal / yStep) + 1 }, (_, i) => i * yStep);
-    const numX    = Math.min(8, weeks.length);
-    const xIndices = calcXAxisIndices(weeks.length, numX);
+    const numXLabels = Math.min(8, weeks.length);
+    const xIndices = calcXAxisIndices(weeks.length, numXLabels);
     const toSvgY = (count: number) => PADDING_TOP + (1 - count / maxTotal) * CHART_HEIGHT;
-    return { maxTotal, slotWidth, barWidth, getBarX, yLabels, numX, xIndices, toSvgY };
+    return { maxTotal, slotWidth, barWidth, getBarX, yLabels, numXLabels, xIndices, toSvgY };
   }, [isMulti, weeks]);
 
   const multiAxis = useMemo(() => {
     if (!isMulti || allWeekStarts.length === 0) { return null; }
     const maxTotal = Math.max(
-      ...milestones.flatMap((ms) => [...(msWeekMap.get(ms.number)?.values() ?? [])].map((w) => w.total)),
+      ...milestones.flatMap((milestone) => [...(msWeekMap.get(milestone.number)?.values() ?? [])].map((w) => w.total)),
       1,
     );
     const slotWidth  = CHART_WIDTH / allWeekStarts.length;
@@ -158,10 +158,10 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
     const getMilestoneBarX = (wi: number, mi: number) => PADDING_LEFT + wi * slotWidth + (slotWidth - milestoneBarWidth * milestones.length) / 2 + mi * milestoneBarWidth;
     const yStep   = calcYAxisStep(maxTotal);
     const yLabels = Array.from({ length: Math.floor(maxTotal / yStep) + 1 }, (_, i) => i * yStep);
-    const numX    = Math.min(8, allWeekStarts.length);
-    const xIndices = calcXAxisIndices(allWeekStarts.length, numX);
+    const numXLabels = Math.min(8, allWeekStarts.length);
+    const xIndices = calcXAxisIndices(allWeekStarts.length, numXLabels);
     const toSvgY = (count: number) => PADDING_TOP + (1 - count / maxTotal) * CHART_HEIGHT;
-    return { maxTotal, slotWidth, milestoneBarWidth, getMilestoneBarX, yLabels, numX, xIndices, toSvgY };
+    return { maxTotal, slotWidth, milestoneBarWidth, getMilestoneBarX, yLabels, numXLabels, xIndices, toSvgY };
   }, [isMulti, allWeekStarts, milestones, msWeekMap]);
 
   if ((isMulti ? allWeekStarts.length : weeks.length) === 0) {
@@ -170,14 +170,14 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
 
   // ── Single-milestone rendering ───────────────────────────────────────────────
   if (!isMulti) {
-    const { maxTotal, barWidth, getBarX, toSvgY, yLabels, numX, xIndices } = singleAxis!;
+    const { maxTotal, barWidth, getBarX, toSvgY, yLabels, numXLabels, xIndices } = singleAxis!;
 
     const cardStyle = hover
-      ? hoverCardPos(hover.x, hover.y, wrapRef.current?.offsetWidth ?? 800, 200, 94)
+      ? hoverCardPos(hover.x, hover.y, containerRef.current?.offsetWidth ?? 800, 200, 94)
       : {};
 
     return (
-      <Box className="chart-wrap" ref={wrapRef} role="presentation" style={{ position: "relative" }}>
+      <Box className="chart-wrap" ref={containerRef} role="presentation" style={{ position: "relative" }}>
         {hover && (
           <Paper elevation={2} sx={{ ...HOVER_CARD_BASE_SX, ...cardStyle }}>
             <Box sx={CARD_LABEL_SX}>
@@ -271,7 +271,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
           ))}
           {xIndices.map((wi, li) => (
             <text key={wi} x={(getBarX(wi) + barWidth / 2).toFixed(1)} y={PADDING_TOP + CHART_HEIGHT + 20}
-              textAnchor={li === 0 ? "start" : li === numX - 1 ? "end" : "middle"}
+              textAnchor={li === 0 ? "start" : li === numXLabels - 1 ? "end" : "middle"}
               fill={chartColors.label} fontSize={10} fontFamily="inherit" className="chart-label">
               {fmtDate(new Date(weeks[wi]?.startMs ?? 0).toISOString())}
             </text>
@@ -295,14 +295,14 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
   }
 
   // ── Multi-milestone rendering (one bar per milestone per week) ───────────────
-  const { maxTotal, slotWidth, milestoneBarWidth, getMilestoneBarX, toSvgY, yLabels, numX, xIndices } = multiAxis!;
+  const { maxTotal, slotWidth, milestoneBarWidth, getMilestoneBarX, toSvgY, yLabels, numXLabels, xIndices } = multiAxis!;
 
   const msCardStyle = msHover
-    ? hoverCardPos(msHover.x, msHover.y, wrapRef.current?.offsetWidth ?? 800, 210, 80)
+    ? hoverCardPos(msHover.x, msHover.y, containerRef.current?.offsetWidth ?? 800, 210, 80)
     : {};
 
   return (
-    <Box className="chart-wrap" ref={wrapRef} style={{ position: "relative" }}>
+    <Box className="chart-wrap" ref={containerRef} style={{ position: "relative" }}>
       {msHover && (
         <Paper elevation={2} sx={{ ...HOVER_CARD_BASE_SX, ...msCardStyle }}>
           <Box sx={{ ...STAT_ROW_SX, fontSize: FS.sm, color: "text.secondary" }}>
@@ -323,15 +323,15 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
         <thead>
           <tr>
             <th scope="col">Week starting</th>
-            {milestones.map((ms) => <th key={ms.number} scope="col">{ms.title}</th>)}
+            {milestones.map((milestone) => <th key={milestone.number} scope="col">{milestone.title}</th>)}
           </tr>
         </thead>
         <tbody>
           {allWeekStarts.map((ws) => (
             <tr key={ws}>
               <td>{fmtDate(new Date(ws).toISOString())}</td>
-              {milestones.map((ms) => (
-                <td key={ms.number}>{msWeekMap.get(ms.number)?.get(ws)?.total ?? 0}</td>
+              {milestones.map((milestone) => (
+                <td key={milestone.number}>{msWeekMap.get(milestone.number)?.get(ws)?.total ?? 0}</td>
               ))}
             </tr>
           ))}
@@ -346,20 +346,20 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
 
         {allWeekStarts.map((ws, wi) => (
           <g key={ws}>
-            {milestones.map((ms, mi) => {
-              const week = msWeekMap.get(ms.number)?.get(ws);
+            {milestones.map((milestone, mi) => {
+              const week = msWeekMap.get(milestone.number)?.get(ws);
               if (!week || week.total === 0) {return null;}
               const bx = getMilestoneBarX(wi, mi);
               const barHeight = (week.total / maxTotal) * CHART_HEIGHT;
               const by = PADDING_TOP + CHART_HEIGHT - barHeight;
               return (
                 <rect
-                  key={ms.number}
+                  key={milestone.number}
                   x={bx.toFixed(1)} y={by.toFixed(1)}
                   width={milestoneBarWidth.toFixed(1)} height={barHeight.toFixed(1)}
-                  fill={ms.color} opacity={0.88} rx={2}
+                  fill={milestone.color} opacity={0.88} rx={2}
                   style={{ cursor: "pointer" }}
-                  onMouseEnter={(e) => onMsEnter(e, ms, week)}
+                  onMouseEnter={(e) => onMsEnter(e, milestone, week)}
                 />
               );
             })}
@@ -378,7 +378,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
           const cx = PADDING_LEFT + wi * slotWidth + slotWidth / 2;
           return (
             <text key={wi} x={cx.toFixed(1)} y={PADDING_TOP + CHART_HEIGHT + 20}
-              textAnchor={li === 0 ? "start" : li === numX - 1 ? "end" : "middle"}
+              textAnchor={li === 0 ? "start" : li === numXLabels - 1 ? "end" : "middle"}
               fill={chartColors.label} fontSize={10} fontFamily="inherit" className="chart-label">
               {fmtDate(new Date(xs).toISOString())}
             </text>
@@ -386,7 +386,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
         })}
 
         <ChartLegend
-          items={milestones.map((ms) => ({ color: ms.color, label: ms.title }))}
+          items={milestones.map((milestone) => ({ color: milestone.color, label: milestone.title }))}
           cx={PADDING_LEFT + CHART_WIDTH / 2}
           y={PADDING_TOP - 8}
           fill={chartColors.label}

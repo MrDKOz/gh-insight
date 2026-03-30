@@ -103,7 +103,7 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
           : 0;
     return {
       row,
-      ms:         isMulti ? milestoneMap.get(row.milestoneNumber) : undefined,
+      milestoneMeta: isMulti ? milestoneMap.get(row.milestoneNumber) : undefined,
       waitPct,
       donePct:    row.totalDays !== null && row.totalDays > 0 ? Math.max(0, 100 - waitPct) : 0,
       isOpen:     row.status === "Open",
@@ -128,7 +128,7 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
 
   return (
     <TableContainer sx={{ border: 1, borderColor: "divider", borderRadius: 1, overflowX: "auto" }}>
-      <Table size="small" aria-label="Review wait time per pull request" sx={{ tableLayout: "fixed", minWidth: widths.reduce((s, w) => s + w, 0) }}>
+      <Table size="small" aria-label="Review wait time per pull request" sx={{ tableLayout: "fixed", minWidth: widths.reduce((sum, w) => sum + w, 0) }}>
         <colgroup>
           {widths.map((w, i) => <col key={i} style={{ width: w }} />)}
         </colgroup>
@@ -155,7 +155,7 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
           </TableRow>
         </TableHead>
         <TableBody>
-          {displayRows.map(({ row, ms, waitPct, donePct, isOpen, waitLabel, totalLabel }) => (
+          {displayRows.map(({ row, milestoneMeta, waitPct, donePct, isOpen, waitLabel, totalLabel }) => (
               <TableRow
                 key={row.number}
                 sx={{ opacity: isOpen ? 0.65 : 1, "&:hover": { opacity: 1, bgcolor: "action.hover" }, "&:last-child td": { borderBottom: 0 } }}
@@ -270,7 +270,7 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
                 {/* Milestone (multi only) */}
                 {isMulti && (
                   <TableCell sx={{ fontSize: FS.base, overflow: "hidden", whiteSpace: "nowrap" }}>
-                    {ms && <MilestonePill color={ms.color} title={ms.title} size={10} />}
+                    {milestoneMeta && <MilestonePill color={milestoneMeta.color} title={milestoneMeta.title} size={10} />}
                   </TableCell>
                 )}
               </TableRow>

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 /**
  * Manages resizable column widths for a table.
  *
- * `startResize(idx, e, currentWidth)` must be called from a column header's
+ * `startResize(columnIndex, e, currentWidth)` must be called from a column header's
  * `onMouseDown`. Pass the column's current pixel width as `currentWidth` — it
  * is captured at drag-start so the callback itself has no stale-closure risk
  * and can be memoised with an empty dep array.
@@ -18,12 +18,12 @@ const useColumnResize = (defaultWidths: number[]) => {
   useEffect(() => () => { cleanupRef.current?.(); }, []);
 
   const startResize = useCallback(
-    (idx: number, e: React.MouseEvent, currentWidth: number) => {
+    (columnIndex: number, e: React.MouseEvent, currentWidth: number) => {
       e.preventDefault();
       const startX = e.clientX;
       const onMove = (ev: MouseEvent) => {
         const newW = Math.max(40, currentWidth + (ev.clientX - startX));
-        setWidths((prev) => prev.map((w, i) => (i === idx ? newW : w)));
+        setWidths((prev) => prev.map((w, i) => (i === columnIndex ? newW : w)));
       };
       const onUp = () => {
         document.removeEventListener("mousemove", onMove);

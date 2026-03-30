@@ -46,7 +46,7 @@ const GanttLegend: FunctionComponent<GanttLegendProps> = ({ hasOpenIssues, color
           value={snapMode}
           exclusive
           size="small"
-          onChange={(_, val: "day" | "hour" | null) => { if (val) { onSnapModeChange(val); } }}
+          onChange={(_, newSnapMode: "day" | "hour" | null) => { if (newSnapMode) { onSnapModeChange(newSnapMode); } }}
           aria-label="Bar snap granularity"
         >
           <ToggleButton value="day"  aria-label="Snap bars to day boundaries">Day</ToggleButton>

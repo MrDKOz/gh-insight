@@ -82,12 +82,12 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
   const milestoneComparison = useMemo(() => {
     if (milestones.length === 0) { return null; }
     const now = Date.now();
-    return milestones.map((ms) => {
-      const msItems = items.filter((i) => i.milestoneNumber === ms.number);
-      const msIssues = msItems.filter((i) => i.type === "issue");
-      const openCount = msItems.filter(isOpen).length;
-      const closedMergedCount = msItems.length - openCount;
-      const closedIssuesCycle = msIssues
+    return milestones.map((milestone) => {
+      const milestoneItems = items.filter((i) => i.milestoneNumber === milestone.number);
+      const milestoneIssues = milestoneItems.filter((i) => i.type === "issue");
+      const openCount = milestoneItems.filter(isOpen).length;
+      const closedMergedCount = milestoneItems.length - openCount;
+      const closedIssuesCycle = milestoneIssues
         .filter((i): i is Extract<TimelineItem, { type: "issue" }> & { closedAt: string } =>
           i.type === "issue" && i.closedAt !== null,
         )
@@ -95,11 +95,11 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
       const avgCycle = closedIssuesCycle.length > 0
         ? Math.round(closedIssuesCycle.reduce((a, b) => a + b, 0) / closedIssuesCycle.length)
         : null;
-      const msStale = msItems.filter((i) =>
+      const milestoneStale = milestoneItems.filter((i) =>
         isOpen(i) && (now - new Date(i.updatedAt).getTime()) > STALE_MS,
       ).length;
-      const forecast = forecastCompletion(items, ms.number);
-      return { ms, openCount, closedMergedCount, avgCycle, stale: msStale, forecast };
+      const forecast = forecastCompletion(items, milestone.number);
+      return { milestone, openCount, closedMergedCount, avgCycle, stale: milestoneStale, forecast };
     });
   }, [milestones, items]);
 
@@ -192,12 +192,12 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
               </TableRow>
             </TableHead>
             <TableBody>
-              {milestoneComparison.map(({ ms, openCount, closedMergedCount, avgCycle, stale, forecast }) => (
-                <TableRow key={ms.number} sx={{ "&:last-child td": { border: 0 } }}>
+              {milestoneComparison.map(({ milestone, openCount, closedMergedCount, avgCycle, stale, forecast }) => (
+                <TableRow key={milestone.number} sx={{ "&:last-child td": { border: 0 } }}>
                   <TableCell>
                     <Stack direction="row" alignItems="center" gap={0.75}>
-                      <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: ms.color, flexShrink: 0 }} />
-                      <Typography variant="caption" fontWeight={500} sx={{ lineHeight: 1.3 }}>{ms.title}</Typography>
+                      <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: milestone.color, flexShrink: 0 }} />
+                      <Typography variant="caption" fontWeight={500} sx={{ lineHeight: 1.3 }}>{milestone.title}</Typography>
                     </Stack>
                   </TableCell>
                   <TableCell align="right">

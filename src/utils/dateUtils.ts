@@ -82,17 +82,17 @@ const forecastCompletion = (
   // Build daily open-issue counts
   const sortedCreatedTs = [...allCreatedTs].sort((a, b) => a - b);
   const sortedClosedTs  = [...allClosedTs].sort((a, b) => a - b);
-  const pts = Array.from({ length: totalDays + 1 }, (_, idx) => {
-    const t = minTime + idx * MS_PER_DAY;
+  const pts = Array.from({ length: totalDays + 1 }, (_, index) => {
+    const t = minTime + index * MS_PER_DAY;
     return upperBound(sortedCreatedTs, t) - upperBound(sortedClosedTs, t);
   });
 
   // ── Primary: linear regression over last 30 points ───────────────────────────
-  const win = pts.slice(-30);
-  const windowLength = win.length;
+  const recentWindow = pts.slice(-30);
+  const windowLength = recentWindow.length;
   let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
   for (let i = 0; i < windowLength; i++) {
-    const y = win[i] ?? 0;
+    const y = recentWindow[i] ?? 0;
     sumX += i; sumY += y; sumXY += i * y; sumX2 += i * i;
   }
   const denom = windowLength * sumX2 - sumX * sumX;

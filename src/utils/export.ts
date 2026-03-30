@@ -144,9 +144,9 @@ const inlineImages = async (el: HTMLElement): Promise<() => void> => {
     const src = img.getAttribute("src");
     if (!src || src.startsWith("data:")) {return;}
     try {
-      const res = await fetch(src, { mode: "cors" });
-      if (!res.ok) {return;}
-      const blob = await res.blob();
+      const response = await fetch(src, { mode: "cors" });
+      if (!response.ok) {return;}
+      const blob = await response.blob();
       const dataUrl = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
@@ -182,7 +182,7 @@ const captureElement = async (el: HTMLElement, overrides?: { width?: number; hei
 const withExpandedGantt = async <T>(
   wrapperEl: HTMLElement,
   trackColEl: HTMLElement | null,
-  fn: (size: { width: number; height: number }) => Promise<T>,
+  captureCallback: (size: { width: number; height: number }) => Promise<T>,
 ): Promise<T> => {
   let prevTrackOverflowX = "";
   let prevTrackWidth = "";
@@ -199,7 +199,7 @@ const withExpandedGantt = async <T>(
   const width = wrapperEl.scrollWidth;
   const height = wrapperEl.scrollHeight;
   try {
-    return await fn({ width, height });
+    return await captureCallback({ width, height });
   } finally {
     if (trackColEl) {
       trackColEl.style.overflowX = prevTrackOverflowX;
@@ -339,7 +339,7 @@ const drawPDFTable = (
   const BASE_Y = 5; // text baseline offset from row top (mm)
   const FS = 8;
   const BOTTOM_MARGIN = 10;
-  const tableW = cols.reduce((s, c) => s + c.width, 0);
+  const tableW = cols.reduce((sum, c) => sum + c.width, 0);
   const pageH = doc.internal.pageSize.getHeight();
 
   const drawHeader = (atY: number): void => {

@@ -28,7 +28,7 @@ type UseMilestonesReturn = {
   milestoneColorFor: (num: number) => string;
   loadMilestonesForRepo: (repo: Repo, opts?: LoadMilestonesOpts) => Promise<void>;
   loadDemoForRepo: (repo: Repo, urlMilestoneNums: number[]) => void;
-  addMilestone: (ms: Milestone) => Promise<void>;
+  addMilestone: (milestone: Milestone) => Promise<void>;
   removeMilestone: (num: number) => void;
   refreshMilestones: () => Promise<void>;
   resetMilestones: () => void;
@@ -84,18 +84,18 @@ const useMilestones = ({ activeRepo, token }: UseMilestonesOptions): UseMileston
       const autoNums = opts?.autoSelectNums ?? [];
       if (autoNums.length > 0) {
         const toSelect = milestones.filter((m) => autoNums.includes(m.number));
-        for (const ms of toSelect) {
-          dispatch({ type: "SELECT_MILESTONE", milestone: ms });
+        for (const milestone of toSelect) {
+          dispatch({ type: "SELECT_MILESTONE", milestone });
           const ac2 = new AbortController();
-          itemAbortRefs.current.set(ms.number, ac2);
-          dispatch({ type: "FETCH_ITEMS_START", milestoneNumber: ms.number });
-          fetchMilestoneItems(repo.owner, repo.name, effectiveToken, ms.number, ac2.signal)
-            .then((items) => { dispatch({ type: "FETCH_ITEMS_SUCCESS", milestoneNumber: ms.number, items }); })
+          itemAbortRefs.current.set(milestone.number, ac2);
+          dispatch({ type: "FETCH_ITEMS_START", milestoneNumber: milestone.number });
+          fetchMilestoneItems(repo.owner, repo.name, effectiveToken, milestone.number, ac2.signal)
+            .then((items) => { dispatch({ type: "FETCH_ITEMS_SUCCESS", milestoneNumber: milestone.number, items }); })
             .catch((e) => {
               if (e instanceof DOMException && e.name === "AbortError") { return; }
-              dispatch({ type: "FETCH_ITEMS_ERROR", milestoneNumber: ms.number, error: e instanceof Error ? e.message : String(e) });
+              dispatch({ type: "FETCH_ITEMS_ERROR", milestoneNumber: milestone.number, error: e instanceof Error ? e.message : String(e) });
             })
-            .finally(() => { itemAbortRefs.current.delete(ms.number); });
+            .finally(() => { itemAbortRefs.current.delete(milestone.number); });
         }
       }
     } catch (e) {
@@ -104,22 +104,22 @@ const useMilestones = ({ activeRepo, token }: UseMilestonesOptions): UseMileston
     }
   }, [token]);
 
-  const addMilestone = useCallback(async (ms: Milestone) => {
-    if (state.selected.some((m) => m.number === ms.number)) { return; }
-    dispatch({ type: "SELECT_MILESTONE", milestone: ms });
-    if (!(ms.number in state.itemsCache)) {
+  const addMilestone = useCallback(async (milestone: Milestone) => {
+    if (state.selected.some((m) => m.number === milestone.number)) { return; }
+    dispatch({ type: "SELECT_MILESTONE", milestone });
+    if (!(milestone.number in state.itemsCache)) {
       if (!activeRepo) { return; }
       const ac = new AbortController();
-      itemAbortRefs.current.set(ms.number, ac);
-      dispatch({ type: "FETCH_ITEMS_START", milestoneNumber: ms.number });
+      itemAbortRefs.current.set(milestone.number, ac);
+      dispatch({ type: "FETCH_ITEMS_START", milestoneNumber: milestone.number });
       try {
-        const items = await fetchMilestoneItems(activeRepo.owner, activeRepo.name, token, ms.number, ac.signal);
-        dispatch({ type: "FETCH_ITEMS_SUCCESS", milestoneNumber: ms.number, items });
+        const items = await fetchMilestoneItems(activeRepo.owner, activeRepo.name, token, milestone.number, ac.signal);
+        dispatch({ type: "FETCH_ITEMS_SUCCESS", milestoneNumber: milestone.number, items });
       } catch (e) {
         if (e instanceof DOMException && e.name === "AbortError") { return; }
-        dispatch({ type: "FETCH_ITEMS_ERROR", milestoneNumber: ms.number, error: e instanceof Error ? e.message : String(e) });
+        dispatch({ type: "FETCH_ITEMS_ERROR", milestoneNumber: milestone.number, error: e instanceof Error ? e.message : String(e) });
       } finally {
-        itemAbortRefs.current.delete(ms.number);
+        itemAbortRefs.current.delete(milestone.number);
       }
     }
   }, [state.selected, state.itemsCache, activeRepo, token]);
@@ -133,14 +133,14 @@ const useMilestones = ({ activeRepo, token }: UseMilestonesOptions): UseMileston
     refreshAbortRef.current?.abort();
     const ac = new AbortController();
     refreshAbortRef.current = ac;
-    state.selected.forEach((ms) => dispatch({ type: "FETCH_ITEMS_START", milestoneNumber: ms.number }));
-    await Promise.all(state.selected.map(async (ms) => {
+    state.selected.forEach((milestone) => dispatch({ type: "FETCH_ITEMS_START", milestoneNumber: milestone.number }));
+    await Promise.all(state.selected.map(async (milestone) => {
       try {
-        const items = await fetchMilestoneItems(activeRepo.owner, activeRepo.name, token, ms.number, ac.signal);
-        dispatch({ type: "FETCH_ITEMS_SUCCESS", milestoneNumber: ms.number, items });
+        const items = await fetchMilestoneItems(activeRepo.owner, activeRepo.name, token, milestone.number, ac.signal);
+        dispatch({ type: "FETCH_ITEMS_SUCCESS", milestoneNumber: milestone.number, items });
       } catch (e) {
         if (e instanceof DOMException && e.name === "AbortError") { return; }
-        dispatch({ type: "REFRESH_ITEMS_ERROR", milestoneNumber: ms.number, error: e instanceof Error ? e.message : String(e) });
+        dispatch({ type: "REFRESH_ITEMS_ERROR", milestoneNumber: milestone.number, error: e instanceof Error ? e.message : String(e) });
       }
     }));
   }, [state.selected, activeRepo, token]);
@@ -150,16 +150,16 @@ const useMilestones = ({ activeRepo, token }: UseMilestonesOptions): UseMileston
   }, []);
 
   const allItems = useMemo(
-    () => state.selected.flatMap((ms) => state.itemsCache[ms.number] ?? []),
+    () => state.selected.flatMap((milestone) => state.itemsCache[milestone.number] ?? []),
     [state.selected, state.itemsCache],
   );
 
   const milestonesMeta = useMemo(
-    () => state.selected.map((ms) => ({
-      number: ms.number,
-      title:  ms.title,
-      color:  milestoneColorFor(ms.number),
-      dueOn:  ms.dueOn,
+    () => state.selected.map((milestone) => ({
+      number: milestone.number,
+      title:  milestone.title,
+      color:  milestoneColorFor(milestone.number),
+      dueOn:  milestone.dueOn,
     })),
     [state.selected, milestoneColorFor],
   );

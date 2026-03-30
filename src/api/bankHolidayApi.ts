@@ -36,18 +36,18 @@ const fetchHolidaysForYear = async (region: Region, year: number): Promise<BankH
   let holidays: BankHoliday[];
 
   if (region !== "US") {
-    const res = await fetch("https://www.gov.uk/bank-holidays.json");
-    if (!res.ok) { throw new Error(`UK bank-holiday API returned ${res.status}`); }
-    const data = decodeOrThrow(await res.json() as unknown, UkResponseCodec);
+    const response = await fetch("https://www.gov.uk/bank-holidays.json");
+    if (!response.ok) { throw new Error(`UK bank-holiday API returned ${response.status}`); }
+    const data = decodeOrThrow(await response.json() as unknown, UkResponseCodec);
     const division = data[region];
     holidays = (division?.events ?? [])
       .filter((ev) => ev.date.startsWith(String(year)))
       .map((ev) => ({ date: ev.date, name: ev.title }))
       .sort((a, b) => a.date.localeCompare(b.date));
   } else {
-    const res = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/US`);
-    if (!res.ok) { throw new Error(`US holiday API returned ${res.status}`); }
-    const data = decodeOrThrow(await res.json() as unknown, UsResponseCodec);
+    const response = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/US`);
+    if (!response.ok) { throw new Error(`US holiday API returned ${response.status}`); }
+    const data = decodeOrThrow(await response.json() as unknown, UsResponseCodec);
     holidays = data
       .filter((d) => d.date.startsWith(String(year)) && !d.types.includes("Observance"))
       .map((d) => ({ date: d.date, name: d.localName }))

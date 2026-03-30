@@ -19,9 +19,9 @@ const useNewVersionAvailable = (): boolean => {
 
     const check = async () => {
       try {
-        const res = await fetch(`${import.meta.env.BASE_URL}version.json`, { cache: "no-store" });
-        if (!res.ok) { return; }
-        const data = decodeSafe(await res.json() as unknown, VersionFileCodec);
+        const response = await fetch(`${import.meta.env.BASE_URL}version.json`, { cache: "no-store" });
+        if (!response.ok) { return; }
+        const data = decodeSafe(await response.json() as unknown, VersionFileCodec);
         if (data && data.buildTime > __APP_BUILD_TIME__) {
           setAvailable(true);
         }

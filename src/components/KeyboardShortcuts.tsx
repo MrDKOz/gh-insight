@@ -74,7 +74,7 @@ const KeyboardShortcuts: FunctionComponent = () => {
       </DialogTitle>
       <Divider />
       <DialogContent sx={{ p: 0 }}>
-        {SHORTCUTS.map(({ keys, description }, idx) => (
+        {SHORTCUTS.map(({ keys, description }, i) => (
           <Box
             key={description}
             sx={(theme) => ({
@@ -84,7 +84,7 @@ const KeyboardShortcuts: FunctionComponent = () => {
               gap: 2,
               px: 2.5,
               py: 1,
-              borderBottom: idx < SHORTCUTS.length - 1 ? `1px solid ${theme.palette.divider}` : "none",
+              borderBottom: i < SHORTCUTS.length - 1 ? `1px solid ${theme.palette.divider}` : "none",
             })}
           >
             <Typography variant="body2" color="text.secondary" sx={{ flexShrink: 1 }}>

@@ -126,12 +126,12 @@ const useGanttLayout = (items: TimelineItem[], filteredItems: TimelineItem[]): G
     const onWheel = (e: WheelEvent) => {
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) { return; }
       e.preventDefault();
-      const { pixelsPerDay: ppd, totalDays: td, trackWidth: tw } = stateRef.current;
+      const { pixelsPerDay, totalDays, trackWidth } = stateRef.current;
       const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
-      const newPixelsPerDay = Math.min(200, Math.max(4, ppd * factor));
-      const newTrackWidth = Math.max(500, Math.round(td * newPixelsPerDay));
+      const newPixelsPerDay = Math.min(200, Math.max(4, pixelsPerDay * factor));
+      const newTrackWidth = Math.max(500, Math.round(totalDays * newPixelsPerDay));
       const cursorX = e.clientX - trackColElement.getBoundingClientRect().left;
-      const fraction = tw > 0 ? (cursorX + trackColElement.scrollLeft) / tw : 0;
+      const fraction = trackWidth > 0 ? (cursorX + trackColElement.scrollLeft) / trackWidth : 0;
       pendingScrollRef.current = Math.max(0, fraction * newTrackWidth - cursorX);
       setPixelsPerDay(newPixelsPerDay);
     };
@@ -149,9 +149,9 @@ const useGanttLayout = (items: TimelineItem[], filteredItems: TimelineItem[]): G
   const allTimestamps = useMemo(
     () => filteredItems.flatMap((item) => {
       const end = itemEndDate(item);
-      const ts = [new Date(item.createdAt).getTime()];
-      if (end) { ts.push(new Date(end).getTime()); }
-      return ts;
+      const timestamps = [new Date(item.createdAt).getTime()];
+      if (end) { timestamps.push(new Date(end).getTime()); }
+      return timestamps;
     }),
     [filteredItems],
   );
@@ -456,14 +456,14 @@ const GanttView = forwardRef<GanttHandle, Props>(({
   const todayDateStr = new Date(todayMs).toISOString().slice(0, 10);
 
   const dueMarkers = useMemo(() =>
-    milestones.flatMap((ms) => {
-      if (!ms.dueOn) { return []; }
-      const dueMs = new Date(ms.dueOn).getTime();
+    milestones.flatMap((milestone) => {
+      if (!milestone.dueOn) { return []; }
+      const dueMs = new Date(milestone.dueOn).getTime();
       if (isNaN(dueMs)) { return []; }
       const leftPct = ((dueMs - minTime) / totalMs) * 100;
       if (leftPct < -2 || leftPct > 102) { return []; }
-      const coincidesToday = ms.dueOn.slice(0, 10) === todayDateStr;
-      return [{ key: ms.number, leftPct, label: `Due ${fmtDate(ms.dueOn)}`, color: milestones.length > 1 ? ms.color : "#8250df", coincidesToday }];
+      const coincidesToday = milestone.dueOn.slice(0, 10) === todayDateStr;
+      return [{ key: milestone.number, leftPct, label: `Due ${fmtDate(milestone.dueOn)}`, color: milestones.length > 1 ? milestone.color : "#8250df", coincidesToday }];
     }),
   [milestones, minTime, totalMs, todayDateStr]);
 

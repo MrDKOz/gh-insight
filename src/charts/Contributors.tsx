@@ -56,7 +56,7 @@ const AVATAR_T_GAP = 5;   // px between text right edge and avatar left edge
 
 const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) => {
   const chartColors = makeChartColors(colorblindMode);
-  const wrapRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<Hover | null>(null);
   const clipId = `contrib-avatar-clip-${useId().replace(/:/g, "")}`;
 
@@ -72,7 +72,7 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
       }
       return entry;
     };
-    const idx = new Map<string, { earliest: string; latest: string }>();
+    const dateIndex = new Map<string, { earliest: string; latest: string }>();
 
     for (const item of items) {
       const logins  = item.assignees.length > 0 ? item.assignees : [item.author];
@@ -90,9 +90,9 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
 
         if (endDate) {
           const key = `${login}:${seg}`;
-          const existing = idx.get(key);
+          const existing = dateIndex.get(key);
           if (!existing) {
-            idx.set(key, { earliest: endDate, latest: endDate });
+            dateIndex.set(key, { earliest: endDate, latest: endDate });
           } else {
             if (endDate < existing.earliest) { existing.earliest = endDate; }
             if (endDate > existing.latest)   { existing.latest   = endDate; }
@@ -100,12 +100,12 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
         }
       }
     }
-    return { rows: [...rowMap.values()].sort((a, b) => b.total - a.total), dateIndex: idx };
+    return { rows: [...rowMap.values()].sort((a, b) => b.total - a.total), dateIndex };
   }, [items]);
 
   const onEnter = useCallback(
     (e: React.MouseEvent, row: ContribRow, segment: "issues" | "merged" | "closed" | "open", count: number) => {
-      const rect = wrapRef.current?.getBoundingClientRect();
+      const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) {return;}
       const dates = dateIndex.get(`${row.login}:${segment}`);
       setHover({
@@ -139,7 +139,7 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
   const getBarWidth = (count: number)  => (count / maxTotal) * chartWidth;
 
   const cardStyle = hover
-    ? hoverCardPos(hover.x, hover.y, wrapRef.current?.offsetWidth ?? 800, 210, 110)
+    ? hoverCardPos(hover.x, hover.y, containerRef.current?.offsetWidth ?? 800, 210, 110)
     : {};
 
   // Tick marks on x-axis
@@ -158,7 +158,7 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
   ];
 
   return (
-    <Box className="chart-wrap" ref={wrapRef} role="presentation" style={{ position: "relative" }}>
+    <Box className="chart-wrap" ref={containerRef} role="presentation" style={{ position: "relative" }}>
       {hover && (
         <Paper
           elevation={2}

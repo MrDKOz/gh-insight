@@ -25,7 +25,7 @@ type Props = {
   loadingList: boolean;
   loadingNums: number[];
   colorFor: (num: number) => string;
-  onAdd: (ms: Milestone) => void;
+  onAdd: (milestone: Milestone) => void;
   onRemove: (num: number) => void;
   onRefresh: () => void;
   view: View;

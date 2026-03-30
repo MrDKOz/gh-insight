@@ -35,7 +35,7 @@ type Props = {
 
 const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange, colorblindMode, variant }) => {
   const palette = colorblindMode ? COLORS_CB : COLORS;
-  const set = (patch: Partial<Filters>) => onChange({ ...filters, ...patch });
+  const patchFilters = (patch: Partial<Filters>) => onChange({ ...filters, ...patch });
 
   const [labelsAnchor, setLabelsAnchor] = useState<HTMLElement | null>(null);
   const [labelsSearch, setLabelsSearch] = useState("");
@@ -81,14 +81,14 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
     const next = filters.activeLabels.includes(name)
       ? filters.activeLabels.filter((l) => l !== name)
       : [...filters.activeLabels, name];
-    set({ activeLabels: next });
+    patchFilters({ activeLabels: next });
   };
 
   const togglePerson = (login: string) => {
     const next = filters.activePeople.includes(login)
       ? filters.activePeople.filter((p) => p !== login)
       : [...filters.activePeople, login];
-    set({ activePeople: next });
+    patchFilters({ activePeople: next });
   };
 
   const ROLE_OPTIONS: Array<{ value: PeopleRole; label: string; title: string }> = [
@@ -128,20 +128,20 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
         label="Created"
         startValue={filters.createdStart}
         endValue={filters.createdEnd}
-        onStartChange={(v) => set({ createdStart: v })}
-        onStartClear={() => set({ createdStart: "" })}
-        onEndChange={(v) => set({ createdEnd: v })}
-        onEndClear={() => set({ createdEnd: "" })}
+        onStartChange={(v) => patchFilters({ createdStart: v })}
+        onStartClear={() => patchFilters({ createdStart: "" })}
+        onEndChange={(v) => patchFilters({ createdEnd: v })}
+        onEndClear={() => patchFilters({ createdEnd: "" })}
       />
 
       <DateRangeFilter
         label="Closed"
         startValue={filters.closedStart}
         endValue={filters.closedEnd}
-        onStartChange={(v) => set({ closedStart: v })}
-        onStartClear={() => set({ closedStart: "" })}
-        onEndChange={(v) => set({ closedEnd: v })}
-        onEndClear={() => set({ closedEnd: "" })}
+        onStartChange={(v) => patchFilters({ closedStart: v })}
+        onStartClear={() => patchFilters({ closedStart: "" })}
+        onEndChange={(v) => patchFilters({ closedEnd: v })}
+        onEndClear={() => patchFilters({ closedEnd: "" })}
       />
 
       <Stack direction="row" alignItems="center" gap={0.75} flexWrap="wrap">
@@ -157,7 +157,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
               </Stack>
             }
             size="small"
-            onClick={() => set({ [key]: !filters[key] })}
+            onClick={() => patchFilters({ [key]: !filters[key] })}
             title={filters[key] ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
             sx={{
               height: 26,
@@ -256,7 +256,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
                 <>
                   <Divider />
                   <Box sx={{ p: 0.75, display: "flex", justifyContent: "flex-end" }}>
-                    <Button size="small" sx={{ fontSize: FS.sm }} onClick={() => set({ activeLabels: [] })}>
+                    <Button size="small" sx={{ fontSize: FS.sm }} onClick={() => patchFilters({ activeLabels: [] })}>
                       Clear
                     </Button>
                   </Box>
@@ -309,7 +309,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
                     <Box
                       key={value}
                       component="button"
-                      onClick={() => set({ peopleRole: value })}
+                      onClick={() => patchFilters({ peopleRole: value })}
                       title={title}
                       aria-pressed={filters.peopleRole === value}
                       sx={{
@@ -377,7 +377,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
                 <>
                   <Divider />
                   <Box sx={{ p: 0.75, display: "flex", justifyContent: "flex-end" }}>
-                    <Button size="small" sx={{ fontSize: FS.sm }} onClick={() => set({ activePeople: [] })}>
+                    <Button size="small" sx={{ fontSize: FS.sm }} onClick={() => patchFilters({ activePeople: [] })}>
                       Clear
                     </Button>
                   </Box>

@@ -54,7 +54,7 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
     () => new Map(milestones.map((m) => [m.number, m.color])),
     [milestones],
   );
-  const wrapRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<Hover | null>(null);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
@@ -78,11 +78,11 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
     return [{ item, endDate, endMs: new Date(endDate).getTime(), days, color, typeLabel, firstReviewAt }];
   }), [filteredItems, isMulti, milestoneColorMap, chartColors.issue, chartColors.prMerged, chartColors.prClosed]);
 
-  const onEnter = useCallback((e: React.MouseEvent, p: Pt, idx: number) => {
-    const rect = wrapRef.current?.getBoundingClientRect();
+  const onEnter = useCallback((e: React.MouseEvent, p: Pt, pointIndex: number) => {
+    const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) {return;}
     setHover({ x: e.clientX - rect.left, y: e.clientY - rect.top, pt: p, url: p.item.url });
-    setHoveredIdx(idx);
+    setHoveredIdx(pointIndex);
   }, []);
 
   if (pts.length === 0) {
@@ -109,9 +109,9 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
   const mean   = Math.round(sorted.reduce((s, d) => s + d, 0) / sorted.length);
   const showMean = mean !== median && Math.abs(toSvgY(mean) - toSvgY(median)) > 16;
 
-  const numX   = Math.min(8, pts.length);
-  const xTimes = Array.from({ length: numX }, (_, i) =>
-    minTime + (totalMs * i) / Math.max(numX - 1, 1),
+  const numXLabels = Math.min(8, pts.length);
+  const xTimes = Array.from({ length: numXLabels }, (_, i) =>
+    minTime + (totalMs * i) / Math.max(numXLabels - 1, 1),
   );
 
   const svgPts = pts.map((p) => ({ x: toSvgX(p.endMs), y: toSvgY(p.days) }));
@@ -121,20 +121,20 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
   const spreadOffsets: { dy: number }[] = pts.map(() => ({ dy: 0 }));
   const hoveredPt = hoveredIdx !== null ? svgPts[hoveredIdx] : undefined;
   if (hoveredPt) {
-    const { x: hx, y: hy } = hoveredPt;
+    const { x: hoveredX, y: hoveredY } = hoveredPt;
     const cluster = pts
       .map((_, i) => i)
       .filter((i) => {
         const pt = svgPts[i];
         if (!pt) { return false; }
-        const dx = pt.x - hx, dy = pt.y - hy;
+        const dx = pt.x - hoveredX, dy = pt.y - hoveredY;
         return Math.sqrt(dx * dx + dy * dy) < CLUSTER_R;
       });
     if (cluster.length > 1) {
       cluster.sort((a, b) => (svgPts[a]?.y ?? 0) - (svgPts[b]?.y ?? 0));
-      cluster.forEach((idx, rank) => {
-        if (spreadOffsets[idx] !== undefined) {
-          spreadOffsets[idx] = { dy: (rank - (cluster.length - 1) / 2) * SPREAD_STEP };
+      cluster.forEach((pointIndex, rank) => {
+        if (spreadOffsets[pointIndex] !== undefined) {
+          spreadOffsets[pointIndex] = { dy: (rank - (cluster.length - 1) / 2) * SPREAD_STEP };
         }
       });
     }
@@ -147,7 +147,7 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
     : null;
 
   return (
-    <Box className="chart-wrap" ref={wrapRef} role="presentation" style={{ position: "relative" }}>
+    <Box className="chart-wrap" ref={containerRef} role="presentation" style={{ position: "relative" }}>
       {hover && (
         <ItemHoverCard
           item={hover.pt.item}
@@ -157,7 +157,7 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
           metric={`${pluralize(hover.pt.days, "day")} cycle time`}
           reviewWaitDays={reviewWaitDays}
           href={hover.url}
-          positionSx={{ position: "absolute", ...hoverCardPos(hover.x, hover.y, wrapRef.current?.offsetWidth ?? 800, 280, 320) }}
+          positionSx={{ position: "absolute", ...hoverCardPos(hover.x, hover.y, containerRef.current?.offsetWidth ?? 800, 280, 320) }}
         />
       )}
 
@@ -267,7 +267,7 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
 
         {xTimes.map((t, i) => (
           <text key={t} x={toSvgX(t)} y={PADDING_TOP + CHART_HEIGHT + 20}
-            textAnchor={i === 0 ? "start" : i === numX - 1 ? "end" : "middle"}
+            textAnchor={i === 0 ? "start" : i === numXLabels - 1 ? "end" : "middle"}
             fill={chartColors.label} fontSize={10} fontFamily="inherit" className="chart-label">
             {fmtDate(new Date(t).toISOString())}
           </text>
@@ -281,7 +281,7 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
 
         <ChartLegend
           items={isMulti
-            ? milestones.map((ms) => ({ color: ms.color, label: ms.title }))
+            ? milestones.map((milestone) => ({ color: milestone.color, label: milestone.title }))
             : [
                 { color: chartColors.issue,    label: "Issues" },
                 ...(includePRs ? [

@@ -45,7 +45,7 @@ type HoverInfo = {
 const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, bankHolidays, colorblindMode, includePRs }) => {
   const chartColors = makeChartColors(colorblindMode);
   const isMulti = milestones.length > 1;
-  const wrapRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<HoverInfo | null>(null);
 
   const issues = useMemo(
@@ -68,32 +68,32 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
   }, [issues, hasOpenIssues, todayMs]);
 
   // ── Per-milestone series (for both single and multi mode) ─────────────────────
-  const msSeries = useMemo(() => {
+  const milestoneSeries = useMemo(() => {
     if (issues.length === 0) {return [];}
-    return milestones.map((ms) => {
-      const msIssues = issues.filter((i) => i.milestoneNumber === ms.number);
-      if (msIssues.length === 0) {return { ms, points: [] };}
-      const sortedCreatedTs = msIssues.map((i) => new Date(i.createdAt).getTime()).sort((a, b) => a - b);
-      const sortedClosedTs  = msIssues.flatMap((i) => i.closedAt ? [new Date(i.closedAt).getTime()] : []).sort((a, b) => a - b);
-      const points = Array.from({ length: totalDays + 1 }, (_, idx) => {
-        const t = minTime + idx * MS_PER_DAY;
+    return milestones.map((milestone) => {
+      const milestoneIssues = issues.filter((i) => i.milestoneNumber === milestone.number);
+      if (milestoneIssues.length === 0) {return { milestone, points: [] };}
+      const sortedCreatedTs = milestoneIssues.map((i) => new Date(i.createdAt).getTime()).sort((a, b) => a - b);
+      const sortedClosedTs  = milestoneIssues.flatMap((i) => i.closedAt ? [new Date(i.closedAt).getTime()] : []).sort((a, b) => a - b);
+      const points = Array.from({ length: totalDays + 1 }, (_, index) => {
+        const t = minTime + index * MS_PER_DAY;
         return { t, count: upperBound(sortedCreatedTs, t) - upperBound(sortedClosedTs, t) };
       });
-      return { ms, points };
-    }).filter((s) => s.points.length > 0);
+      return { milestone, points };
+    }).filter((series) => series.points.length > 0);
   }, [issues, milestones, totalDays, minTime]);
 
   // Single-milestone path (first series)
-  const singleSeries = msSeries[0];
+  const singleSeries = milestoneSeries[0];
 
   // ── Axis scales ───────────────────────────────────────────────────────────────
   const maxCount = useMemo(() => {
     if (issues.length === 0) {return 1;}
     if (isMulti) {
-      return Math.max(...msSeries.flatMap((s) => s.points.map((p) => p.count)), 1);
+      return Math.max(...milestoneSeries.flatMap((s) => s.points.map((p) => p.count)), 1);
     }
     return Math.max(...(singleSeries?.points.map((p) => p.count) ?? [1]), 1);
-  }, [issues.length, isMulti, msSeries, singleSeries]);
+  }, [issues.length, isMulti, milestoneSeries, singleSeries]);
 
   const toSvgX = (i: number, numPts: number) => PADDING_LEFT + (numPts > 1 ? (i / (numPts - 1)) * CHART_WIDTH : CHART_WIDTH / 2);
   const toSvgY = (count: number) => PADDING_TOP + (1 - count / maxCount) * CHART_HEIGHT;
@@ -113,16 +113,16 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
   const dueMarkers = useMemo((): DueMarker[] => {
     if (issues.length === 0) {return [];}
     const markers: DueMarker[] = [];
-    for (const ms of milestones) {
-      if (!ms.dueOn) {continue;}
-      const dueMs = new Date(ms.dueOn).getTime();
+    for (const milestone of milestones) {
+      if (!milestone.dueOn) {continue;}
+      const dueMs = new Date(milestone.dueOn).getTime();
       if (isNaN(dueMs)) {continue;}
       // Only render if dueMs is within the visible range (with a 30-day slack on the right)
       if (dueMs < minTime - MS_PER_DAY || dueMs > maxTime + 30 * MS_PER_DAY) {continue;}
       const frac  = (dueMs - minTime) / (maxTime - minTime);
       const xNum  = PADDING_LEFT + Math.min(frac, 1) * CHART_WIDTH;
-      const color = ms.color;
-      const label = `Due ${fmtDate(ms.dueOn)}`;
+      const color = milestone.color;
+      const label = `Due ${fmtDate(milestone.dueOn)}`;
       markers.push({ xNum, label, color, flipLeft: frac > 0.85 });
     }
     return markers;
@@ -184,14 +184,14 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
     const holidayName = bankHolidayMap.get(ptIso.slice(0, 10));
 
     if (isMulti) {
-      if (msSeries.length === 0) { setHover(null); return; }
+      if (milestoneSeries.length === 0) { setHover(null); return; }
       setHover({
         x: wrapX, y: e.clientY - rect.top,
         svgX: toSvgX(ptIdx, totalDays + 1),
         date: ptDate, holidayName,
-        series: msSeries.map((s) => ({
-          color: s.ms.color,
-          title: s.ms.title,
+        series: milestoneSeries.map((s) => ({
+          color: s.milestone.color,
+          title: s.milestone.title,
           count: s.points[ptIdx]?.count ?? 0,
         })),
       });
@@ -203,16 +203,16 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
         x: wrapX, y: e.clientY - rect.top,
         svgX: toSvgX(ptIdx, singleSeries.points.length),
         date: ptDate, holidayName,
-        series: [{ color: singleSeries.ms.color, title: singleSeries.ms.title, count }],
+        series: [{ color: singleSeries.milestone.color, title: singleSeries.milestone.title, count }],
       });
     }
   };
 
   const hoverCardH = hover?.series ? 36 + hover.series.length * 24 : 68;
-  const hoverCardStyle = hover ? hoverCardPos(hover.x, hover.y, wrapRef.current?.offsetWidth ?? 800, hoverCardH + 40, hoverCardH) : {};
+  const hoverCardStyle = hover ? hoverCardPos(hover.x, hover.y, containerRef.current?.offsetWidth ?? 800, hoverCardH + 40, hoverCardH) : {};
 
   return (
-    <Box role="presentation" className="burndown-wrap" ref={wrapRef} style={{ position: "relative" }} onMouseMove={handleMouseMove} onMouseLeave={() => setHover(null)}>
+    <Box role="presentation" className="burndown-wrap" ref={containerRef} style={{ position: "relative" }} onMouseMove={handleMouseMove} onMouseLeave={() => setHover(null)}>
       {hover && (
         <Paper elevation={2} sx={{ ...HOVER_CARD_BASE_SX, ...hoverCardStyle }}>
           <Box sx={CARD_LABEL_SX}>{hover.date}</Box>
@@ -241,7 +241,7 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
           <tr>
             <th scope="col">Date</th>
             {isMulti
-              ? msSeries.map(({ ms }) => <th key={ms.number} scope="col">{ms.title} (open)</th>)
+              ? milestoneSeries.map(({ milestone }) => <th key={milestone.number} scope="col">{milestone.title} (open)</th>)
               : <th scope="col">Open issues</th>}
           </tr>
         </thead>
@@ -252,7 +252,7 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
               <tr key={t}>
                 <td>{fmtDate(new Date(t).toISOString())}</td>
                 {isMulti
-                  ? msSeries.map(({ ms, points }) => <td key={ms.number}>{points[i]?.count ?? 0}</td>)
+                  ? milestoneSeries.map(({ milestone, points }) => <td key={milestone.number}>{points[i]?.count ?? 0}</td>)
                   : <td>{singleSeries?.points[i]?.count ?? 0}</td>}
               </tr>
             );
@@ -265,11 +265,11 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
         style={{ width: "100%", height: "auto", display: "block" }}
         aria-hidden="true"
       >
-        {weekendBands.map((b, idx) => (
-          <rect key={idx} x={b.x} y={PADDING_TOP} width={b.w} height={CHART_HEIGHT} fill={chartColors.weekendBand} className="chart-weekend" />
+        {weekendBands.map((b, i) => (
+          <rect key={i} x={b.x} y={PADDING_TOP} width={b.w} height={CHART_HEIGHT} fill={chartColors.weekendBand} className="chart-weekend" />
         ))}
-        {bankHolidayBands.map((b, idx) => (
-          <rect key={idx} x={b.x} y={PADDING_TOP} width={b.w} height={CHART_HEIGHT} fill={chartColors.bankHoliday} className="chart-bank-holiday" />
+        {bankHolidayBands.map((b, i) => (
+          <rect key={i} x={b.x} y={PADDING_TOP} width={b.w} height={CHART_HEIGHT} fill={chartColors.bankHoliday} className="chart-bank-holiday" />
         ))}
 
         {yLabels.map((count) => (
@@ -279,15 +279,15 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
         ))}
 
         {/* Chart lines + fill area — same treatment for both single and multi */}
-        {msSeries.map(({ ms, points }) => {
+        {milestoneSeries.map(({ milestone, points }) => {
           const linePath = points
             .map(({ count }, i) => `${i === 0 ? "M" : "L"}${toSvgX(i, points.length).toFixed(1)},${toSvgY(count).toFixed(1)}`)
             .join(" ");
           const areaPath = `${linePath} L${(PADDING_LEFT + CHART_WIDTH).toFixed(1)},${(PADDING_TOP + CHART_HEIGHT).toFixed(1)} L${PADDING_LEFT.toFixed(1)},${(PADDING_TOP + CHART_HEIGHT).toFixed(1)} Z`;
           return (
-            <g key={ms.number}>
-              <path d={areaPath} fill={`${ms.color}22`} />
-              <path d={linePath} fill="none" stroke={ms.color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" opacity={0.9} />
+            <g key={milestone.number}>
+              <path d={areaPath} fill={`${milestone.color}22`} />
+              <path d={linePath} fill="none" stroke={milestone.color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" opacity={0.9} />
             </g>
           );
         })}
@@ -352,15 +352,15 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
         ))}
 
         <ChartLegend
-          items={msSeries.map(({ ms }) => ({ color: ms.color, label: ms.title }))}
+          items={milestoneSeries.map(({ milestone }) => ({ color: milestone.color, label: milestone.title }))}
           cx={PADDING_LEFT + CHART_WIDTH / 2}
           y={PADDING_TOP - 8}
           fill={chartColors.label}
         />
 
         {/* Due date markers */}
-        {placedMarkers.map((dm, idx) => (
-          <g key={idx}>
+        {placedMarkers.map((dm, i) => (
+          <g key={i}>
             <line
               x1={dm.lineX.toFixed(1)} y1={PADDING_TOP}
               x2={dm.lineX.toFixed(1)} y2={PADDING_TOP + CHART_HEIGHT}

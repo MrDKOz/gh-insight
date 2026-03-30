@@ -50,7 +50,7 @@ const CumulativeFlowInner: FunctionComponent<Props> = ({ items, highlightWeekend
   const openFill    = "rgba(209,213,218,0.35)";
   const closedLine  = chartColors.issue;
   const openedLine  = chartColors.axis;
-  const wrapRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<HoverState | null>(null);
   const bankHolidayMap = useMemo(() => buildBankHolidayMap(bankHolidays), [bankHolidays]);
 
@@ -103,10 +103,10 @@ const CumulativeFlowInner: FunctionComponent<Props> = ({ items, highlightWeekend
     const yStep   = calcYAxisStep(maxOpened);
     const yLabels = Array.from({ length: Math.floor(maxOpened / yStep) + 1 }, (_, i) => i * yStep);
 
-    const numX     = Math.min(8, pts.length);
-    const xIndices = calcXAxisIndices(pts.length, numX);
+    const numXLabels = Math.min(8, pts.length);
+    const xIndices = calcXAxisIndices(pts.length, numXLabels);
 
-    return { minTime, totalDays, pts, maxOpened, toSvgX, toSvgY, closedLinePts, closedAreaPath, openedLinePts, openBandPath, yStep, yLabels, numX, xIndices };
+    return { minTime, totalDays, pts, maxOpened, toSvgX, toSvgY, closedLinePts, closedAreaPath, openedLinePts, openBandPath, yStep, yLabels, numXLabels, xIndices };
   }, [filteredItems]);
 
   const weekendBands = useMemo(() => {
@@ -122,7 +122,7 @@ const CumulativeFlowInner: FunctionComponent<Props> = ({ items, highlightWeekend
   const onMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!chartData) { return; }
     const { minTime, totalDays } = chartData;
-    const rect  = e.currentTarget.getBoundingClientRect();
+    const rect = e.currentTarget.getBoundingClientRect();
     const wrapX = e.clientX - rect.left;
     const svgX  = (wrapX / rect.width) * SVG_WIDTH;
     if (svgX >= PADDING_LEFT && svgX <= PADDING_LEFT + CHART_WIDTH) {
@@ -142,21 +142,21 @@ const CumulativeFlowInner: FunctionComponent<Props> = ({ items, highlightWeekend
     return <Typography sx={CHART_EMPTY_STATE_SX}>No items to plot cumulative flow for.</Typography>;
   }
 
-  const { totalDays, pts, toSvgX, toSvgY, closedLinePts, closedAreaPath, openedLinePts, openBandPath, yLabels, numX, xIndices } = chartData;
+  const { totalDays, pts, toSvgX, toSvgY, closedLinePts, closedAreaPath, openedLinePts, openBandPath, yLabels, numXLabels, xIndices } = chartData;
 
   // hover.dayIdx is clamped to [0, pts.length-1] in onMouseMove
   const hovered = hover !== null ? pts[hover.dayIdx]! : null;
   const hoverSvgX = hover !== null ? toSvgX(hover.dayIdx) : 0;
 
   const cardStyle = hover
-    ? hoverCardPos(hover.wrapX, hover.wrapY, wrapRef.current?.offsetWidth ?? 800, 200, 90)
+    ? hoverCardPos(hover.wrapX, hover.wrapY, containerRef.current?.offsetWidth ?? 800, 200, 90)
     : {};
 
   return (
     <Box
       role="presentation"
       className="chart-wrap"
-      ref={wrapRef}
+      ref={containerRef}
       style={{ position: "relative" }}
       onMouseMove={onMouseMove}
       onMouseLeave={() => setHover(null)}
@@ -250,7 +250,7 @@ const CumulativeFlowInner: FunctionComponent<Props> = ({ items, highlightWeekend
 
         {xIndices.map((pi, li) => (
           <text key={pi} x={toSvgX(pi)} y={PADDING_TOP + CHART_HEIGHT + 20}
-            textAnchor={li === 0 ? "start" : li === numX - 1 ? "end" : "middle"}
+            textAnchor={li === 0 ? "start" : li === numXLabels - 1 ? "end" : "middle"}
             fill={chartColors.label} fontSize={10} fontFamily="inherit" className="chart-label">
             {fmtDate(new Date(pts[pi]?.t ?? 0).toISOString())}
           </text>
