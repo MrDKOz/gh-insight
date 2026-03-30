@@ -5,8 +5,9 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useMemo, useRef, useState } from "react";
+import { calcBankHolidayBands, calcWeekendBands } from "../utils/chartUtils";
 import { makeChartColors } from "../utils/colorUtils";
-import { MS, fmtDate } from "../utils/dateUtils";
+import { DAY_NAMES, MS, buildBankHolidayMap, fmtDate } from "../utils/dateUtils";
 import { FS, hoverCardPos, pluralize, upperBound } from "../utils/displayUtils";
 import { CARD_LABEL_SX, CHART_EMPTY_STATE_SX, DOT_SX, HOVER_CARD_BASE_SX, STAT_ROW_SX } from "../utils/sxTokens";
 import { ChartLegend } from "./ChartLegend";
@@ -40,8 +41,6 @@ type HoverInfo = {
   // multi mode — all milestones at this date
   series?: Array<{ color: string; title: string; count: number }>;
 };
-
-const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, bankHolidays, colorblindMode, includePRs }) => {
   const COL = makeChartColors(colorblindMode);
@@ -155,30 +154,15 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
   // ── Weekend bands ─────────────────────────────────────────────────────────────
   const weekendBands = useMemo(() => {
     if (!highlightWeekends || issues.length === 0) {return [];}
-    const bands: Array<{ x: string; w: string }> = [];
-    for (let i = 0; i <= totalDays; i++) {
-      const day = new Date(minTime + i * MS);
-      if (day.getUTCDay() !== 6) {continue;}
-      const x = L + (i / totalDays) * CW;
-      const w = Math.min((2 / totalDays) * CW, CW - (x - L));
-      bands.push({ x: x.toFixed(1), w: w.toFixed(1) });
-    }
-    return bands;
+    return calcWeekendBands(minTime, totalDays, L, CW);
   }, [highlightWeekends, totalDays, minTime, issues.length]);
 
   // ── Bank holiday bands ────────────────────────────────────────────────────────
-  const bankHolidayMap = useMemo(() => new Map(bankHolidays.map((h) => [h.date, h.name])), [bankHolidays]);
+  const bankHolidayMap = useMemo(() => buildBankHolidayMap(bankHolidays), [bankHolidays]);
 
   const bankHolidayBands = useMemo(() => {
     if (bankHolidays.length === 0 || issues.length === 0) {return [];}
-    const dayWidth = (1 / totalDays) * CW;
-    return bankHolidays.flatMap(({ date }) => {
-      const t = new Date(date).getTime();
-      if (t < minTime || t > minTime + totalDays * MS) {return [];}
-      const i = (t - minTime) / MS;
-      const x = L + (i / totalDays) * CW;
-      return [{ x: x.toFixed(1), w: Math.min(dayWidth, CW - (x - L)).toFixed(1) }];
-    });
+    return calcBankHolidayBands(bankHolidays, minTime, totalDays, L, CW);
   }, [bankHolidays, totalDays, minTime, issues.length]);
 
   if (issues.length === 0) {

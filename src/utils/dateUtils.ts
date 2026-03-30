@@ -2,6 +2,9 @@ import type { ForecastResult } from "../types/AppTypes";
 import type { TimelineItem } from "../types/GitHubTypes";
 import { upperBound } from "./displayUtils";
 
+/** Short day-of-week names, indexed by `Date.getUTCDay()` (0 = Sun). */
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+
 /** Milliseconds in one day. */
 const MS = 86_400_000;
 /** Milliseconds in one hour. */
@@ -122,4 +125,8 @@ const forecastCompletion = (
   return { projectedDate: new Date(projectedT), method, openCount, closedCount, totalDays };
 };
 
-export { MS, MS_HOUR, STALE_MS, durationDays, fmtDate, fmtDateTime, forecastCompletion, snapToHour };
+/** Builds a Map from ISO date string (YYYY-MM-DD) to holiday name. */
+const buildBankHolidayMap = (bankHolidays: ReadonlyArray<{ date: string; name: string }>): Map<string, string> =>
+  new Map(bankHolidays.map((h) => [h.date, h.name]));
+
+export { DAY_NAMES, MS, MS_HOUR, STALE_MS, buildBankHolidayMap, durationDays, fmtDate, fmtDateTime, forecastCompletion, snapToHour };

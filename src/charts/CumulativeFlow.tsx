@@ -5,8 +5,9 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { calcBankHolidayBands, calcWeekendBands, calcXAxisIndices, calcYAxisStep } from "../utils/chartUtils";
 import { makeChartColors } from "../utils/colorUtils";
-import { MS, fmtDate } from "../utils/dateUtils";
+import { DAY_NAMES, MS, buildBankHolidayMap, fmtDate } from "../utils/dateUtils";
 import { hoverCardPos, itemEndDate, upperBound } from "../utils/displayUtils";
 import { CARD_LABEL_SX, CHART_EMPTY_STATE_SX, DOT_SX, HOVER_CARD_BASE_SX, STAT_ROW_SX } from "../utils/sxTokens";
 import { ChartLegend } from "./ChartLegend";
@@ -37,8 +38,6 @@ type HoverState = {
   holidayName?: string | undefined;
 };
 
-const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
 const CumulativeFlowInner: FunctionComponent<Props> = ({ items, highlightWeekends, bankHolidays, colorblindMode, includePRs }) => {
   const COL = makeChartColors(colorblindMode);
   // chart-specific derived colours not in the shared factory
@@ -48,7 +47,7 @@ const CumulativeFlowInner: FunctionComponent<Props> = ({ items, highlightWeekend
   const openedLine  = COL.axis;
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<HoverState | null>(null);
-  const bankHolidayMap = useMemo(() => new Map(bankHolidays.map((h) => [h.date, h.name])), [bankHolidays]);
+  const bankHolidayMap = useMemo(() => buildBankHolidayMap(bankHolidays), [bankHolidays]);
 
   const filteredItems = useMemo(
     () => includePRs ? items : items.filter((i) => i.type === "issue"),
@@ -96,42 +95,23 @@ const CumulativeFlowInner: FunctionComponent<Props> = ({ items, highlightWeekend
       .join(" ");
     const openBandPath = `${openedLinePts} ${closedReversed} Z`;
 
-    const yStep   = maxOpened <= 12 ? 1 : maxOpened <= 30 ? 2 : Math.ceil(maxOpened / 8);
+    const yStep   = calcYAxisStep(maxOpened);
     const yLabels = Array.from({ length: Math.floor(maxOpened / yStep) + 1 }, (_, i) => i * yStep);
 
     const numX     = Math.min(8, pts.length);
-    const xIndices = Array.from({ length: numX }, (_, i) =>
-      Math.round((i / Math.max(numX - 1, 1)) * (pts.length - 1)),
-    );
+    const xIndices = calcXAxisIndices(pts.length, numX);
 
     return { minTime, totalDays, pts, maxOpened, pxFn, pyFn, closedLinePts, closedAreaPath, openedLinePts, openBandPath, yStep, yLabels, numX, xIndices };
   }, [filteredItems]);
 
   const weekendBands = useMemo(() => {
     if (!highlightWeekends || !chartData) { return []; }
-    const { minTime, totalDays } = chartData;
-    const bands: { x: string; w: string }[] = [];
-    for (let i = 0; i <= totalDays; i++) {
-      const day = new Date(minTime + i * MS);
-      if (day.getUTCDay() !== 6) { continue; }
-      const x = L + (i / totalDays) * CW;
-      const w = Math.min((2 / totalDays) * CW, CW - (x - L));
-      bands.push({ x: x.toFixed(1), w: w.toFixed(1) });
-    }
-    return bands;
+    return calcWeekendBands(chartData.minTime, chartData.totalDays, L, CW);
   }, [highlightWeekends, chartData]);
 
   const bankHolidayBands = useMemo(() => {
     if (!chartData || bankHolidays.length === 0) { return []; }
-    const { minTime, totalDays } = chartData;
-    const dayWidth = (1 / totalDays) * CW;
-    return bankHolidays.flatMap(({ date }) => {
-      const t = new Date(date).getTime();
-      if (t < minTime || t > minTime + totalDays * MS) { return []; }
-      const idx = (t - minTime) / MS;
-      const x   = L + (idx / totalDays) * CW;
-      return [{ x: x.toFixed(1), w: Math.min(dayWidth, CW - (x - L)).toFixed(1) }];
-    });
+    return calcBankHolidayBands(bankHolidays, chartData.minTime, chartData.totalDays, L, CW);
   }, [chartData, bankHolidays]);
 
   const onMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {

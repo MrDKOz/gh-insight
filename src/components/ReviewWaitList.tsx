@@ -17,7 +17,7 @@ import { memo, useMemo, useState } from "react";
 import { useColumnResize } from "../hooks/useColumnResize";
 import { COLORS, COLORS_CB, makeStatusChipSx } from "../utils/colorUtils";
 import { fmtDate } from "../utils/dateUtils";
-import { FS, safeUrl } from "../utils/displayUtils";
+import { FS, buildMilestoneMap, safeUrl } from "../utils/displayUtils";
 import { buildRows, sortRows } from "../utils/reviewWaitUtils";
 import { RESIZE_HANDLE_SX } from "../utils/sxTokens";
 import { AuthorWithAssignees } from "./AuthorWithAssignees";
@@ -71,7 +71,7 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   const isMulti = milestones.length > 1;
-  const milestoneMap = useMemo(() => new Map(milestones.map((m) => [m.number, m])), [milestones]);
+  const milestoneMap = useMemo(() => buildMilestoneMap(milestones), [milestones]);
 
   const barWait = colorblindMode ? BAR_WAIT_CB : BAR_WAIT;
   const barDone = colorblindMode ? BAR_DONE_CB : BAR_DONE;

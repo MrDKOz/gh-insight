@@ -15,7 +15,7 @@ import { memo, useMemo, useState } from "react";
 import { useColumnResize } from "../hooks/useColumnResize";
 import { COLORS, COLORS_CB, makeStatusChipSx } from "../utils/colorUtils";
 import { MS, fmtDate } from "../utils/dateUtils";
-import { FS, itemEndDate, itemStatus, pluralize, safeUrl } from "../utils/displayUtils";
+import { FS, buildMilestoneMap, itemEndDate, itemStatus, pluralize, safeUrl } from "../utils/displayUtils";
 import { RESIZE_HANDLE_SX } from "../utils/sxTokens";
 import { AuthorWithAssignees } from "./AuthorWithAssignees";
 import { LabelBadge } from "./LabelBadge";
@@ -67,7 +67,7 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
   const isMulti = milestones.length > 1;
-  const milestoneMap = useMemo(() => new Map(milestones.map((m) => [m.number, m])), [milestones]);
+  const milestoneMap = useMemo(() => buildMilestoneMap(milestones), [milestones]);
 
   const defaultWidths = isMulti ? [...DEFAULTS_MULTI] : [...DEFAULTS_SINGLE];
   const { widths: colWidths, startResize } = useColumnResize(defaultWidths);

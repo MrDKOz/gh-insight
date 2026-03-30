@@ -5,8 +5,9 @@ import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { AuthorTag } from "../components/AuthorTag";
+import { calcXAxisIndices, calcYAxisStep } from "../utils/chartUtils";
 import { makeChartColors } from "../utils/colorUtils";
-import { fmtDate } from "../utils/dateUtils";
+import { DAY_NAMES, fmtDate } from "../utils/dateUtils";
 import { FS, hoverCardPos, itemEndDate, pluralize } from "../utils/displayUtils";
 import { CARD_LABEL_SX, CHART_EMPTY_STATE_SX, DOT_SX, HOVER_CARD_BASE_SX, STAT_ROW_SX } from "../utils/sxTokens";
 import { ChartLegend } from "./ChartLegend";
@@ -19,7 +20,6 @@ type Props = {
 };
 
 const DAY_MS = 86_400_000;
-const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const weekStart = (ms: number): number => {
   const d = new Date(ms);
@@ -136,10 +136,10 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
     const slotW  = CW / weeks.length;
     const barW   = Math.min(Math.max(slotW * 0.72, 6), 80);
     const barX   = (i: number) => L + i * slotW + (slotW - barW) / 2;
-    const yStep   = maxTotal <= 12 ? 1 : maxTotal <= 30 ? 2 : Math.ceil(maxTotal / 8);
+    const yStep   = calcYAxisStep(maxTotal);
     const yLabels = Array.from({ length: Math.floor(maxTotal / yStep) + 1 }, (_, i) => i * yStep);
     const numX    = Math.min(8, weeks.length);
-    const xIndices = Array.from({ length: numX }, (_, i) => Math.round((i / Math.max(numX - 1, 1)) * (weeks.length - 1)));
+    const xIndices = calcXAxisIndices(weeks.length, numX);
     const pyFn = (count: number) => T + (1 - count / maxTotal) * CH;
     return { maxTotal, slotW, barW, barX, yLabels, numX, xIndices, pyFn };
   }, [isMulti, weeks]);
@@ -153,10 +153,10 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
     const slotW  = CW / allWeekStarts.length;
     const msBarW = Math.max(Math.min((slotW * 0.8) / milestones.length, 40), 4);
     const msBarX = (wi: number, mi: number) => L + wi * slotW + (slotW - msBarW * milestones.length) / 2 + mi * msBarW;
-    const yStep   = maxTotal <= 12 ? 1 : maxTotal <= 30 ? 2 : Math.ceil(maxTotal / 8);
+    const yStep   = calcYAxisStep(maxTotal);
     const yLabels = Array.from({ length: Math.floor(maxTotal / yStep) + 1 }, (_, i) => i * yStep);
     const numX    = Math.min(8, allWeekStarts.length);
-    const xIndices = Array.from({ length: numX }, (_, i) => Math.round((i / Math.max(numX - 1, 1)) * (allWeekStarts.length - 1)));
+    const xIndices = calcXAxisIndices(allWeekStarts.length, numX);
     const pyFn = (count: number) => T + (1 - count / maxTotal) * CH;
     return { maxTotal, slotW, msBarW, msBarX, yLabels, numX, xIndices, pyFn };
   }, [isMulti, allWeekStarts, milestones, msWeekMap]);

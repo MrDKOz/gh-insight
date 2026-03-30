@@ -1,4 +1,4 @@
-import type { TimelineItem } from "../types/GitHubTypes";
+import type { MilestoneMeta, TimelineItem } from "../types/GitHubTypes";
 
 /**
  * App-wide font-size scale. Use these named tokens everywhere instead of raw
@@ -81,4 +81,8 @@ const pluralize = (count: number, word: string): string =>
 const itemEndDate = (item: TimelineItem): string | null =>
   item.type === "issue" ? item.closedAt : (item.mergedAt ?? item.closedAt);
 
-export { FS, assigneesOtherThanAuthor, hoverCardPos, itemEndDate, itemStatus, pluralize, safeUrl, upperBound };
+/** Builds a Map from milestone number to MilestoneMeta. */
+const buildMilestoneMap = (milestones: MilestoneMeta[]): Map<number, MilestoneMeta> =>
+  new Map(milestones.map((m) => [m.number, m]));
+
+export { FS, assigneesOtherThanAuthor, buildMilestoneMap, hoverCardPos, itemEndDate, itemStatus, pluralize, safeUrl, upperBound };

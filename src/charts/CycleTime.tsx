@@ -6,12 +6,10 @@ import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { ItemHoverCard } from "../components/ItemHoverCard";
 import { makeChartColors } from "../utils/colorUtils";
-import { MS, fmtDate, fmtDateTime } from "../utils/dateUtils";
+import { DAY_NAMES, MS, fmtDate, fmtDateTime } from "../utils/dateUtils";
 import { hoverCardPos, itemEndDate, pluralize } from "../utils/displayUtils";
 import { CHART_EMPTY_STATE_SX } from "../utils/sxTokens";
 import { ChartLegend } from "./ChartLegend";
-
-const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 type Props = {
   items: TimelineItem[];

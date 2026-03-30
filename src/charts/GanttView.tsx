@@ -8,7 +8,7 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffec
 import { AuthorCard, AuthorTag } from "../components/AuthorTag";
 import { ItemHoverCard, fixedItemCardPos } from "../components/ItemHoverCard";
 import { COLORS, COLORS_CB } from "../utils/colorUtils";
-import { MS, MS_HOUR, STALE_MS, durationDays, fmtDate, fmtDateTime, snapToHour } from "../utils/dateUtils";
+import { DAY_NAMES, MS, MS_HOUR, STALE_MS, buildBankHolidayMap, durationDays, fmtDate, fmtDateTime, snapToHour } from "../utils/dateUtils";
 import { FS, itemEndDate, safeUrl } from "../utils/displayUtils";
 import { GanttLegend } from "./GanttLegend";
 
@@ -210,7 +210,6 @@ type Props = {
 };
 
 const ROW_HEIGHT = 31;
-const DAY_NAMES  = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 type CursorInfo = { snappedMs: number; clientX: number; clientY: number };
 type BarHover   = { clientX: number; clientY: number; item: TimelineItem; endDate: string | null; isOpen: boolean; durationText: string; dotColor: string; statusWord: string };
@@ -378,10 +377,7 @@ const GanttView = forwardRef<GanttHandle, Props>(({
     return bands;
   }, [highlightWeekends, minTime, totalMs]);
 
-  const bankHolidayMap = useMemo(
-    () => new Map(bankHolidays.map((h) => [h.date, h.name])),
-    [bankHolidays],
-  );
+  const bankHolidayMap = useMemo(() => buildBankHolidayMap(bankHolidays), [bankHolidays]);
 
   const bankHolidayBands = useMemo(() => {
     if (bankHolidays.length === 0) { return []; }
