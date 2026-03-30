@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, session } from "electron";
-import { autoUpdater } from "electron-updater";
+import updaterPkg from "electron-updater";
+const { autoUpdater } = updaterPkg;
 import { execFile } from "child_process";
 import { promisify } from "util";
 import { fileURLToPath } from "url";
