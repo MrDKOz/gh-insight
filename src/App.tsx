@@ -1,12 +1,12 @@
 import type { AppPhase, View } from "./types/AppTypes";
 import type { Repo, UserProfile } from "./types/GitHubTypes";
-import type { ChangeEvent, FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { fetchUserProfile, fetchUserRepos } from "./api/github";
 import { AppHeader } from "./components/AppHeader";
 import { ContextBar } from "./components/ContextBar";
@@ -18,12 +18,12 @@ import { SplashScreen } from "./components/SplashScreen";
 import { DEMO_REPOS, DEMO_USER } from "./data/demo";
 import { LS_TOKEN, useAuth } from "./hooks/useAuth";
 import { useBankHolidays } from "./hooks/useBankHolidays";
+import { useConfigImportExport } from "./hooks/useConfigImportExport";
 import { useDarkMode } from "./hooks/useDarkMode";
 import { useMilestones } from "./hooks/useMilestones";
 import { useNewVersionAvailable } from "./hooks/useNewVersionAvailable";
 import { useSettings } from "./hooks/useSettings";
 import { muiDarkTheme, muiLightTheme } from "./theme";
-import { parseImportConfig } from "./utils/configImport";
 import { decryptToken } from "./utils/tokenCrypto";
 import { readUrlParams, setViewParam, syncUrlParams } from "./utils/urlUtils";
 
@@ -43,9 +43,7 @@ const App: FunctionComponent = () => {
 
   const [activeRepo, setActiveRepo] = useState<Repo | null>(null);
   const [settingsAnchor, setSettingsAnchor] = useState<HTMLElement | null>(null);
-  const [configError, setConfigError]       = useState<string | null>(null);
   const [view, setView]                     = useState<View>(() => readViewFiltersFromUrl().view);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const milestones = useMilestones({
     activeRepo,
@@ -61,37 +59,15 @@ const App: FunctionComponent = () => {
 
   // ── Auth orchestration ────────────────────────────────────────────────────
 
-  // Auto-login from stored token, or auto-start demo from URL param
-  useEffect(() => {
-    if (INITIAL_URL_PARAMS.demo) {
-      handleDemo();
-      return;
-    }
-    const stored = localStorage.getItem(LS_TOKEN);
-    if (!stored) { auth.setPhase("splash"); return; }
-    decryptToken(stored)
-      .then(async (decrypted) => {
-        const [profile, repoList] = await Promise.all([
-          fetchUserProfile(decrypted),
-          fetchUserRepos(decrypted),
-        ]);
-        auth.saveToken(decrypted);
-        transitionToDashboard(decrypted, profile, repoList);
-      })
-      .catch((err: unknown) => {
-        console.error("Failed to decrypt stored token; session cleared.", err);
-        localStorage.removeItem(LS_TOKEN);
-        auth.setPhase("splash");
-      });
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: runs once on mount
-  }, []);
+  const { setToken, setUserProfile, setRepos, setPhase, saveToken, disconnect } = auth;
+  const { loadDemoForRepo, resetMilestones } = milestones;
 
   const transitionToDashboard = useCallback((
     rawToken: string, profile: UserProfile, repoList: Repo[],
   ) => {
-    auth.setToken(rawToken);
-    auth.setUserProfile(profile);
-    auth.setRepos(repoList);
+    setToken(rawToken);
+    setUserProfile(profile);
+    setRepos(repoList);
     const { owner, repo } = INITIAL_URL_PARAMS;
     const autoRepo = owner && repo
       ? (repoList.find((r) =>
@@ -100,11 +76,8 @@ const App: FunctionComponent = () => {
         ) ?? null)
       : null;
     setActiveRepo(autoRepo);
-    auth.setPhase("dashboard");
-  }, [auth]);
-
-  const { setUserProfile, setRepos, setPhase, disconnect } = auth;
-  const { loadDemoForRepo, resetMilestones } = milestones;
+    setPhase("dashboard");
+  }, [setToken, setUserProfile, setRepos, setPhase]);
 
   const handleDemo = useCallback(() => {
     const firstRepo = DEMO_REPOS[0] ?? null;
@@ -114,6 +87,30 @@ const App: FunctionComponent = () => {
     setActiveRepo(firstRepo);
     if (firstRepo) { loadDemoForRepo(firstRepo, INITIAL_URL_PARAMS.milestoneNums); }
   }, [setUserProfile, setRepos, setPhase, loadDemoForRepo]);
+
+  // Auto-login from stored token, or auto-start demo from URL param
+  useEffect(() => {
+    if (INITIAL_URL_PARAMS.demo) {
+      handleDemo();
+      return;
+    }
+    const stored = localStorage.getItem(LS_TOKEN);
+    if (!stored) { setPhase("splash"); return; }
+    decryptToken(stored)
+      .then(async (decrypted) => {
+        const [profile, repoList] = await Promise.all([
+          fetchUserProfile(decrypted),
+          fetchUserRepos(decrypted),
+        ]);
+        saveToken(decrypted);
+        transitionToDashboard(decrypted, profile, repoList);
+      })
+      .catch((err: unknown) => {
+        console.error("Failed to decrypt stored token; session cleared.", err);
+        localStorage.removeItem(LS_TOKEN);
+        setPhase("splash");
+      });
+  }, [handleDemo, saveToken, setPhase, transitionToDashboard]);
 
   const handleDisconnect = useCallback(() => {
     disconnect();
@@ -154,43 +151,16 @@ const App: FunctionComponent = () => {
 
   // ── Config import / export ────────────────────────────────────────────────
 
-  const handleExportConfig = useCallback(() => {
-    const config = { version: 1, owner: activeRepo?.owner ?? "", repo: activeRepo?.name ?? "", dark, settings };
-    const blob = new Blob([JSON.stringify(config, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    try {
-      const a = document.createElement("a");
-      a.href = url; a.download = "github-work-visualiser-config.json";
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    } finally {
-      URL.revokeObjectURL(url);
-    }
-  }, [activeRepo, dark, settings]);
-
-  const handleImportConfig = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) { return; }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      if (typeof ev.target?.result !== "string") { setConfigError("Config import failed: file could not be read as text"); return; }
-      let raw: unknown;
-      try { raw = JSON.parse(ev.target.result); } catch { setConfigError("Config import failed: invalid file"); return; }
-      const config = parseImportConfig(raw);
-      if (typeof config === "string") { setConfigError(`Config import failed: ${config}`); return; }
-      if (config.dark !== undefined)  { applyDark(config.dark); }
-      if (config.token)               { auth.setToken(config.token); auth.saveToken(config.token); }
-      if (config.settings) {
-        const { highlightWeekends, colorblindMode, highlightBankHolidays, bankHolidayRegions } = config.settings;
-        if (highlightWeekends     !== undefined) { updateSetting("highlightWeekends",     highlightWeekends); }
-        if (colorblindMode        !== undefined) { updateSetting("colorblindMode",        colorblindMode); }
-        if (highlightBankHolidays !== undefined) { updateSetting("highlightBankHolidays", highlightBankHolidays); }
-        if (bankHolidayRegions    !== undefined) { updateSetting("bankHolidayRegions",    bankHolidayRegions); }
-      }
-      setSettingsAnchor(null);
-    };
-    reader.readAsText(file);
-  }, [applyDark, auth, updateSetting]);
+  const { configError, clearConfigError, fileInputRef, handleExportConfig, handleImportConfig } = useConfigImportExport({
+    activeRepo,
+    dark,
+    settings,
+    applyDark,
+    setToken,
+    saveToken,
+    updateSetting,
+    onImportSuccess: useCallback(() => setSettingsAnchor(null), []),
+  });
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -266,7 +236,7 @@ const App: FunctionComponent = () => {
                   <Alert severity="warning" onClose={auth.clearTokenError}>{auth.tokenError}</Alert>
                 )}
                 {configError && (
-                  <Alert severity="error" onClose={() => setConfigError(null)}>{configError}</Alert>
+                  <Alert severity="error" onClose={clearConfigError}>{configError}</Alert>
                 )}
                 {milestones.state.error && <Alert severity="error">{milestones.state.error}</Alert>}
                 {milestones.state.emptyMilestoneNums.length > 0 && (
