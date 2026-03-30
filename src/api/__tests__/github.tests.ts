@@ -23,6 +23,7 @@ const RAW_MILESTONE = {
   state: "open",
   open_issues: 2,
   closed_issues: 8,
+  due_on: null,
 };
 
 const GQL_PR_NODE = {

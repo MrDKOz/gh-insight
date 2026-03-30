@@ -95,14 +95,15 @@ describe("useSettings — initial state", () => {
 });
 
 describe("useSettings — bankHolidayRegions", () => {
-  it("filters out invalid region values from the array", () => {
+  it("falls back to default when the array contains an invalid region value", () => {
     localStorage.setItem(LS_KEY, JSON.stringify({
       bankHolidayRegions: ["england-and-wales", "atlantis", "US"],
     }));
 
     const { result } = renderHook(() => useSettings());
 
-    expect(result.current.settings.bankHolidayRegions).toEqual(["england-and-wales", "US"]);
+    // The codec rejects the entire array if any element is invalid, so we get the default.
+    expect(result.current.settings.bankHolidayRegions).toEqual(["england-and-wales"]);
   });
 
   it("falls back to default when array contains only invalid regions", () => {

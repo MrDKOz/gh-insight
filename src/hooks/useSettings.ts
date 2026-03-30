@@ -1,38 +1,51 @@
-import type { Region } from "../api/bankHolidayApi";
 import type { Settings } from "../types/SettingsTypes";
+import * as t from "io-ts";
 import { useCallback, useState } from "react";
 import { DEFAULT_SETTINGS } from "../types/SettingsTypes";
+import { decodeSafe } from "../utils/iotsUtils";
 
-const VALID_REGIONS: Region[] = ["england-and-wales", "scotland", "northern-ireland", "US"];
+const RegionCodec = t.union([
+  t.literal("england-and-wales"),
+  t.literal("scotland"),
+  t.literal("northern-ireland"),
+  t.literal("US"),
+]);
+
+// t.partial makes every field optional so a partially-written or
+// partially-migrated entry still decodes — unknown keys are simply absent.
+// bankHolidayRegion (singular) is the legacy single-value field; it is
+// migrated to bankHolidayRegions (array) in loadSettings below.
+const StoredSettingsCodec = t.partial({
+  highlightWeekends:     t.boolean,
+  colorblindMode:        t.boolean,
+  highlightBankHolidays: t.boolean,
+  bankHolidayRegions:    t.array(RegionCodec),
+  bankHolidayRegion:     RegionCodec,
+});
 
 const LS_KEY = "gmt_settings";
 
+const loadSettings = (): Settings => {
+  try {
+    const stored = localStorage.getItem(LS_KEY);
+    if (!stored) { return DEFAULT_SETTINGS; }
+    const p = decodeSafe(JSON.parse(stored) as unknown, StoredSettingsCodec);
+    if (!p) { return DEFAULT_SETTINGS; }
+    // Prefer the canonical array field; fall back to the legacy singular field
+    const regions = p.bankHolidayRegions ?? (p.bankHolidayRegion ? [p.bankHolidayRegion] : null);
+    return {
+      highlightWeekends:     p.highlightWeekends     ?? DEFAULT_SETTINGS.highlightWeekends,
+      colorblindMode:        p.colorblindMode        ?? DEFAULT_SETTINGS.colorblindMode,
+      highlightBankHolidays: p.highlightBankHolidays ?? DEFAULT_SETTINGS.highlightBankHolidays,
+      bankHolidayRegions: regions && regions.length > 0 ? regions : DEFAULT_SETTINGS.bankHolidayRegions,
+    };
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+};
+
 const useSettings = (): { settings: Settings; updateSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => void } => {
-  const [settings, setSettings] = useState<Settings>(() => {
-    try {
-      const stored = localStorage.getItem(LS_KEY);
-      if (!stored) {return DEFAULT_SETTINGS;}
-      const parsed: unknown = JSON.parse(stored);
-      if (typeof parsed !== "object" || parsed === null) {return DEFAULT_SETTINGS;}
-      const p = parsed as Record<string, unknown>;
-      // Validate each field individually so a corrupted or partially-migrated
-      // localStorage entry falls back to the default for that field only.
-      // Also migrate old single-value bankHolidayRegion → bankHolidayRegions array.
-      const rawRegions = Array.isArray(p.bankHolidayRegions)
-        ? (p.bankHolidayRegions as unknown[]).filter((v): v is Region => VALID_REGIONS.includes(v as Region))
-        : VALID_REGIONS.includes(p.bankHolidayRegion as Region)
-          ? [p.bankHolidayRegion as Region]   // migrate old single-value setting
-          : DEFAULT_SETTINGS.bankHolidayRegions;
-      return {
-        highlightWeekends:     typeof p.highlightWeekends     === "boolean" ? p.highlightWeekends     : DEFAULT_SETTINGS.highlightWeekends,
-        colorblindMode:        typeof p.colorblindMode        === "boolean" ? p.colorblindMode        : DEFAULT_SETTINGS.colorblindMode,
-        highlightBankHolidays: typeof p.highlightBankHolidays === "boolean" ? p.highlightBankHolidays : DEFAULT_SETTINGS.highlightBankHolidays,
-        bankHolidayRegions: rawRegions.length > 0 ? rawRegions : DEFAULT_SETTINGS.bankHolidayRegions,
-      };
-    } catch {
-      return DEFAULT_SETTINGS;
-    }
-  });
+  const [settings, setSettings] = useState<Settings>(loadSettings);
 
   const updateSetting = useCallback(<K extends keyof Settings>(key: K, value: Settings[K]) => {
     setSettings((prev) => {

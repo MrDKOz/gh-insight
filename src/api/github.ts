@@ -1,16 +1,20 @@
 import type { Label, Milestone, Repo, TimelineItem, UserProfile } from "../types/GitHubTypes";
+import * as t from "io-ts";
+import { decodeOrThrow, decodeSafe } from "../utils/iotsUtils";
 
 const GH_API = "https://api.github.com";
 const GH_GRAPHQL = "https://api.github.com/graphql";
 
-type RawMilestone = {
-  number: number;
-  title: string;
-  state: "open" | "closed";
-  open_issues: number;
-  closed_issues: number;
-  due_on: string | null;
-};
+const RawMilestoneCodec = t.type({
+  number:        t.number,
+  title:         t.string,
+  state:         t.union([t.literal("open"), t.literal("closed")]),
+  open_issues:   t.number,
+  closed_issues: t.number,
+  due_on:        t.union([t.string, t.null]),
+});
+
+type RawMilestone = t.TypeOf<typeof RawMilestoneCodec>;
 
 const mapMilestone = (raw: RawMilestone): Milestone => ({
   number: raw.number,
@@ -27,12 +31,14 @@ const authHeaders = (token: string): Record<string, string> => ({
   "X-GitHub-Api-Version": "2022-11-28",
 });
 
+const GHErrorBodyCodec = t.partial({ message: t.string });
+
 const checkResponse = async (res: Response): Promise<void> => {
   if (!res.ok) {
     let ghMessage = "";
     try {
-      const body = (await res.json()) as { message?: string };
-      if (body.message) {ghMessage = body.message;}
+      const body = decodeSafe(await res.json() as unknown, GHErrorBodyCodec);
+      if (body?.message) {ghMessage = body.message;}
     } catch {
       // ignore
     }
@@ -63,7 +69,7 @@ const fetchMilestones = async (owner: string, repo: string, token: string, signa
       { headers: authHeaders(token), signal: signal ?? null },
     );
     await checkResponse(res);
-    const data = (await res.json()) as RawMilestone[];
+    const data = decodeOrThrow(await res.json() as unknown, t.array(RawMilestoneCodec));
     results.push(...data.map(mapMilestone));
     if (data.length < 100) {break;}
     page++;
@@ -235,6 +241,11 @@ const mapLabels = (nodes: GQLLabelNode[]): Label[] =>
     color: HEX_COLOR_RE.test(n.color) ? `#${n.color}` : "#cccccc",
   }));
 
+const GQLEnvelopeCodec = t.partial({
+  data:   t.unknown,
+  errors: t.array(t.type({ message: t.string })),
+});
+
 const gqlFetch = async <T>(
   query: string,
   variables: Record<string, unknown>,
@@ -248,10 +259,10 @@ const gqlFetch = async <T>(
     signal: signal ?? null,
   });
   await checkResponse(res);
-  const json = (await res.json()) as { data?: T | null; errors?: Array<{ message: string }> };
-  if (json.errors && json.errors.length > 0) {throw new Error(json.errors[0]?.message ?? "GraphQL error");}
-  if (json.data == null) {throw new Error("GraphQL response contained no data");}
-  return json.data;
+  const envelope = decodeOrThrow(await res.json() as unknown, GQLEnvelopeCodec);
+  if (envelope.errors && envelope.errors.length > 0) {throw new Error(envelope.errors[0]?.message ?? "GraphQL error");}
+  if (envelope.data == null) {throw new Error("GraphQL response contained no data");}
+  return envelope.data as T;
 };
 
 const fetchMilestoneItems = async (
@@ -389,21 +400,27 @@ const fetchMilestoneItems = async (
   return items;
 };
 
+const UserProfileResponseCodec = t.type({
+  login:      t.string,
+  name:       t.union([t.string, t.null]),
+  avatar_url: t.string,
+});
+
 const fetchUserProfile = async (token: string): Promise<UserProfile> => {
   const res = await fetch(`${GH_API}/user`, { headers: authHeaders(token) });
   await checkResponse(res);
-  const data = (await res.json()) as { login: string; name: string | null; avatar_url: string };
+  const data = decodeOrThrow(await res.json() as unknown, UserProfileResponseCodec);
   return { login: data.login, name: data.name, avatarUrl: data.avatar_url };
 };
 
-type RawRepo = {
-  id: number;
-  owner: { login: string };
-  name: string;
-  full_name: string;
-  private: boolean;
-  description: string | null;
-};
+const RawRepoCodec = t.type({
+  id:          t.number,
+  owner:       t.type({ login: t.string }),
+  name:        t.string,
+  full_name:   t.string,
+  private:     t.boolean,
+  description: t.union([t.string, t.null]),
+});
 
 const fetchUserRepos = async (token: string, signal?: AbortSignal): Promise<Repo[]> => {
   const results: Repo[] = [];
@@ -414,7 +431,7 @@ const fetchUserRepos = async (token: string, signal?: AbortSignal): Promise<Repo
       { headers: authHeaders(token), signal: signal ?? null },
     );
     await checkResponse(res);
-    const data = (await res.json()) as RawRepo[];
+    const data = decodeOrThrow(await res.json() as unknown, t.array(RawRepoCodec));
     results.push(...data.map((r) => ({
       id: r.id,
       owner: r.owner.login,
