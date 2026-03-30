@@ -81,12 +81,12 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
         !endDate ? "open" : item.type === "issue" ? "issues" : item.mergedAt ? "merged" : "closed";
 
       for (const login of logins) {
-        const r = ensure(login);
-        if (!endDate)               { r.open++;   }
-        else if (item.type === "issue") { r.issues++; }
-        else if (item.mergedAt)     { r.merged++; }
-        else                        { r.closed++; }
-        r.total++;
+        const row = ensure(login);
+        if (!endDate)               { row.open++;   }
+        else if (item.type === "issue") { row.issues++; }
+        else if (item.mergedAt)     { row.merged++; }
+        else                        { row.closed++; }
+        row.total++;
 
         if (endDate) {
           const key = `${login}:${seg}`;
@@ -270,14 +270,14 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
               {segments.map(({ seg, count }) => {
                 if (count === 0) {return null;}
                 const x = getBarX(offset);
-                const w = getBarWidth(count);
+                const barWidth = getBarWidth(count);
                 offset += count;
                 return (
                   <rect
                     key={seg}
                     x={x.toFixed(1)}
                     y={cy.toFixed(1)}
-                    width={w.toFixed(1)}
+                    width={barWidth.toFixed(1)}
                     height={BAR_H}
                     fill={segColors[seg]}
                     opacity={0.88}

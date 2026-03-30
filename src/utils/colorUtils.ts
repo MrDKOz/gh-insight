@@ -64,21 +64,21 @@ const COLORS_CB = {
  * Each chart destructures only the fields it uses — no local makeCOL/makeC needed.
  */
 const makeChartColors = (colorblindMode: boolean) => {
-  const p = colorblindMode ? COLORS_CB : COLORS;
+  const palette = colorblindMode ? COLORS_CB : COLORS;
   return {
-    issue:       p.issue,
-    prMerged:    p.prMerged,
-    prClosed:    p.prClosed,
-    axis:        p.chartAxis,
-    grid:        p.chartGrid,
-    label:       p.chartAxis,
-    cursor:      p.chartCursor,
-    median:      p.success,
-    mean:        p.warning,
-    today:       p.chartToday,
-    todayLabel:  p.chartTodayLabel,
-    weekendBand: p.weekendBand,
-    bankHoliday: p.bankHoliday,
+    issue:       palette.issue,
+    prMerged:    palette.prMerged,
+    prClosed:    palette.prClosed,
+    axis:        palette.chartAxis,
+    grid:        palette.chartGrid,
+    label:       palette.chartAxis,
+    cursor:      palette.chartCursor,
+    median:      palette.success,
+    mean:        palette.warning,
+    today:       palette.chartToday,
+    todayLabel:  palette.chartTodayLabel,
+    weekendBand: palette.weekendBand,
+    bankHoliday: palette.bankHoliday,
   };
 };
 
@@ -87,12 +87,12 @@ const makeChartColors = (colorblindMode: boolean) => {
  * Respects colorblind mode. Background is a semi-transparent tint of the status colour.
  */
 const makeStatusChipSx = (colorblindMode: boolean): Record<string, object> => {
-  const p = colorblindMode ? COLORS_CB : COLORS;
+  const palette = colorblindMode ? COLORS_CB : COLORS;
   return {
     // 0x26 ≈ 15% opacity, 0x1f ≈ 12% opacity — chosen to match the original design intent
-    open:   { bgcolor: `${p.warning}26`, color: p.warning },
-    closed: { bgcolor: `${p.prClosed}1f`,     color: p.prClosed },
-    merged: { bgcolor: `${p.prMerged}1f`,     color: p.prMerged },
+    open:   { bgcolor: `${palette.warning}26`, color: palette.warning },
+    closed: { bgcolor: `${palette.prClosed}1f`,     color: palette.prClosed },
+    merged: { bgcolor: `${palette.prMerged}1f`,     color: palette.prMerged },
   };
 };
 
@@ -101,15 +101,15 @@ const makeStatusChipSx = (colorblindMode: boolean): Record<string, object> => {
  * against the given hex background color.
  */
 const labelTextColor = (hex: string): "#000000" | "#ffffff" => {
-  const r = parseInt(hex.slice(1, 3), 16);
+  const redValue = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
   // Relative luminance per WCAG 2.1
   const toLinear = (c: number) => {
-    const s = c / 255;
-    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+    const normalizedChannel = c / 255;
+    return normalizedChannel <= 0.03928 ? normalizedChannel / 12.92 : Math.pow((normalizedChannel + 0.055) / 1.055, 2.4);
   };
-  const L = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+  const L = 0.2126 * toLinear(redValue) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
   return L > 0.179 ? "#000000" : "#ffffff";
 };
 

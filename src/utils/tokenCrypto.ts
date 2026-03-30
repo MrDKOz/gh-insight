@@ -81,12 +81,12 @@ const encryptToken = async (plaintext: string): Promise<string> => {
     throw new EncryptionUnavailableError(fallback);
   }
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encoder.encode(plaintext));
-  const buf = new Uint8Array(12 + ct.byteLength);
-  buf.set(iv);
-  buf.set(new Uint8Array(ct), 12);
+  const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encoder.encode(plaintext));
+  const encryptedBuffer = new Uint8Array(12 + ciphertext.byteLength);
+  encryptedBuffer.set(iv);
+  encryptedBuffer.set(new Uint8Array(ciphertext), 12);
   // Prefix "e:" so decryptToken can distinguish encrypted from fallback payloads.
-  return `e:${btoa(String.fromCharCode(...buf))}`;
+  return `e:${btoa(String.fromCharCode(...encryptedBuffer))}`;
 };
 
 const decryptToken = async (stored: string): Promise<string> => {
@@ -105,10 +105,10 @@ const decryptToken = async (stored: string): Promise<string> => {
   } catch {
     throw new Error("IndexedDB unavailable — cannot decrypt token");
   }
-  const buf = Uint8Array.from(atob(payload), (c) => c.charCodeAt(0));
-  if (buf.length < 13) {throw new Error("Stored token payload is too short to be valid");}
-  const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: buf.slice(0, 12) }, key, buf.slice(12));
-  return decoder.decode(pt);
+  const encryptedBuffer = Uint8Array.from(atob(payload), (c) => c.charCodeAt(0));
+  if (encryptedBuffer.length < 13) {throw new Error("Stored token payload is too short to be valid");}
+  const plaintext = await crypto.subtle.decrypt({ name: "AES-GCM", iv: encryptedBuffer.slice(0, 12) }, key, encryptedBuffer.slice(12));
+  return decoder.decode(plaintext);
 };
 
 export { EncryptionUnavailableError, decryptToken, encryptToken };

@@ -68,10 +68,10 @@ const SettingsPopover: FunctionComponent<Props> = ({
                 value={settings.bankHolidayRegions}
                 onChange={(e) => updateSetting("bankHolidayRegions", e.target.value as Region[])}
                 renderValue={(sel) => {
-                  const s = sel as string[];
-                  if (s.length === 0) { return <em style={{ opacity: 0.5 }}>None</em>; }
-                  if (s.length === 1) { return REGION_LABELS[s[0] as Region] ?? s[0]; }
-                  return `${s.length} regions`;
+                  const selectedRegions = sel as string[];
+                  if (selectedRegions.length === 0) { return <em style={{ opacity: 0.5 }}>None</em>; }
+                  if (selectedRegions.length === 1) { return REGION_LABELS[selectedRegions[0] as Region] ?? selectedRegions[0]; }
+                  return `${selectedRegions.length} regions`;
                 }}
                 sx={{ width: "100%", fontSize: "0.8rem" }}
               >

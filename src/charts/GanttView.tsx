@@ -51,10 +51,10 @@ const useGanttLayout = (items: TimelineItem[], filteredItems: TimelineItem[]): G
   useLayoutEffect(() => { labelWidthRef.current = labelWidth; }, [labelWidth]);
 
   const handleFitToScreen = useCallback(() => {
-    const el = trackColRef.current;
-    if (!el) { return; }
+    const trackColElement = trackColRef.current;
+    if (!trackColElement) { return; }
     const { totalDays } = stateRef.current;
-    setPixelsPerDay(Math.max(4, Math.min(200, el.clientWidth / totalDays)));
+    setPixelsPerDay(Math.max(4, Math.min(200, trackColElement.clientWidth / totalDays)));
   }, []);
 
   const handleSnapModeChange = useCallback((mode: "day" | "hour") => {
@@ -92,22 +92,22 @@ const useGanttLayout = (items: TimelineItem[], filteredItems: TimelineItem[]): G
   useEffect(() => () => { dragCleanupRef.current?.(); }, []);
 
   useEffect(() => {
-    const el = axisRef.current;
-    if (!el) { return; }
+    const axisElement = axisRef.current;
+    if (!axisElement) { return; }
     const measure = () => {
-      const { height } = el.getBoundingClientRect();
-      const marginBottom = parseFloat(getComputedStyle(el).marginBottom) || 0;
+      const { height } = axisElement.getBoundingClientRect();
+      const marginBottom = parseFloat(getComputedStyle(axisElement).marginBottom) || 0;
       setAxisHeight(height + marginBottom);
     };
     measure();
     const ro = new ResizeObserver(measure);
-    ro.observe(el);
+    ro.observe(axisElement);
     return () => ro.disconnect();
   }, []);
 
   useEffect(() => {
-    const el = trackColRef.current;
-    if (!el || items.length === 0) { setPixelsPerDay(30); return; }
+    const trackColElement = trackColRef.current;
+    if (!trackColElement || items.length === 0) { setPixelsPerDay(30); return; }
     const allTs = items.flatMap((item) => {
       const end = itemEndDate(item);
       return [new Date(item.createdAt).getTime(), ...(end ? [new Date(end).getTime()] : [])];
@@ -117,26 +117,26 @@ const useGanttLayout = (items: TimelineItem[], filteredItems: TimelineItem[]): G
     const hasOpen = items.some((item) => !itemEndDate(item));
     const max = hasOpen ? Math.max(...allTs, Date.now()) : Math.max(...allTs) + 3 * MS_PER_DAY;
     const days = Math.max(1, (max - min) / MS_PER_DAY);
-    setPixelsPerDay(Math.max(4, Math.min(200, el.clientWidth / days)));
+    setPixelsPerDay(Math.max(4, Math.min(200, trackColElement.clientWidth / days)));
   }, [items]);
 
   useEffect(() => {
-    const el = trackColRef.current;
-    if (!el) { return; }
+    const trackColElement = trackColRef.current;
+    if (!trackColElement) { return; }
     const onWheel = (e: WheelEvent) => {
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) { return; }
       e.preventDefault();
       const { pixelsPerDay: ppd, totalDays: td, trackWidth: tw } = stateRef.current;
       const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
-      const newPpd = Math.min(200, Math.max(4, ppd * factor));
-      const newTrackWidth = Math.max(500, Math.round(td * newPpd));
-      const cursorX = e.clientX - el.getBoundingClientRect().left;
-      const fraction = tw > 0 ? (cursorX + el.scrollLeft) / tw : 0;
+      const newPixelsPerDay = Math.min(200, Math.max(4, ppd * factor));
+      const newTrackWidth = Math.max(500, Math.round(td * newPixelsPerDay));
+      const cursorX = e.clientX - trackColElement.getBoundingClientRect().left;
+      const fraction = tw > 0 ? (cursorX + trackColElement.scrollLeft) / tw : 0;
       pendingScrollRef.current = Math.max(0, fraction * newTrackWidth - cursorX);
-      setPixelsPerDay(newPpd);
+      setPixelsPerDay(newPixelsPerDay);
     };
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
+    trackColElement.addEventListener("wheel", onWheel, { passive: false });
+    return () => trackColElement.removeEventListener("wheel", onWheel);
   }, []);
 
   useEffect(() => {
@@ -315,9 +315,9 @@ const GanttView = forwardRef<GanttHandle, Props>(({
         durationText = "ongoing";
       } else if (snapMode === "hour" && endDate) {
         const hrs = Math.round((new Date(endDate).getTime() - new Date(item.createdAt).getTime()) / MS_PER_HOUR);
-        const d   = Math.floor(hrs / 24);
-        const h   = hrs % 24;
-        durationText = hrs === 0 ? "< 1h" : d === 0 ? `${hrs}h` : h === 0 ? `${d}d` : `${d}d ${h}h`;
+        const dayCount        = Math.floor(hrs / 24);
+        const remainingHours  = hrs % 24;
+        durationText = hrs === 0 ? "< 1h" : dayCount === 0 ? `${hrs}h` : remainingHours === 0 ? `${dayCount}d` : `${dayCount}d ${remainingHours}h`;
       } else {
         const duration = durationDays(item.createdAt, endDate);
         durationText = duration === null ? "ongoing" : duration === 0 ? "Same day" : duration === 1 ? "1 day" : `${duration} days`;

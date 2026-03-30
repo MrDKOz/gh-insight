@@ -350,13 +350,13 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
               const week = msWeekMap.get(ms.number)?.get(ws);
               if (!week || week.total === 0) {return null;}
               const bx = getMilestoneBarX(wi, mi);
-              const h  = (week.total / maxTotal) * CHART_HEIGHT;
-              const by = PADDING_TOP + CHART_HEIGHT - h;
+              const barHeight = (week.total / maxTotal) * CHART_HEIGHT;
+              const by = PADDING_TOP + CHART_HEIGHT - barHeight;
               return (
                 <rect
                   key={ms.number}
                   x={bx.toFixed(1)} y={by.toFixed(1)}
-                  width={milestoneBarWidth.toFixed(1)} height={h.toFixed(1)}
+                  width={milestoneBarWidth.toFixed(1)} height={barHeight.toFixed(1)}
                   fill={ms.color} opacity={0.88} rx={2}
                   style={{ cursor: "pointer" }}
                   onMouseEnter={(e) => onMsEnter(e, ms, week)}

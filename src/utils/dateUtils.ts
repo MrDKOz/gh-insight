@@ -89,21 +89,21 @@ const forecastCompletion = (
 
   // ── Primary: linear regression over last 30 points ───────────────────────────
   const win = pts.slice(-30);
-  const n   = win.length;
+  const windowLength = win.length;
   let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
-  for (let i = 0; i < n; i++) {
+  for (let i = 0; i < windowLength; i++) {
     const y = win[i] ?? 0;
     sumX += i; sumY += y; sumXY += i * y; sumX2 += i * i;
   }
-  const denom = n * sumX2 - sumX * sumX;
+  const denom = windowLength * sumX2 - sumX * sumX;
   let projectedT: number | null = null;
   let method: "regression" | "velocity" = "regression";
   if (denom !== 0) {
-    const slope     = (n * sumXY - sumX * sumY) / denom;
-    const intercept = (sumY - slope * sumX) / n;
+    const slope     = (windowLength * sumXY - sumX * sumY) / denom;
+    const intercept = (sumY - slope * sumX) / windowLength;
     if (slope < 0) {
       const zeroDayIdx    = -intercept / slope;
-      const windowStartT  = minTime + (totalDays - n + 1) * MS_PER_DAY;
+      const windowStartT  = minTime + (totalDays - windowLength + 1) * MS_PER_DAY;
       const candidate     = windowStartT + zeroDayIdx * MS_PER_DAY;
       if (candidate > todayMs && candidate <= todayMs + 365 * MS_PER_DAY) {
         projectedT = candidate;

@@ -195,15 +195,15 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
           const day = new Date(minTime + i * MS_PER_DAY);
           if (day.getUTCDay() !== 6) {return null;}
           const x = PADDING_LEFT + (i * MS_PER_DAY / totalMs) * CHART_WIDTH;
-          const w = Math.min((2 * MS_PER_DAY / totalMs) * CHART_WIDTH, CHART_WIDTH - (x - PADDING_LEFT));
-          return <rect key={i} x={x.toFixed(1)} y={PADDING_TOP} width={w.toFixed(1)} height={CHART_HEIGHT} fill={chartColors.weekendBand} className="chart-weekend" />;
+          const bandWidth = Math.min((2 * MS_PER_DAY / totalMs) * CHART_WIDTH, CHART_WIDTH - (x - PADDING_LEFT));
+          return <rect key={i} x={x.toFixed(1)} y={PADDING_TOP} width={bandWidth.toFixed(1)} height={CHART_HEIGHT} fill={chartColors.weekendBand} className="chart-weekend" />;
         })}
         {bankHolidays.flatMap(({ date }, i) => {
           const t = new Date(date).getTime();
           if (t < minTime || t > minTime + totalMs) {return [];}
           const x = PADDING_LEFT + ((t - minTime) / totalMs) * CHART_WIDTH;
-          const w = Math.min((MS_PER_DAY / totalMs) * CHART_WIDTH, CHART_WIDTH - (x - PADDING_LEFT));
-          return [<rect key={i} x={x.toFixed(1)} y={PADDING_TOP} width={w.toFixed(1)} height={CHART_HEIGHT} fill={chartColors.bankHoliday} className="chart-bank-holiday" />];
+          const bandWidth = Math.min((MS_PER_DAY / totalMs) * CHART_WIDTH, CHART_WIDTH - (x - PADDING_LEFT));
+          return [<rect key={i} x={x.toFixed(1)} y={PADDING_TOP} width={bandWidth.toFixed(1)} height={CHART_HEIGHT} fill={chartColors.bankHoliday} className="chart-bank-holiday" />];
         })}
 
         {yLabels.map((d) => (

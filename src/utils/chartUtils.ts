@@ -12,8 +12,8 @@ const calcWeekendBands = (minTime: number, totalDays: number, paddingLeft: numbe
     const day = new Date(minTime + i * MS_PER_DAY);
     if (day.getUTCDay() !== 6) { continue; }
     const x = paddingLeft + (i / totalDays) * chartWidth;
-    const w = Math.min((2 / totalDays) * chartWidth, chartWidth - (x - paddingLeft));
-    bands.push({ x: x.toFixed(1), w: w.toFixed(1) });
+    const bandWidth = Math.min((2 / totalDays) * chartWidth, chartWidth - (x - paddingLeft));
+    bands.push({ x: x.toFixed(1), w: bandWidth.toFixed(1) });
   }
   return bands;
 };
@@ -34,7 +34,8 @@ const calcBankHolidayBands = (
     if (t < minTime || t > minTime + totalDays * MS_PER_DAY) { return []; }
     const i = (t - minTime) / MS_PER_DAY;
     const x = paddingLeft + (i / totalDays) * chartWidth;
-    return [{ x: x.toFixed(1), w: Math.min(dayWidth, chartWidth - (x - paddingLeft)).toFixed(1) }];
+    const bandWidth = Math.min(dayWidth, chartWidth - (x - paddingLeft));
+    return [{ x: x.toFixed(1), w: bandWidth.toFixed(1) }];
   });
 };
 

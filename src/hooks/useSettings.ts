@@ -29,14 +29,14 @@ const loadSettings = (): Settings => {
   try {
     const stored = localStorage.getItem(LS_KEY);
     if (!stored) { return DEFAULT_SETTINGS; }
-    const p = decodeSafe(JSON.parse(stored) as unknown, StoredSettingsCodec);
-    if (!p) { return DEFAULT_SETTINGS; }
+    const parsedSettings = decodeSafe(JSON.parse(stored) as unknown, StoredSettingsCodec);
+    if (!parsedSettings) { return DEFAULT_SETTINGS; }
     // Prefer the canonical array field; fall back to the legacy singular field
-    const regions = p.bankHolidayRegions ?? (p.bankHolidayRegion ? [p.bankHolidayRegion] : null);
+    const regions = parsedSettings.bankHolidayRegions ?? (parsedSettings.bankHolidayRegion ? [parsedSettings.bankHolidayRegion] : null);
     return {
-      highlightWeekends:     p.highlightWeekends     ?? DEFAULT_SETTINGS.highlightWeekends,
-      colorblindMode:        p.colorblindMode        ?? DEFAULT_SETTINGS.colorblindMode,
-      highlightBankHolidays: p.highlightBankHolidays ?? DEFAULT_SETTINGS.highlightBankHolidays,
+      highlightWeekends:     parsedSettings.highlightWeekends     ?? DEFAULT_SETTINGS.highlightWeekends,
+      colorblindMode:        parsedSettings.colorblindMode        ?? DEFAULT_SETTINGS.colorblindMode,
+      highlightBankHolidays: parsedSettings.highlightBankHolidays ?? DEFAULT_SETTINGS.highlightBankHolidays,
       bankHolidayRegions: regions && regions.length > 0 ? regions : DEFAULT_SETTINGS.bankHolidayRegions,
     };
   } catch {

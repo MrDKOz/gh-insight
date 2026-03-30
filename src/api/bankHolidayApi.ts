@@ -67,8 +67,8 @@ const fetchForRegion = async (region: Region, minTime: number, maxTime: number):
   }
   const perYear = await Promise.all(yearPromises);
   return perYear.flat().filter((h) => {
-    const ms = new Date(h.date).getTime();
-    return ms >= minTime && ms <= maxTime;
+    const holidayTimestampMs = new Date(h.date).getTime();
+    return holidayTimestampMs >= minTime && holidayTimestampMs <= maxTime;
   });
 };
 
