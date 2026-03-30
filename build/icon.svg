@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background with rounded corners -->
+  <rect width="512" height="512" rx="112" fill="#0969da"/>
+
+  <!-- Gantt bars (white, scaled up to fill the icon nicely) -->
+  <!-- Row 1: short bar from left -->
+  <rect x="80" y="130" width="210" height="60" rx="30" fill="white" opacity="1"/>
+  <!-- Row 2: long bar from left -->
+  <rect x="80" y="218" width="320" height="60" rx="30" fill="white" opacity="0.8"/>
+  <!-- Row 3: short bar from left, different position -->
+  <rect x="80" y="306" width="145" height="60" rx="30" fill="white" opacity="0.55"/>
+  <!-- Row 4: medium bar -->
+  <rect x="80" y="394" width="255" height="60" rx="30" fill="white" opacity="0.3"/>
+</svg>
