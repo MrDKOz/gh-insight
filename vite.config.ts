@@ -81,9 +81,6 @@ export default defineConfig(async () => {
   define: {
     __APP_VERSION__:    JSON.stringify(packageJson.version),
     __APP_BUILD_TIME__: String(BUILD_TIME),
-    // Baked-in read-only token for the auto-updater (private repo support).
-    // Set via UPDATER_TOKEN env var in CI; empty string in dev/web builds.
-    __UPDATER_TOKEN__:  JSON.stringify(process.env["UPDATER_TOKEN"] ?? ""),
   },
   plugins: [
     react({ babel: { plugins: ["babel-plugin-react-compiler"] } }),
