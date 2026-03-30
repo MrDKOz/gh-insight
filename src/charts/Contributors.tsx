@@ -3,7 +3,7 @@ import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
-import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useId, useMemo, useRef, useState } from "react";
 import { AuthorTag } from "../components/AuthorTag";
 import { CHART_EMPTY_STATE_SX, DOT_SX, FS, HOVER_CARD_BASE_SX, fmtDate, hoverCardPos, itemEndDate, makeChartColors, safeUrl } from "../utils/utils";
 import { ChartLegend } from "./ChartLegend";
@@ -44,6 +44,7 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
   const COL = makeChartColors(colorblindMode);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<Hover | null>(null);
+  const clipId = `contrib-avatar-clip-${useId().replace(/:/g, "")}`;
 
   // Map login → contribution counts; fall back to author when no assignees
   const rows: ContribRow[] = useMemo(() => {
@@ -214,7 +215,7 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
       >
         <defs>
           {/* Shared circular clip for all contributor avatars */}
-          <clipPath id="contrib-avatar-clip" clipPathUnits="objectBoundingBox">
+          <clipPath id={clipId} clipPathUnits="objectBoundingBox">
             <circle cx="0.5" cy="0.5" r="0.5" />
           </clipPath>
         </defs>
@@ -251,7 +252,7 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
                   y={(cy + (BAR_H - AVATAR_SIZE) / 2).toFixed(1)}
                   width={AVATAR_SIZE}
                   height={AVATAR_SIZE}
-                  clipPath="url(#contrib-avatar-clip)"
+                  clipPath={`url(#${clipId})`}
                 />
                 <text
                   x={textX.toFixed(1)}

@@ -97,13 +97,16 @@ describe("encryptToken / decryptToken — IndexedDB unavailable (fallback)", () 
     }
 
     expect(caughtError).toBeInstanceOf(EncryptionUnavailableError);
+
     const fallback = (caughtError as EncryptionUnavailableError).fallbackPayload;
+
     expect(fallback.startsWith("e:")).toBe(false);
 
     // The fallbackPayload must be valid base64 encoding of the original token
     const roundTrip = decodeURIComponent(
       atob(fallback).split("").map((c) => `%${c.charCodeAt(0).toString(16).padStart(2, "0")}`).join(""),
     );
+
     expect(roundTrip).toBe(token);
   });
 
@@ -114,6 +117,7 @@ describe("encryptToken / decryptToken — IndexedDB unavailable (fallback)", () 
       await encryptToken(token);
     } catch (err) {
       expect(err).toBeInstanceOf(EncryptionUnavailableError);
+
       fallbackPayload = (err as EncryptionUnavailableError).fallbackPayload;
     }
     // Decrypting a non-'e:' prefixed payload does not need IndexedDB

@@ -1,6 +1,6 @@
-import type { FunctionComponent } from "react";
-import type { Settings } from "../hooks/useSettings";
 import type { Region } from "../api/bankHolidayApi";
+import type { Settings } from "../hooks/useSettings";
+import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import ButtonGroup from "@mui/material/ButtonGroup";
@@ -78,7 +78,7 @@ const SettingsPopover: FunctionComponent<Props> = ({
                 {ALL_REGIONS.map((r) => (
                   <MenuItem key={r} value={r} dense>
                     <Checkbox size="small" checked={settings.bankHolidayRegions.includes(r)} sx={{ py: 0 }} />
-                    <ListItemText primary={REGION_LABELS[r]} primaryTypographyProps={{ variant: "body2" }} />
+                    <ListItemText primary={REGION_LABELS[r]} slotProps={{ primary: { variant: "body2" } }} />
                   </MenuItem>
                 ))}
               </Select>

@@ -168,7 +168,7 @@ const captureElement = async (el: HTMLElement, overrides?: { width?: number; hei
   const opts = htmlToImageOpts(overrides);
   const restore = await inlineImages(el);
   try {
-    await toPng(el, opts).catch((err) => { console.warn("html-to-image warm-up pass failed:", err); }); // warm-up
+    await toPng(el, opts).catch((err) => { console.error("html-to-image warm-up pass failed:", err); }); // warm-up
     return await toPng(el, opts);
   } finally {
     restore();
@@ -641,4 +641,4 @@ const exportReviewWaitPDF = async (items: TimelineItem[], title: string, milesto
   doc.save(`${safeFilename(title)}_review_wait.pdf`);
 };
 
-export { buildRows, buildReviewWaitRows, exportCSV, exportChartPDF, exportGanttPDF, exportMarkdown, exportPDF, exportPNG, exportReviewWaitCSV, exportReviewWaitMarkdown, exportReviewWaitPDF, exportReviewWaitXLSX, exportSVG, exportXLSX, safeFilename };
+export { buildReviewWaitRows, buildRows, exportCSV, exportChartPDF, exportGanttPDF, exportMarkdown, exportPDF, exportPNG, exportReviewWaitCSV, exportReviewWaitMarkdown, exportReviewWaitPDF, exportReviewWaitXLSX, exportSVG, exportXLSX, safeFilename };

@@ -1,14 +1,14 @@
-import type { MilestoneMeta, TimelineItem } from "../types";
 import type { BankHoliday } from "../api/bankHolidayApi";
+import type { MilestoneMeta, TimelineItem } from "../types";
 import type { FunctionComponent, MouseEvent, RefObject } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
-import Typography from "@mui/material/Typography";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import Typography from "@mui/material/Typography";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { COLORS, COLORS_CB, FS, MS, MS_HOUR, durationDays, fmtDate, fmtDateTime, itemEndDate, pluralize, safeUrl, snapToHour } from "../utils/utils";
+import { COLORS, COLORS_CB, FS, MS, MS_HOUR, STALE_MS, durationDays, fmtDate, fmtDateTime, itemEndDate, pluralize, safeUrl, snapToHour } from "../utils/utils";
 import { AuthorCard, AuthorTag } from "./AuthorTag";
 import { LabelBadge } from "./LabelBadge";
 
@@ -37,6 +37,7 @@ type Props = {
 };
 
 const ROW_HEIGHT = 31;
+const DAY_NAMES  = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 type CursorInfo = { snappedMs: number; clientX: number; clientY: number };
 
@@ -76,8 +77,7 @@ const GanttLegend: FunctionComponent<GanttLegendProps> = ({ hasOpenIssues, color
   const prMergedBg  = `linear-gradient(135deg, ${p.prMerged} 0%, ${p.prMergedDark} 100%)`;
   const prClosedBg  = `linear-gradient(135deg, ${p.prClosed} 0%, ${p.prClosedDark} 100%)`;
   return (
-  <>
-    <Box sx={{ display: "flex", alignItems: "center", gap: 2.5, flexWrap: "wrap" }}>
+  <Box sx={{ display: "flex", alignItems: "center", gap: 2.5, flexWrap: "wrap" }}>
       <Box sx={{ display: "flex", gap: 2.5, flexWrap: "wrap", flex: 1 }}>
         {[
           { bg: issueClosed, label: "Issues (closed)" },
@@ -109,8 +109,6 @@ const GanttLegend: FunctionComponent<GanttLegendProps> = ({ hasOpenIssues, color
         </ToggleButtonGroup>
       </Box>
     </Box>
-
-  </>
   );
 };
 
@@ -276,7 +274,7 @@ const GanttView: FunctionComponent<Props> = ({
     });
   }, [bankHolidays, minTime, totalMs]);
 
-  const STALE_MS = 7 * MS;
+
 
   const todayLeftPct = ((todayMs - minTime) / totalMs) * 100;
   const showToday = todayMs >= minTime && todayMs <= minTime + totalMs;
@@ -650,10 +648,10 @@ const GanttView: FunctionComponent<Props> = ({
 
             const reviewBadge = item.type === "pr" && item.reviewDecision && barWidthPx >= 60
               ? item.reviewDecision === "APPROVED"
-                ? { label: "✓", bg: "#1a7f37" }
+                ? { label: "✓", bg: palette.success }
                 : item.reviewDecision === "CHANGES_REQUESTED"
-                  ? { label: "✕", bg: "#cf222e" }
-                  : { label: "?", bg: "#9a6700" }
+                  ? { label: "✕", bg: palette.prClosed }
+                  : { label: "?", bg: palette.warning }
               : null;
 
             return (
@@ -713,7 +711,6 @@ const GanttView: FunctionComponent<Props> = ({
       )}
 
       {cursorInfo !== null && barHover === null && (() => {
-        const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
         const d = new Date(cursorInfo.snappedMs);
         const dayName = DAY_NAMES[d.getUTCDay()];
         const dateStr = snapMode === "hour"

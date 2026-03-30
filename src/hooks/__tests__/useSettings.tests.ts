@@ -1,14 +1,16 @@
-import { renderHook, act } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { useSettings } from "../useSettings";
 
 const LS_KEY = "gmt_settings";
 
 beforeEach(() => localStorage.clear());
+
 afterEach(() => localStorage.clear());
 
 describe("useSettings — initial state", () => {
   it("returns DEFAULT_SETTINGS when localStorage is empty", () => {
     const { result } = renderHook(() => useSettings());
+
     expect(result.current.settings).toEqual({
       highlightWeekends: false,
       colorblindMode: false,
@@ -26,6 +28,7 @@ describe("useSettings — initial state", () => {
     }));
 
     const { result } = renderHook(() => useSettings());
+
     expect(result.current.settings).toEqual({
       highlightWeekends: true,
       colorblindMode: true,
@@ -38,6 +41,7 @@ describe("useSettings — initial state", () => {
     localStorage.setItem(LS_KEY, "not-json{{{{");
 
     const { result } = renderHook(() => useSettings());
+
     expect(result.current.settings).toEqual({
       highlightWeekends: false,
       colorblindMode: false,
@@ -50,6 +54,7 @@ describe("useSettings — initial state", () => {
     localStorage.setItem(LS_KEY, JSON.stringify(42));
 
     const { result } = renderHook(() => useSettings());
+
     expect(result.current.settings).toEqual({
       highlightWeekends: false,
       colorblindMode: false,
@@ -65,6 +70,7 @@ describe("useSettings — initial state", () => {
     }));
 
     const { result } = renderHook(() => useSettings());
+
     expect(result.current.settings.highlightWeekends).toBe(false);
     expect(result.current.settings.colorblindMode).toBe(false);
     expect(result.current.settings.highlightBankHolidays).toBe(false);
@@ -81,6 +87,7 @@ describe("useSettings — initial state", () => {
     }));
 
     const { result } = renderHook(() => useSettings());
+
     expect(result.current.settings.highlightWeekends).toBe(false);
     expect(result.current.settings.colorblindMode).toBe(false);
     expect(result.current.settings.highlightBankHolidays).toBe(false);
@@ -94,6 +101,7 @@ describe("useSettings — bankHolidayRegions", () => {
     }));
 
     const { result } = renderHook(() => useSettings());
+
     expect(result.current.settings.bankHolidayRegions).toEqual(["england-and-wales", "US"]);
   });
 
@@ -103,6 +111,7 @@ describe("useSettings — bankHolidayRegions", () => {
     }));
 
     const { result } = renderHook(() => useSettings());
+
     expect(result.current.settings.bankHolidayRegions).toEqual(["england-and-wales"]);
   });
 
@@ -112,6 +121,7 @@ describe("useSettings — bankHolidayRegions", () => {
     }));
 
     const { result } = renderHook(() => useSettings());
+
     expect(result.current.settings.bankHolidayRegions).toEqual(["england-and-wales"]);
   });
 
@@ -121,6 +131,7 @@ describe("useSettings — bankHolidayRegions", () => {
     }));
 
     const { result } = renderHook(() => useSettings());
+
     expect(result.current.settings.bankHolidayRegions).toEqual(["scotland"]);
   });
 
@@ -131,6 +142,7 @@ describe("useSettings — bankHolidayRegions", () => {
     }));
 
     const { result } = renderHook(() => useSettings());
+
     expect(result.current.settings.bankHolidayRegions).toEqual(["US"]);
   });
 
@@ -140,6 +152,7 @@ describe("useSettings — bankHolidayRegions", () => {
     }));
 
     const { result } = renderHook(() => useSettings());
+
     expect(result.current.settings.bankHolidayRegions).toEqual(["england-and-wales"]);
   });
 });
@@ -183,6 +196,7 @@ describe("useSettings — updateSetting", () => {
     });
 
     const stored = JSON.parse(localStorage.getItem(LS_KEY) ?? "{}") as Record<string, unknown>;
+
     expect(stored["colorblindMode"]).toBe(true);
   });
 
@@ -200,6 +214,7 @@ describe("useSettings — updateSetting", () => {
     });
 
     const stored = JSON.parse(localStorage.getItem(LS_KEY) ?? "{}") as Record<string, unknown>;
+
     expect(stored["highlightWeekends"]).toBe(true);
     expect(stored["bankHolidayRegions"]).toEqual(["scotland"]);
   });

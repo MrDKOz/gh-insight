@@ -1,5 +1,5 @@
-import type { MilestoneMeta, TimelineItem } from "../types";
 import type { BankHoliday } from "../api/bankHolidayApi";
+import type { MilestoneMeta, TimelineItem } from "../types";
 import type { Filters } from "./FilterBar";
 import type { FunctionComponent } from "react";
 import Alert from "@mui/material/Alert";
@@ -20,8 +20,8 @@ import { Contributors } from "../charts/Contributors";
 import { CumulativeFlow } from "../charts/CumulativeFlow";
 import { CycleTime } from "../charts/CycleTime";
 import { Velocity } from "../charts/Velocity";
-import { exportCSV, exportChartPDF, exportGanttPDF, exportMarkdown, exportPDF, exportPNG, exportReviewWaitCSV, exportReviewWaitMarkdown, exportReviewWaitPDF, exportReviewWaitXLSX, exportSVG, exportXLSX } from "../utils/export";
 import { useGanttLayout } from "../hooks/useGanttLayout";
+import { exportCSV, exportChartPDF, exportGanttPDF, exportMarkdown, exportPDF, exportPNG, exportReviewWaitCSV, exportReviewWaitMarkdown, exportReviewWaitPDF, exportReviewWaitXLSX, exportSVG, exportXLSX } from "../utils/export";
 
 import { FilterBar, applyFilters } from "./FilterBar";
 import { GanttView } from "./GanttView";
@@ -36,7 +36,6 @@ type Props = {
   bankHolidays: BankHoliday[];
   colorblindMode: boolean;
   view: View;
-  onViewChange: (v: View) => void;
 };
 
 type ExportFormat = "CSV" | "XLSX" | "Markdown" | "PNG — Current view" | "PNG — Full timeline" | "PDF" | "SVG";
@@ -231,7 +230,8 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
         setExporting(null);
       }
     },
-    [filteredItems, title, view],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- trackColRef is a stable ref object; its .current is read inside the callback
+    [filteredItems, milestones, title, view],
   );
 
   if (items.length === 0) {
@@ -396,5 +396,5 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
   );
 };
 
-export { MilestoneView, VIEWS, DEFAULT_VIEW, readViewFiltersFromUrl };
+export { DEFAULT_VIEW, MilestoneView, VIEWS, readViewFiltersFromUrl };
 export type { View };

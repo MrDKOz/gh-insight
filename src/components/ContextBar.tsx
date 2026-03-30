@@ -1,6 +1,6 @@
-import type { FunctionComponent } from "react";
 import type { Milestone, Repo } from "../types";
 import type { View } from "./MilestoneView";
+import type { FunctionComponent } from "react";
 import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -12,8 +12,8 @@ import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { memo } from "react";
-import { VIEWS } from "./MilestoneView";
 import { MilestonePicker } from "./MilestonePicker";
+import { VIEWS } from "./MilestoneView";
 
 type Props = {
   repos: Repo[];

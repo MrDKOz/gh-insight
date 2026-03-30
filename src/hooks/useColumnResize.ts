@@ -10,7 +10,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
  *
  * @param defaultWidths - Initial pixel width for each column, in column order.
  */
-function useColumnResize(defaultWidths: number[]) {
+const useColumnResize = (defaultWidths: number[]) => {
   const [widths, setWidths] = useState<number[]>(defaultWidths);
 
   // Holds a cleanup fn for any in-progress drag so unmount can remove listeners.

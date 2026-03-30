@@ -76,7 +76,7 @@ const KeyboardShortcuts: FunctionComponent = () => {
       <DialogContent sx={{ p: 0 }}>
         {SHORTCUTS.map(({ keys, description }, idx) => (
           <Box
-            key={idx}
+            key={description}
             sx={(theme) => ({
               display: "flex",
               alignItems: "center",
@@ -92,7 +92,7 @@ const KeyboardShortcuts: FunctionComponent = () => {
             </Typography>
             <Box sx={{ display: "flex", gap: 0.5, flexShrink: 0, alignItems: "center" }}>
               {keys.map((k, ki) => (
-                <Box key={ki} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <Box key={k} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                   {ki > 0 && (
                     <Typography variant="caption" color="text.disabled" sx={{ lineHeight: 1 }}>or</Typography>
                   )}

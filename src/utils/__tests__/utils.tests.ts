@@ -250,6 +250,7 @@ describe("fmtDateTime", () => {
     // Use a fixed local Date so the test is not timezone-sensitive
     const d = new Date(2025, 0, 3, 14, 30, 0); // 3 Jan 2025 14:30 local
     const result = fmtDateTime(d.toISOString());
+
     expect(result).not.toBe("N/A");
     expect(result).toMatch(/\d{2}:00$/);
   });
@@ -257,6 +258,7 @@ describe("fmtDateTime", () => {
   it("does not include minutes or seconds in the output", () => {
     const d = new Date(2025, 5, 15, 9, 45, 30); // 15 Jun 2025 09:45:30 local
     const result = fmtDateTime(d.toISOString());
+
     expect(result).toMatch(/09:00$/);
   });
 });
@@ -265,6 +267,7 @@ describe("snapToHour", () => {
   it("floors to the local hour boundary", () => {
     const d = new Date(2025, 0, 3, 14, 30, 45, 123); // 14:30:45.123 local
     const snapped = new Date(snapToHour(d.getTime()));
+
     expect(snapped.getHours()).toBe(14);
     expect(snapped.getMinutes()).toBe(0);
     expect(snapped.getSeconds()).toBe(0);
@@ -273,12 +276,14 @@ describe("snapToHour", () => {
 
   it("is a no-op when already at an exact hour boundary", () => {
     const d = new Date(2025, 0, 3, 10, 0, 0, 0);
+
     expect(snapToHour(d.getTime())).toBe(d.getTime());
   });
 
   it("does not change the date or hour, only sub-hour components", () => {
     const d = new Date(2025, 2, 15, 23, 59, 59, 999); // 23:59:59.999 local
     const snapped = new Date(snapToHour(d.getTime()));
+
     expect(snapped.getDate()).toBe(15);
     expect(snapped.getHours()).toBe(23);
     expect(snapped.getMinutes()).toBe(0);
@@ -288,6 +293,7 @@ describe("snapToHour", () => {
 describe("makeChartColors", () => {
   it("returns the default palette when colorblind mode is off", () => {
     const c = makeChartColors(false);
+
     expect(c.issue).toBe(COLORS.issue);
     expect(c.prMerged).toBe(COLORS.prMerged);
     expect(c.prClosed).toBe(COLORS.prClosed);
@@ -299,6 +305,7 @@ describe("makeChartColors", () => {
 
   it("returns the colorblind palette when colorblind mode is on", () => {
     const c = makeChartColors(true);
+
     expect(c.issue).toBe(COLORS_CB.issue);
     expect(c.prMerged).toBe(COLORS_CB.prMerged);
     expect(c.prClosed).toBe(COLORS_CB.prClosed);
@@ -316,6 +323,7 @@ describe("makeChartColors", () => {
 describe("makeStatusChipSx", () => {
   it("returns sx for open, closed, and merged statuses", () => {
     const sx = makeStatusChipSx(false);
+
     expect(sx).toHaveProperty("open");
     expect(sx).toHaveProperty("closed");
     expect(sx).toHaveProperty("merged");
@@ -324,6 +332,7 @@ describe("makeStatusChipSx", () => {
   it("applies different colors in colorblind mode", () => {
     const normal = makeStatusChipSx(false);
     const cb = makeStatusChipSx(true);
+
     // merged and closed colors come from the palette, so they should differ between modes
     expect(JSON.stringify(normal.merged)).not.toBe(JSON.stringify(cb.merged));
     expect(JSON.stringify(normal.closed)).not.toBe(JSON.stringify(cb.closed));
@@ -403,6 +412,7 @@ describe("forecastCompletion", () => {
     vi.useFakeTimers();
     vi.setSystemTime(TODAY_MS);
   });
+
   afterEach(() => vi.useRealTimers());
 
   it("returns null for an empty items array", () => {
@@ -411,11 +421,13 @@ describe("forecastCompletion", () => {
 
   it("returns null when all issues are closed", () => {
     const items = [mkForecastIssue(1, 490, 495), mkForecastIssue(2, 490, 498)];
+
     expect(forecastCompletion(items)).toBeNull();
   });
 
   it("returns null when there are no closed issues (velocity impossible)", () => {
     const items = [mkForecastIssue(1, 499, null), mkForecastIssue(2, 499, null)];
+
     expect(forecastCompletion(items)).toBeNull();
   });
 
@@ -425,6 +437,7 @@ describe("forecastCompletion", () => {
       mkForecastIssue(1, 470, 490),
       ...Array.from({ length: 500 }, (_, i) => mkForecastIssue(i + 2, 470, null)),
     ];
+
     expect(forecastCompletion(items)).toBeNull();
   });
 
@@ -440,6 +453,7 @@ describe("forecastCompletion", () => {
       mkForecastIssue(7, 490, null),
     ];
     const result = forecastCompletion(items);
+
     expect(result).not.toBeNull();
     expect(result?.projectedDate.getTime()).toBeGreaterThan(TODAY_MS);
     expect(result?.projectedDate.getTime()).toBeLessThanOrEqual(TODAY_MS + 365 * MS);
@@ -452,6 +466,7 @@ describe("forecastCompletion", () => {
       mkForecastIssue(3, 490, null),
     ];
     const result = forecastCompletion(items);
+
     expect(result?.openCount).toBe(1);
     expect(result?.closedCount).toBe(2);
   });
@@ -464,6 +479,7 @@ describe("forecastCompletion", () => {
       mkForecastIssue(4, 490, null, 2), // ms 2, open — should be ignored
     ];
     const result = forecastCompletion(items, 1);
+
     expect(result?.openCount).toBe(1);
     expect(result?.closedCount).toBe(1);
   });
@@ -481,6 +497,7 @@ describe("forecastCompletion", () => {
       labels: [], assignees: [], firstReviewAt: null,
     };
     const items = [pr, mkForecastIssue(1, 490, null)];
+
     // Only 1 open issue, 0 closed → no forecast possible
     expect(forecastCompletion(items)).toBeNull();
   });
@@ -504,6 +521,7 @@ describe("forecastCompletion", () => {
       mkForecastIssue(2, 490, null),
     ];
     const result = forecastCompletion(items);
+
     // totalDays = ceil((today - day490) / MS) = 10
     expect(result?.totalDays).toBe(10);
   });

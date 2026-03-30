@@ -1,9 +1,9 @@
 import type { TimelineItem } from "../../types";
+import type { Filters } from "../FilterBar";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
-import { render, fireEvent } from "@testing-library/react";
+import { fireEvent, render } from "@testing-library/react";
 import { useState } from "react";
 import { DEFAULT_FILTERS, FilterBar } from "../FilterBar";
-import type { Filters } from "../FilterBar";
 
 const theme = createTheme();
 const wrap = (ui: React.ReactElement) =>
@@ -101,6 +101,7 @@ describe("FilterBar — render smoke", () => {
 
     // Toggling again re-enables
     fireEvent.click(getByText("Closed issues"));
+
     expect(getByText("Closed issues")).toBeInTheDocument();
 
     // suppress unused warning

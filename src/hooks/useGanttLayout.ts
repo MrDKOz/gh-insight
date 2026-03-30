@@ -1,5 +1,5 @@
-import type { TimelineItem } from "../types";
 import type { View } from "../components/MilestoneView";
+import type { TimelineItem } from "../types";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { MS, itemEndDate, snapToHour } from "../utils/utils";
 
@@ -26,11 +26,11 @@ type GanttLayout = {
   handleSnapModeChange: (mode: "day" | "hour") => void;
 };
 
-function useGanttLayout(
+const useGanttLayout = (
   items: TimelineItem[],
   filteredItems: TimelineItem[],
   view: View,
-): GanttLayout {
+): GanttLayout => {
   const [labelWidth, setLabelWidth] = useState(400);
   const [pixelsPerDay, setPixelsPerDay] = useState(30);
   const [axisHeight, setAxisHeight] = useState(36);

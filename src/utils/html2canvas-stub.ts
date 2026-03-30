@@ -5,4 +5,5 @@
 const html2canvas = (_element: Element, _options?: unknown): Promise<HTMLCanvasElement> =>
   Promise.reject(new Error("html2canvas is not available in this build"));
 
+// eslint-disable-next-line no-restricted-exports -- required: jsPDF aliases this module over the real html2canvas package
 export default html2canvas;

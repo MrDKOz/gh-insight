@@ -31,8 +31,8 @@ const useNewVersionAvailable = (): boolean => {
       }
     };
 
-    check();
-    const id = setInterval(check, CHECK_INTERVAL_MS);
+    void check();
+    const id = setInterval(() => { void check(); }, CHECK_INTERVAL_MS);
     return () => clearInterval(id);
   }, []);
 

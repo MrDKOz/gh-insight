@@ -1,5 +1,5 @@
-import type { FunctionComponent } from "react";
 import type { UserProfile } from "../types";
+import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";

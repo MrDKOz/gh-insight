@@ -1,10 +1,10 @@
-import type { TimelineItem } from "../types";
 import type { BankHoliday } from "../api/bankHolidayApi";
+import type { TimelineItem } from "../types";
 import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
-import { memo, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { CARD_LABEL_SX, CHART_EMPTY_STATE_SX, DOT_SX, HOVER_CARD_BASE_SX, MS, STAT_ROW_SX, fmtDate, hoverCardPos, itemEndDate, makeChartColors, upperBound } from "../utils/utils";
 import { ChartLegend } from "./ChartLegend";
 
@@ -37,7 +37,6 @@ type HoverState = {
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const CumulativeFlowInner: FunctionComponent<Props> = ({ items, highlightWeekends, bankHolidays, colorblindMode, includePRs }) => {
-  const filteredItems = includePRs ? items : items.filter((i) => i.type === "issue");
   const COL = makeChartColors(colorblindMode);
   // chart-specific derived colours not in the shared factory
   const closedFill  = colorblindMode ? "rgba(0,114,178,0.22)" : "rgba(9,105,218,0.22)";
@@ -48,57 +47,66 @@ const CumulativeFlowInner: FunctionComponent<Props> = ({ items, highlightWeekend
   const [hover, setHover] = useState<HoverState | null>(null);
   const bankHolidayMap = useMemo(() => new Map(bankHolidays.map((h) => [h.date, h.name])), [bankHolidays]);
 
-  if (filteredItems.length === 0) {
-    return <Typography sx={CHART_EMPTY_STATE_SX}>No items to plot cumulative flow for.</Typography>;
-  }
-
-  const allTs = filteredItems.flatMap((item) => {
-    const end = itemEndDate(item);
-    return [new Date(item.createdAt).getTime(), ...(end ? [new Date(end).getTime()] : [])];
-  });
-  const minTime   = Math.min(...allTs);
-  const maxTime   = Math.max(...allTs);
-  const totalDays = Math.max(Math.ceil((maxTime - minTime) / MS), 1);
-
-  const sortedOpenedTs = filteredItems.map((item) => new Date(item.createdAt).getTime()).sort((a, b) => a - b);
-  const sortedClosedTs = filteredItems
-    .flatMap((item) => { const e = itemEndDate(item); return e ? [new Date(e).getTime()] : []; })
-    .sort((a, b) => a - b);
-
-const pts: DayPt[] = Array.from({ length: totalDays + 1 }, (_, i) => {
-    const t = minTime + i * MS;
-    return { t, opened: upperBound(sortedOpenedTs, t), closed: upperBound(sortedClosedTs, t) };
-  });
-
-  const maxOpened = Math.max(...pts.map((p) => p.opened), 1);
-
-  const pxFn = (i: number)     => L + (pts.length > 1 ? (i / (pts.length - 1)) * CW : CW / 2);
-  const pyFn = (count: number) => T + (1 - count / maxOpened) * CH;
-
-  // Closed area: trace closed line right → drop to x-axis → back left
-  const closedLinePts = pts
-    .map(({ closed }, i) => `${i === 0 ? "M" : "L"}${pxFn(i).toFixed(1)},${pyFn(closed).toFixed(1)}`)
-    .join(" ");
-  const closedAreaPath = `${closedLinePts} L${(L + CW).toFixed(1)},${(T + CH).toFixed(1)} L${L.toFixed(1)},${(T + CH).toFixed(1)} Z`;
-
-  // Open band: trace opened line right → trace closed line reversed back left
-  const openedLinePts = pts
-    .map(({ opened }, i) => `${i === 0 ? "M" : "L"}${pxFn(i).toFixed(1)},${pyFn(opened).toFixed(1)}`)
-    .join(" ");
-  const closedReversed = [...pts].reverse()
-    .map(({ closed }, ri) => `L${pxFn(pts.length - 1 - ri).toFixed(1)},${pyFn(closed).toFixed(1)}`)
-    .join(" ");
-  const openBandPath = `${openedLinePts} ${closedReversed} Z`;
-
-  const yStep   = maxOpened <= 12 ? 1 : maxOpened <= 30 ? 2 : Math.ceil(maxOpened / 8);
-  const yLabels = Array.from({ length: Math.floor(maxOpened / yStep) + 1 }, (_, i) => i * yStep);
-
-  const numX     = Math.min(8, pts.length);
-  const xIndices = Array.from({ length: numX }, (_, i) =>
-    Math.round((i / Math.max(numX - 1, 1)) * (pts.length - 1)),
+  const filteredItems = useMemo(
+    () => includePRs ? items : items.filter((i) => i.type === "issue"),
+    [items, includePRs],
   );
 
-  const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const chartData = useMemo(() => {
+    if (filteredItems.length === 0) { return null; }
+
+    const allTs = filteredItems.flatMap((item) => {
+      const end = itemEndDate(item);
+      return [new Date(item.createdAt).getTime(), ...(end ? [new Date(end).getTime()] : [])];
+    });
+    const minTime   = Math.min(...allTs);
+    const maxTime   = Math.max(...allTs);
+    const totalDays = Math.max(Math.ceil((maxTime - minTime) / MS), 1);
+
+    const sortedOpenedTs = filteredItems.map((item) => new Date(item.createdAt).getTime()).sort((a, b) => a - b);
+    const sortedClosedTs = filteredItems
+      .flatMap((item) => { const e = itemEndDate(item); return e ? [new Date(e).getTime()] : []; })
+      .sort((a, b) => a - b);
+
+    const pts: DayPt[] = Array.from({ length: totalDays + 1 }, (_, i) => {
+      const t = minTime + i * MS;
+      return { t, opened: upperBound(sortedOpenedTs, t), closed: upperBound(sortedClosedTs, t) };
+    });
+
+    const maxOpened = Math.max(...pts.map((p) => p.opened), 1);
+
+    const pxFn = (i: number)     => L + (pts.length > 1 ? (i / (pts.length - 1)) * CW : CW / 2);
+    const pyFn = (count: number) => T + (1 - count / maxOpened) * CH;
+
+    // Closed area: trace closed line right → drop to x-axis → back left
+    const closedLinePts = pts
+      .map(({ closed }, i) => `${i === 0 ? "M" : "L"}${pxFn(i).toFixed(1)},${pyFn(closed).toFixed(1)}`)
+      .join(" ");
+    const closedAreaPath = `${closedLinePts} L${(L + CW).toFixed(1)},${(T + CH).toFixed(1)} L${L.toFixed(1)},${(T + CH).toFixed(1)} Z`;
+
+    // Open band: trace opened line right → trace closed line reversed back left
+    const openedLinePts = pts
+      .map(({ opened }, i) => `${i === 0 ? "M" : "L"}${pxFn(i).toFixed(1)},${pyFn(opened).toFixed(1)}`)
+      .join(" ");
+    const closedReversed = [...pts].reverse()
+      .map(({ closed }, ri) => `L${pxFn(pts.length - 1 - ri).toFixed(1)},${pyFn(closed).toFixed(1)}`)
+      .join(" ");
+    const openBandPath = `${openedLinePts} ${closedReversed} Z`;
+
+    const yStep   = maxOpened <= 12 ? 1 : maxOpened <= 30 ? 2 : Math.ceil(maxOpened / 8);
+    const yLabels = Array.from({ length: Math.floor(maxOpened / yStep) + 1 }, (_, i) => i * yStep);
+
+    const numX     = Math.min(8, pts.length);
+    const xIndices = Array.from({ length: numX }, (_, i) =>
+      Math.round((i / Math.max(numX - 1, 1)) * (pts.length - 1)),
+    );
+
+    return { minTime, totalDays, pts, maxOpened, pxFn, pyFn, closedLinePts, closedAreaPath, openedLinePts, openBandPath, yStep, yLabels, numX, xIndices };
+  }, [filteredItems]);
+
+  const onMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!chartData) { return; }
+    const { minTime, totalDays } = chartData;
     const rect  = e.currentTarget.getBoundingClientRect();
     const wrapX = e.clientX - rect.left;
     const svgX  = (wrapX / rect.width) * W;
@@ -113,7 +121,13 @@ const pts: DayPt[] = Array.from({ length: totalDays + 1 }, (_, i) => {
     } else {
       setHover(null);
     }
-  };
+  }, [chartData, bankHolidayMap]);
+
+  if (!chartData) {
+    return <Typography sx={CHART_EMPTY_STATE_SX}>No items to plot cumulative flow for.</Typography>;
+  }
+
+  const { minTime, totalDays, pts, pxFn, pyFn, closedLinePts, closedAreaPath, openedLinePts, openBandPath, yLabels, numX, xIndices } = chartData;
 
   // hover.dayIdx is clamped to [0, pts.length-1] in onMouseMove
   const hovered = hover !== null ? pts[hover.dayIdx]! : null;

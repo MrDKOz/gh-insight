@@ -1,7 +1,8 @@
 import type { TimelineItem } from "../types";
 
-const MS      = 86_400_000;
-const MS_HOUR =  3_600_000;
+const MS        = 86_400_000;
+const MS_HOUR   =  3_600_000;
+const STALE_MS  =  7 * 86_400_000;
 
 const fmtDate = (iso: string | null | undefined, includeYear = false): string => {
   if (!iso) {return "N/A";}
@@ -275,7 +276,7 @@ const makeStatusChipSx = (colorblindMode: boolean): Record<string, object> => {
   const p = colorblindMode ? COLORS_CB : COLORS;
   return {
     // 0x26 ≈ 15% opacity, 0x1f ≈ 12% opacity — chosen to match the original design intent
-    open:   { bgcolor: `${COLORS.warning}26`, color: COLORS.warning },
+    open:   { bgcolor: `${p.warning}26`, color: p.warning },
     closed: { bgcolor: `${p.prClosed}1f`,     color: p.prClosed },
     merged: { bgcolor: `${p.prMerged}1f`,     color: p.prMerged },
   };
@@ -380,11 +381,13 @@ export {
   MS,
   MS_HOUR,
   RESIZE_HANDLE_SX,
+  STALE_MS,
   STAT_ROW_SX,
   assigneesOtherThanAuthor,
   durationDays,
   fmtDate,
   fmtDateTime,
+  forecastCompletion,
   hoverCardPos,
   itemEndDate,
   itemStatus,
@@ -393,7 +396,6 @@ export {
   makeStatusChipSx,
   pluralize,
   safeUrl,
-  forecastCompletion,
   snapToHour,
   upperBound,
 };

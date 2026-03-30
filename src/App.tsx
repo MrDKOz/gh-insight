@@ -1,3 +1,5 @@
+import type { BankHoliday, Region } from "./api/bankHolidayApi";
+import type { View } from "./components/MilestoneView";
 import type { Milestone, Repo, UserProfile } from "./types";
 import type { FunctionComponent } from "react";
 import Alert from "@mui/material/Alert";
@@ -6,24 +8,22 @@ import Button from "@mui/material/Button";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { fetchMilestoneItems, fetchMilestones, fetchUserProfile, fetchUserRepos } from "./api/github";
 import { fetchBankHolidays } from "./api/bankHolidayApi";
-import type { BankHoliday, Region } from "./api/bankHolidayApi";
+import { fetchMilestoneItems, fetchMilestones, fetchUserProfile, fetchUserRepos } from "./api/github";
 import { AppHeader } from "./components/AppHeader";
 import { ContextBar } from "./components/ContextBar";
 import { EmptyState } from "./components/EmptyState";
 import { KeyboardShortcuts } from "./components/KeyboardShortcuts";
+import { DEFAULT_VIEW, MilestoneView, readViewFiltersFromUrl } from "./components/MilestoneView";
 import { SettingsPopover } from "./components/SettingsPopover";
 import { SplashScreen } from "./components/SplashScreen";
-import { DEFAULT_VIEW, MilestoneView, readViewFiltersFromUrl } from "./components/MilestoneView";
-import type { View } from "./components/MilestoneView";
 import { DEMO_DATA_BY_REPO, DEMO_REPOS, DEMO_USER } from "./data/demo";
 import { useNewVersionAvailable } from "./hooks/useNewVersionAvailable";
 import { useSettings } from "./hooks/useSettings";
 import { initialState, milestoneReducer } from "./state/milestoneReducer";
 import { muiDarkTheme, muiLightTheme } from "./theme";
-import { COLORS } from "./utils/utils";
 import { EncryptionUnavailableError, decryptToken, encryptToken } from "./utils/tokenCrypto";
+import { COLORS } from "./utils/utils";
 
 type AppPhase = "splash" | "authenticating" | "dashboard";
 
@@ -57,7 +57,7 @@ const syncUrlParams = (activeRepo: Repo | null, selectedNums: number[], isDemo: 
   window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
 };
 
-const MILESTONE_COLORS = [COLORS.issue, COLORS.prMerged, COLORS.success, COLORS.warning, "#cf222e", COLORS.issueDark];
+const MILESTONE_COLORS = [COLORS.issue, COLORS.prMerged, COLORS.success, COLORS.warning, COLORS.prClosed, COLORS.issueDark];
 
 const initDark = (): boolean => {
   const isDark = localStorage.getItem(LS_DARK) !== "false";
@@ -178,7 +178,8 @@ const App: FunctionComponent = () => {
         saveToken(decrypted);
         transitionToDashboard(decrypted, profile, repoList);
       })
-      .catch(() => {
+      .catch((err: unknown) => {
+        console.error("Failed to decrypt stored token; session cleared.", err);
         localStorage.removeItem(LS_TOKEN);
         setPhase("splash");
       });
@@ -528,7 +529,6 @@ const App: FunctionComponent = () => {
                   bankHolidays={bankHolidays}
                   colorblindMode={settings.colorblindMode}
                   view={view}
-                  onViewChange={handleViewChange}
                 />
               </Box>
             )}

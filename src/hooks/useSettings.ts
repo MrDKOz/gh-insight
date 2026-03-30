@@ -1,5 +1,5 @@
-import { useCallback, useState } from "react";
 import type { Region } from "../api/bankHolidayApi";
+import { useCallback, useState } from "react";
 
 const VALID_REGIONS: Region[] = ["england-and-wales", "scotland", "northern-ireland", "US"];
 

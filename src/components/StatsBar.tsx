@@ -8,12 +8,10 @@ import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useMemo } from "react";
-import Tooltip from "@mui/material/Tooltip";
-import { COLORS, COLORS_CB, MS, fmtDate, forecastCompletion, pluralize } from "../utils/utils";
-
-const STALE_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+import { COLORS, COLORS_CB, MS, STALE_MS, fmtDate, forecastCompletion, pluralize } from "../utils/utils";
 
 type StatProps = {
   value: string;
@@ -65,7 +63,7 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
     const isOpen = (i: TimelineItem): boolean =>
       i.type === "issue" ? i.closedAt === null : (i.mergedAt === null && i.closedAt === null);
     const staleCount = items.filter(
-      (i) => isOpen(i) && (now - new Date(i.updatedAt).getTime()) > STALE_THRESHOLD_MS,
+      (i) => isOpen(i) && (now - new Date(i.updatedAt).getTime()) > STALE_MS,
     ).length;
 
     const cycleTimes = closedIssues.flatMap((i) =>
@@ -125,7 +123,7 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
         : null;
       const msStale = msItems.filter((i) => {
         const isOpen = i.type === "issue" ? i.closedAt === null : (i.mergedAt === null && i.closedAt === null);
-        return isOpen && (now - new Date(i.updatedAt).getTime()) > STALE_THRESHOLD_MS;
+        return isOpen && (now - new Date(i.updatedAt).getTime()) > STALE_MS;
       }).length;
       const forecast = forecastCompletion(items, ms.number);
       return { ms, openCount, closedMergedCount, avgCycle, stale: msStale, forecast };

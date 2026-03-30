@@ -1,5 +1,5 @@
-import type { MilestoneMeta, TimelineItem } from "../types";
 import type { BankHoliday } from "../api/bankHolidayApi";
+import type { MilestoneMeta, TimelineItem } from "../types";
 import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
@@ -97,7 +97,7 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
   const yLabels = Array.from({ length: Math.floor(maxCount / yStep) + 1 }, (_, i) => i * yStep);
 
   const showToday = todayMs >= minTime && todayMs <= maxTime;
-  const todayFrac = (todayMs - minTime) / (maxTime - minTime);
+  const todayFrac = (todayMs - minTime) / (maxTime - minTime || 1);
   const todayXNum = L + todayFrac * CW;
   const todayX    = todayXNum.toFixed(1);
   const todayFlipLeft = todayFrac > 0.85;
@@ -121,18 +121,18 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
       markers.push({ xNum, label, color, flipLeft: frac > 0.85 });
     }
     return markers;
-  }, [issues.length, milestones, isMulti, minTime, maxTime]);
+  }, [issues.length, milestones, minTime, maxTime]);
 
   // Assign vertical label rows and horizontal line offsets so markers don't overlap
   const placedMarkers: DueMarkerPlaced[] = [];
   for (const dm of [...dueMarkers].sort((a, b) => a.xNum - b.xNum)) {
     const usedRows = new Set<number>();
-    if (showToday && Math.abs(dm.xNum - todayXNum) < 60) usedRows.add(0);
+    if (showToday && Math.abs(dm.xNum - todayXNum) < 60) {usedRows.add(0);}
     for (const p of placedMarkers) {
-      if (Math.abs(dm.xNum - p.xNum) < 60) usedRows.add(Math.round((p.labelY - (T + 11)) / 11));
+      if (Math.abs(dm.xNum - p.xNum) < 60) {usedRows.add(Math.round((p.labelY - (T + 11)) / 11));}
     }
     let row = 0;
-    while (usedRows.has(row)) row++;
+    while (usedRows.has(row)) {row++;}
     const sameX = placedMarkers.filter((p) => Math.abs(p.xNum - dm.xNum) < 2).length;
     placedMarkers.push({ ...dm, labelY: T + 11 + row * 11, lineX: dm.xNum + sameX * 3 });
   }

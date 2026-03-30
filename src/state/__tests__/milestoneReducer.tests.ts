@@ -202,6 +202,7 @@ describe("RESET", () => {
       error: "some error",
       loadingList: true,
     };
+
     expect(milestoneReducer(state, { type: "RESET" })).toEqual(initialState);
   });
 

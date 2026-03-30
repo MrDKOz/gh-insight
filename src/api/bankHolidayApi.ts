@@ -7,7 +7,7 @@ type BankHoliday = { date: string; name: string };
 // Cache per (region, year)
 const cache = new Map<string, BankHoliday[]>();
 
-async function fetchHolidaysForYear(region: Region, year: number): Promise<BankHoliday[]> {
+const fetchHolidaysForYear = async (region: Region, year: number): Promise<BankHoliday[]> => {
   const key = `${region}-${year}`;
   const cached = cache.get(key);
   if (cached !== undefined) { return cached; }
@@ -16,7 +16,11 @@ async function fetchHolidaysForYear(region: Region, year: number): Promise<BankH
   if (region !== "US") {
     const res = await fetch("https://www.gov.uk/bank-holidays.json");
     if (!res.ok) { throw new Error(`UK bank-holiday API returned ${res.status}`); }
-    const data = await res.json() as Record<string, { events: Array<{ date: string; title: string }> }>;
+    const raw: unknown = await res.json();
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+      throw new Error("Unexpected UK bank-holiday API response shape");
+    }
+    const data = raw as Record<string, { events: Array<{ date: string; title: string }> }>;
     const division = data[region];
     holidays = (division?.events ?? [])
       .filter((ev) => ev.date.startsWith(String(year)))
@@ -25,7 +29,9 @@ async function fetchHolidaysForYear(region: Region, year: number): Promise<BankH
   } else {
     const res = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/US`);
     if (!res.ok) { throw new Error(`US holiday API returned ${res.status}`); }
-    const data = await res.json() as Array<{ date: string; localName: string; types: string[] }>;
+    const raw: unknown = await res.json();
+    if (!Array.isArray(raw)) { throw new Error("Unexpected US holiday API response shape"); }
+    const data = raw as Array<{ date: string; localName: string; types: string[] }>;
     holidays = data
       .filter((d) => d.date.startsWith(String(year)) && !d.types.includes("Observance"))
       .map((d) => ({ date: d.date, name: d.localName }))
@@ -36,7 +42,7 @@ async function fetchHolidaysForYear(region: Region, year: number): Promise<BankH
   return holidays;
 }
 
-async function fetchForRegion(region: Region, minTime: number, maxTime: number): Promise<BankHoliday[]> {
+const fetchForRegion = async (region: Region, minTime: number, maxTime: number): Promise<BankHoliday[]> => {
   const minYear = new Date(minTime).getFullYear();
   const maxYear = new Date(maxTime).getFullYear();
   const yearPromises: Array<Promise<BankHoliday[]>> = [];
@@ -55,7 +61,7 @@ async function fetchForRegion(region: Region, minTime: number, maxTime: number):
  * Results from multiple regions are merged and deduplicated by date.
  * Results are cached per (region, year).
  */
-async function fetchBankHolidays(regions: Region[], minTime: number, maxTime: number): Promise<BankHoliday[]> {
+const fetchBankHolidays = async (regions: Region[], minTime: number, maxTime: number): Promise<BankHoliday[]> => {
   if (regions.length === 0) { return []; }
   const perRegion = await Promise.all(regions.map((r) => fetchForRegion(r, minTime, maxTime)));
   // Merge and deduplicate by date; first region wins on name conflicts

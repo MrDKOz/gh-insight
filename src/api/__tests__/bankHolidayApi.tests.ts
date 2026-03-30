@@ -216,6 +216,7 @@ describe("fetchBankHolidays — multi-region merge", () => {
 
     // Jan 1 appears in both regions but should only appear once
     const jan1 = result.filter((h) => h.date === "2060-01-01");
+
     expect(jan1).toHaveLength(1);
     // First region's name wins on conflict
     expect(jan1[0]?.name).toBe("New Year's Day (E&W)");

@@ -3,6 +3,7 @@ import Box from "@mui/material/Box";
 import Link from "@mui/material/Link";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
+import { FS, safeUrl } from "../utils/utils";
 
 type TagProps = {
   login: string;
@@ -23,7 +24,7 @@ const AuthorTag: FunctionComponent<TagProps> = ({
 }) => (
   <Box
     component="span"
-    style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "inherit" }}
+    style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: FS.base, color: "inherit" }}
     onMouseEnter={onMouseEnter}
     onMouseLeave={onMouseLeave}
   >
@@ -78,7 +79,7 @@ const AuthorCard: FunctionComponent<CardProps> = ({ login, style, onMouseEnter, 
     />
     <Box sx={{ fontSize: "0.8125rem", fontWeight: 600 }}>@{login}</Box>
     <Link
-      href={`https://github.com/${login}`}
+      href={safeUrl(`https://github.com/${login}`)}
       target="_blank"
       rel="noreferrer"
       underline="hover"
@@ -93,7 +94,7 @@ const AuthorCard: FunctionComponent<CardProps> = ({ login, style, onMouseEnter, 
 const RoleLabel: FunctionComponent<{ text: string }> = ({ text }) => (
   <Typography
     sx={{
-      fontSize: "0.5rem",
+      fontSize: FS.tiny,
       color: "text.disabled",
       fontWeight: 600,
       lineHeight: 1,
