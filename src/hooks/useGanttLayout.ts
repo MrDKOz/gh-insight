@@ -1,4 +1,4 @@
-import type { TimelineItem } from "../types";
+import type { TimelineItem } from "../types/GitHubTypes";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { MS, itemEndDate, snapToHour } from "../utils/utils";
 

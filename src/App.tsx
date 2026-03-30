@@ -1,6 +1,6 @@
 import type { BankHoliday, Region } from "./api/bankHolidayApi";
 import type { View } from "./components/MilestoneView";
-import type { Milestone, Repo, UserProfile } from "./types";
+import type { Milestone, Repo, UserProfile } from "./types/GitHubTypes";
 import type { FunctionComponent } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";

@@ -1,4 +1,4 @@
-import type { Milestone, Repo, TimelineItem, UserProfile } from "../types";
+import type { Milestone, Repo, TimelineItem, UserProfile } from "../types/GitHubTypes";
 
 // All dates are relative to today so open bars never stretch absurdly far
 // and the demo always looks like live, recent work.

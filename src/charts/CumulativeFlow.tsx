@@ -1,5 +1,5 @@
 import type { BankHoliday } from "../api/bankHolidayApi";
-import type { TimelineItem } from "../types";
+import type { TimelineItem } from "../types/GitHubTypes";
 import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";

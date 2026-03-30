@@ -1,4 +1,4 @@
-import type { Label, Milestone, Repo, TimelineItem, UserProfile } from "../types";
+import type { Label, Milestone, Repo, TimelineItem, UserProfile } from "../types/GitHubTypes";
 
 const GH_API = "https://api.github.com";
 const GH_GRAPHQL = "https://api.github.com/graphql";

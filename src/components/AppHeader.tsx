@@ -1,4 +1,4 @@
-import type { UserProfile } from "../types";
+import type { UserProfile } from "../types/GitHubTypes";
 import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";

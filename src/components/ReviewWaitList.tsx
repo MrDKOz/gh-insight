@@ -1,4 +1,4 @@
-import type { MilestoneMeta, TimelineItem } from "../types";
+import type { MilestoneMeta, TimelineItem } from "../types/GitHubTypes";
 import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";

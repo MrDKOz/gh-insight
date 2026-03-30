@@ -1,4 +1,4 @@
-import type { TimelineItem } from "../../types";
+import type { TimelineItem } from "../../types/GitHubTypes";
 import { COLORS, COLORS_CB, MS, MS_HOUR, assigneesOtherThanAuthor, durationDays, fmtDate, fmtDateTime, forecastCompletion, hoverCardPos, itemEndDate, itemStatus, labelTextColor, makeChartColors, makeStatusChipSx, pluralize, safeUrl, snapToHour, upperBound } from "../utils";
 
 const issue = (overrides: Partial<{ closedAt: string | null }> = {}): TimelineItem => ({

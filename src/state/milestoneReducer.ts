@@ -1,4 +1,4 @@
-import type { Milestone, TimelineItem } from "../types";
+import type { Milestone, TimelineItem } from "../types/GitHubTypes";
 
 type MilestoneState = {
   milestones: Milestone[];

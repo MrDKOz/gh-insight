@@ -1,5 +1,5 @@
 import type { BankHoliday } from "../api/bankHolidayApi";
-import type { MilestoneMeta, TimelineItem } from "../types";
+import type { MilestoneMeta, TimelineItem } from "../types/GitHubTypes";
 import type { Filters } from "./FilterBar";
 import type { GanttHandle } from "./GanttView";
 import type { FunctionComponent } from "react";

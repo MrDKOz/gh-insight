@@ -1,4 +1,4 @@
-import type { Milestone } from "../types";
+import type { Milestone } from "../types/GitHubTypes";
 import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";

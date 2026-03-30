@@ -1,4 +1,4 @@
-import type { TimelineItem } from "../../types";
+import type { TimelineItem } from "../../types/GitHubTypes";
 import type { Filters } from "../FilterBar";
 import { DEFAULT_FILTERS, applyFilters } from "../FilterBar";
 

@@ -1,4 +1,4 @@
-import type { Milestone, Repo } from "../types";
+import type { Milestone, Repo } from "../types/GitHubTypes";
 import type { View } from "./MilestoneView";
 import type { FunctionComponent } from "react";
 import Autocomplete from "@mui/material/Autocomplete";

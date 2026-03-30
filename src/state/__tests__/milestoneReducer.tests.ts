@@ -1,4 +1,4 @@
-import type { Milestone, TimelineItem } from "../../types";
+import type { Milestone, TimelineItem } from "../../types/GitHubTypes";
 import { initialState, milestoneReducer } from "../milestoneReducer";
 
 const ms1: Milestone = { number: 1, title: "Sprint 1", state: "open", openIssues: 2, closedIssues: 8, dueOn: null };

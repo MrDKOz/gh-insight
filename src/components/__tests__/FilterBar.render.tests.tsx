@@ -1,4 +1,4 @@
-import type { TimelineItem } from "../../types";
+import type { TimelineItem } from "../../types/GitHubTypes";
 import type { Filters } from "../FilterBar";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { fireEvent, render } from "@testing-library/react";

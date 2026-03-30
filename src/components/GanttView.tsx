@@ -1,5 +1,5 @@
 import type { BankHoliday } from "../api/bankHolidayApi";
-import type { MilestoneMeta, TimelineItem } from "../types";
+import type { MilestoneMeta, TimelineItem } from "../types/GitHubTypes";
 import type { FunctionComponent, MouseEvent } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";

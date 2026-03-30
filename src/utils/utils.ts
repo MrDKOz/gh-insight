@@ -1,4 +1,4 @@
-import type { TimelineItem } from "../types";
+import type { TimelineItem } from "../types/GitHubTypes";
 
 const MS        = 86_400_000;
 const MS_HOUR   =  3_600_000;

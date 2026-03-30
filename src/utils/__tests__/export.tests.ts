@@ -1,4 +1,4 @@
-import type { TimelineItem } from "../../types";
+import type { TimelineItem } from "../../types/GitHubTypes";
 import { buildReviewWaitRows, buildRows, exportCSV, exportMarkdown, safeFilename } from "../export";
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
