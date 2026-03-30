@@ -2,15 +2,14 @@ import type { BankHoliday } from "../api/bankHolidayApi";
 import type { MilestoneMeta, TimelineItem } from "../types/GitHubTypes";
 import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
-import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
-import { AuthorWithAssignees } from "../components/AuthorWithAssignees";
 import { makeChartColors } from "../utils/colorUtils";
 import { MS, fmtDate, fmtDateTime } from "../utils/dateUtils";
-import { FS, hoverCardPos, itemEndDate, pluralize } from "../utils/displayUtils";
-import { CARD_LABEL_SX, CHART_EMPTY_STATE_SX, DOT_SX, STAT_ROW_SX } from "../utils/sxTokens";
+import { hoverCardPos, itemEndDate, pluralize } from "../utils/displayUtils";
+import { CHART_EMPTY_STATE_SX } from "../utils/sxTokens";
 import { ChartLegend } from "./ChartLegend";
+import { ItemHoverCard } from "./ItemHoverCard";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -138,11 +137,6 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
     }
   }
 
-  const cardStyle = hover
-    ? hoverCardPos(hover.x, hover.y, wrapRef.current?.offsetWidth ?? 800, 230, 140)
-    : {};
-
-  // Review wait time in days (PR only)
   const reviewWaitDays = hover?.pt.firstReviewAt
     ? Math.round(
         (new Date(hover.pt.firstReviewAt).getTime() - new Date(hover.pt.item.createdAt).getTime()) / MS,
@@ -152,48 +146,16 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
   return (
     <Box className="chart-wrap" ref={wrapRef} role="presentation" style={{ position: "relative" }}>
       {hover && (
-        <Paper
-          component="a"
-          elevation={2}
+        <ItemHoverCard
+          item={hover.pt.item}
+          dotColor={hover.pt.col}
+          typeLabel={hover.pt.typeLabel}
+          dateRange={`${DAY_NAMES[new Date(hover.pt.item.createdAt).getUTCDay()]} ${fmtDateTime(hover.pt.item.createdAt)} → ${DAY_NAMES[new Date(hover.pt.endDate).getUTCDay()]} ${fmtDateTime(hover.pt.endDate)}`}
+          metric={`${pluralize(hover.pt.days, "day")} cycle time`}
+          reviewWaitDays={reviewWaitDays}
           href={hover.url}
-          target="_blank"
-          rel="noreferrer"
-          sx={{
-            position: "absolute",
-            display: "flex",
-            flexDirection: "column",
-            gap: "5px",
-            minWidth: 148,
-            px: 1.5,
-            py: 1,
-            zIndex: 50,
-            cursor: "pointer",
-            textDecoration: "none",
-            color: "inherit",
-            "&:hover": { borderColor: "primary.main", boxShadow: "0 4px 20px rgba(0,0,0,0.22)" },
-            ...cardStyle,
-          }}
-        >
-          <Box sx={{ display: "flex", alignItems: "center", fontSize: FS.sm, fontWeight: 600, color: "text.secondary" }}>
-            <Box component="span" sx={{ ...DOT_SX, display: "inline-block", bgcolor: hover.pt.col, mr: "5px", verticalAlign: "middle" }} />
-            {hover.pt.typeLabel} #{hover.pt.item.number}
-          </Box>
-          <Typography sx={{ fontSize: FS.base, color: "text.primary", maxWidth: 210, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {hover.pt.item.title}
-          </Typography>
-          <AuthorWithAssignees author={hover.pt.item.author} assignees={hover.pt.item.assignees} />
-          <Box sx={STAT_ROW_SX}>
-            {pluralize(hover.pt.days, "day")} cycle time
-          </Box>
-          {reviewWaitDays !== null && (
-            <Box sx={{ fontSize: FS.sm, fontWeight: 500, color: "text.secondary" }}>
-              ⏱ {reviewWaitDays}d to first review
-            </Box>
-          )}
-          <Box sx={CARD_LABEL_SX}>
-            {DAY_NAMES[new Date(hover.pt.item.createdAt).getUTCDay()]} {fmtDateTime(hover.pt.item.createdAt)} → {DAY_NAMES[new Date(hover.pt.endDate).getUTCDay()]} {fmtDateTime(hover.pt.endDate)}
-          </Box>
-        </Paper>
+          positionSx={{ position: "absolute", ...hoverCardPos(hover.x, hover.y, wrapRef.current?.offsetWidth ?? 800, 280, 320) }}
+        />
       )}
 
       <table className="sr-only" aria-label="Cycle time data">

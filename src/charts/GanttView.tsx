@@ -1,4 +1,3 @@
-import type { BarHover } from "./BarHoverCard";
 import type { BankHoliday } from "../api/bankHolidayApi";
 import type { GanttHandle } from "../types/AppTypes";
 import type { MilestoneMeta, TimelineItem } from "../types/GitHubTypes";
@@ -10,8 +9,8 @@ import { AuthorCard, AuthorTag } from "../components/AuthorTag";
 import { COLORS, COLORS_CB } from "../utils/colorUtils";
 import { MS, MS_HOUR, STALE_MS, durationDays, fmtDate, fmtDateTime, snapToHour } from "../utils/dateUtils";
 import { FS, itemEndDate, safeUrl } from "../utils/displayUtils";
-import { BarHoverCard } from "./BarHoverCard";
 import { GanttLegend } from "./GanttLegend";
+import { ItemHoverCard, fixedItemCardPos } from "./ItemHoverCard";
 
 // ── Gantt layout hook ─────────────────────────────────────────────────────
 
@@ -213,6 +212,7 @@ const ROW_HEIGHT = 31;
 const DAY_NAMES  = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 type CursorInfo = { snappedMs: number; clientX: number; clientY: number };
+type BarHover  = { clientX: number; clientY: number; item: TimelineItem; endDate: string | null; isOpen: boolean; durationText: string; dotColor: string; statusWord: string };
 
 const GanttView = forwardRef<GanttHandle, Props>(({
   items,
@@ -759,7 +759,20 @@ const GanttView = forwardRef<GanttHandle, Props>(({
         );
       })()}
 
-      {barHover && <BarHoverCard barHover={barHover} snapMode={snapMode} />}
+      {barHover && (() => {
+        const fmt = snapMode === "hour" ? fmtDateTime : fmtDate;
+        return (
+          <ItemHoverCard
+            item={barHover.item}
+            dotColor={barHover.dotColor}
+            isOpen={barHover.isOpen}
+            statusWord={barHover.statusWord}
+            dateRange={`${fmt(barHover.item.createdAt)} → ${barHover.isOpen ? "ongoing" : fmt(barHover.endDate)}`}
+            metric={barHover.durationText}
+            positionSx={fixedItemCardPos(barHover.clientX, barHover.clientY)}
+          />
+        );
+      })()}
     </>
   );
 });
