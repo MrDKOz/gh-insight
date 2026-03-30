@@ -21,13 +21,13 @@ import { Burndown } from "../charts/Burndown";
 import { Contributors } from "../charts/Contributors";
 import { CumulativeFlow } from "../charts/CumulativeFlow";
 import { CycleTime } from "../charts/CycleTime";
+import { GanttView } from "../charts/GanttView";
 import { Velocity } from "../charts/Velocity";
 
 import { DEFAULT_VIEW, VIEWS } from "../types/AppTypes";
 import { applyFilters } from "../types/FilterTypes";
 import { exportCSV, exportChartPDF, exportGanttPDF, exportMarkdown, exportPDF, exportPNG, exportReviewWaitCSV, exportReviewWaitMarkdown, exportReviewWaitPDF, exportReviewWaitXLSX, exportSVG, exportXLSX } from "../utils/export";
 import { FilterBar } from "./FilterBar";
-import { GanttView } from "./GanttView";
 import { ItemList } from "./ItemList";
 import { ReviewWaitList } from "./ReviewWaitList";
 import { StatsBar } from "./StatsBar";

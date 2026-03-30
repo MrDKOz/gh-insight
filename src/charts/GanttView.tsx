@@ -6,11 +6,11 @@ import type { MouseEvent } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { AuthorCard, AuthorTag } from "../components/AuthorTag";
 import { useGanttLayout } from "../hooks/useGanttLayout";
 import { COLORS, COLORS_CB } from "../utils/colorUtils";
 import { MS, MS_HOUR, STALE_MS, durationDays, fmtDate, fmtDateTime, snapToHour } from "../utils/dateUtils";
 import { FS, itemEndDate, safeUrl } from "../utils/displayUtils";
-import { AuthorCard, AuthorTag } from "./AuthorTag";
 import { BarHoverCard } from "./BarHoverCard";
 import { GanttLegend } from "./GanttLegend";
 
