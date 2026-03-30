@@ -1,6 +1,7 @@
 import type { BankHoliday } from "../api/bankHolidayApi";
 import type { MilestoneMeta, TimelineItem } from "../types";
 import type { Filters } from "./FilterBar";
+import type { GanttHandle } from "./GanttView";
 import type { FunctionComponent } from "react";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
@@ -20,7 +21,6 @@ import { Contributors } from "../charts/Contributors";
 import { CumulativeFlow } from "../charts/CumulativeFlow";
 import { CycleTime } from "../charts/CycleTime";
 import { Velocity } from "../charts/Velocity";
-import { useGanttLayout } from "../hooks/useGanttLayout";
 import { exportCSV, exportChartPDF, exportGanttPDF, exportMarkdown, exportPDF, exportPNG, exportReviewWaitCSV, exportReviewWaitMarkdown, exportReviewWaitPDF, exportReviewWaitXLSX, exportSVG, exportXLSX } from "../utils/export";
 
 import { FilterBar, applyFilters } from "./FilterBar";
@@ -133,8 +133,8 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
 
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  const milestoneColorMap = useMemo(() => new Map(milestones.map((m) => [m.number, m.color])), [milestones]);
-  const isMultiMilestone = milestones.length > 1;
+  const ganttRef = useRef<GanttHandle>(null);
+
   const title =
     milestones.length === 0
       ? "Milestone"
@@ -154,23 +154,6 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
   }, [items]);
 
   const filteredItems = useMemo(() => applyFilters(items, filters), [items, filters]);
-
-  const {
-    labelWidth,
-    axisHeight,
-    snapMode,
-    trackColRef,
-    axisRef,
-    todayMs,
-    minTime,
-    totalMs,
-    trackWidth,
-    sortedItems,
-    handleFitToScreen,
-    handleResizeStart,
-    handleResizeKeyDown,
-    handleSnapModeChange,
-  } = useGanttLayout(items, filteredItems, view);
 
   const counts = useMemo(
     () => ({
@@ -211,15 +194,15 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
           else if (fmt === "Markdown")           {exportReviewWaitMarkdown(filteredItems, title, milestones);}
           else if (fmt === "XLSX")               {await exportReviewWaitXLSX(filteredItems, title, milestones);}
           else if (fmt === "PDF")                {await exportReviewWaitPDF(filteredItems, title, milestones);}
-          else if (fmt === "PNG — Current view") {await exportPNG(container, trackColRef.current, title, "current");}
+          else if (fmt === "PNG — Current view") {await exportPNG(container, ganttRef.current?.trackColEl ?? null, title, "current");}
         } else if (fmt === "SVG")                {exportSVG(container, title);}
         else if (fmt === "CSV")                  {exportCSV(filteredItems, title);}
         else if (fmt === "Markdown")             {exportMarkdown(filteredItems, title);}
         else if (fmt === "XLSX")                 {await exportXLSX(filteredItems, title);}
-        else if (fmt === "PNG — Current view")   {await exportPNG(container, trackColRef.current, title, "current");}
-        else if (fmt === "PNG — Full timeline")  {await exportPNG(container, trackColRef.current, title, "full");}
+        else if (fmt === "PNG — Current view")   {await exportPNG(container, ganttRef.current?.trackColEl ?? null, title, "current");}
+        else if (fmt === "PNG — Full timeline")  {await exportPNG(container, ganttRef.current?.trackColEl ?? null, title, "full");}
         else if (fmt === "PDF") {
-          if (view === "Gantt")          {await exportGanttPDF(container, trackColRef.current, title);}
+          if (view === "Gantt")          {await exportGanttPDF(container, ganttRef.current?.trackColEl ?? null, title);}
           else if (CHART_VIEWS.has(view)){await exportChartPDF(container, title);}
           else                           {await exportPDF(filteredItems, title);}
         }
@@ -230,7 +213,7 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
         setExporting(null);
       }
     },
-    [filteredItems, milestones, title, trackColRef, view],
+    [filteredItems, milestones, title, view],
   );
 
   if (items.length === 0) {
@@ -356,27 +339,13 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
 
       {!noFilteredItems && view === "Gantt" && (
         <GanttView
-          sortedItems={sortedItems}
+          ref={ganttRef}
+          items={items}
+          filteredItems={filteredItems}
           milestones={milestones}
-          isMultiMilestone={isMultiMilestone}
-          milestoneColorMap={milestoneColorMap}
-          hasOpenIssues={openIssues.length > 0}
-          labelWidth={labelWidth}
-          axisHeight={axisHeight}
-          trackWidth={trackWidth}
-          minTime={minTime}
-          totalMs={totalMs}
-          todayMs={todayMs}
-          trackColRef={trackColRef}
-          axisRef={axisRef}
-          onResizeStart={handleResizeStart}
-          onResizeKeyDown={handleResizeKeyDown}
           highlightWeekends={highlightWeekends}
           bankHolidays={bankHolidays}
           colorblindMode={colorblindMode}
-          snapMode={snapMode}
-          onSnapModeChange={handleSnapModeChange}
-          onFitToScreen={handleFitToScreen}
         />
       )}
     </Paper>

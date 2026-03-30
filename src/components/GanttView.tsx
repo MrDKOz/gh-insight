@@ -1,40 +1,28 @@
 import type { BankHoliday } from "../api/bankHolidayApi";
 import type { MilestoneMeta, TimelineItem } from "../types";
-import type { FunctionComponent, MouseEvent, RefObject } from "react";
+import type { FunctionComponent, MouseEvent } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { useGanttLayout } from "../hooks/useGanttLayout";
 import { COLORS, COLORS_CB, FS, MS, MS_HOUR, STALE_MS, durationDays, fmtDate, fmtDateTime, itemEndDate, pluralize, safeUrl, snapToHour } from "../utils/utils";
 import { AuthorCard, AuthorTag } from "./AuthorTag";
 import { LabelBadge } from "./LabelBadge";
 
 type Props = {
-  sortedItems: TimelineItem[];
+  items: TimelineItem[];
+  filteredItems: TimelineItem[];
   milestones: MilestoneMeta[];
-  isMultiMilestone: boolean;
-  milestoneColorMap: Map<number, string>;
-  hasOpenIssues: boolean;
-  labelWidth: number;
-  axisHeight: number;
-  trackWidth: number;
-  minTime: number;
-  totalMs: number;
-  todayMs: number;
-  trackColRef: RefObject<HTMLDivElement | null>;
-  axisRef: RefObject<HTMLDivElement | null>;
-  onResizeStart: (e: MouseEvent<HTMLDivElement>) => void;
-  onResizeKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void;
   highlightWeekends: boolean;
   bankHolidays: BankHoliday[];
   colorblindMode: boolean;
-  snapMode: "day" | "hour";
-  onSnapModeChange: (mode: "day" | "hour") => void;
-  onFitToScreen: () => void;
 };
+
+type GanttHandle = { trackColEl: HTMLDivElement | null };
 
 const ROW_HEIGHT = 31;
 const DAY_NAMES  = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -185,29 +173,28 @@ const BarHoverCard: FunctionComponent<{ barHover: BarHover; snapMode: "day" | "h
   );
 };
 
-const GanttView: FunctionComponent<Props> = ({
-  sortedItems,
+const GanttView = forwardRef<GanttHandle, Props>(({
+  items,
+  filteredItems,
   milestones,
-  isMultiMilestone,
-  milestoneColorMap,
-  hasOpenIssues,
-  labelWidth,
-  axisHeight,
-  trackWidth,
-  minTime,
-  totalMs,
-  todayMs,
-  trackColRef,
-  axisRef,
-  onResizeStart,
-  onResizeKeyDown,
   highlightWeekends,
   bankHolidays,
   colorblindMode,
-  snapMode,
-  onSnapModeChange,
-  onFitToScreen,
-}) => {
+}, ref) => {
+  const {
+    labelWidth, axisHeight, trackWidth, minTime, totalMs, todayMs, snapMode,
+    trackColRef, axisRef, sortedItems,
+    handleFitToScreen: onFitToScreen,
+    handleResizeStart: onResizeStart,
+    handleResizeKeyDown: onResizeKeyDown,
+    handleSnapModeChange: onSnapModeChange,
+  } = useGanttLayout(items, filteredItems);
+
+  const isMultiMilestone = milestones.length > 1;
+  const milestoneColorMap = useMemo(() => new Map(milestones.map((m) => [m.number, m.color])), [milestones]);
+  const hasOpenIssues = useMemo(() => items.some((i) => i.type === "issue" && !i.closedAt), [items]);
+
+  useImperativeHandle(ref, () => ({ trackColEl: trackColRef.current }), [trackColRef]);
   const [hoverItem, setHoverItem] = useState<TimelineItem | null>(null);
   const [cardPos, setCardPos] = useState({ top: 0, left: 0 });
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -734,6 +721,9 @@ const GanttView: FunctionComponent<Props> = ({
       {barHover && <BarHoverCard barHover={barHover} snapMode={snapMode} />}
     </>
   );
-};
+});
+
+GanttView.displayName = "GanttView";
 
 export { GanttView };
+export type { GanttHandle };

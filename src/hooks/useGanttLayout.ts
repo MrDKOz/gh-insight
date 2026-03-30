@@ -1,4 +1,3 @@
-import type { View } from "../components/MilestoneView";
 import type { TimelineItem } from "../types";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { MS, itemEndDate, snapToHour } from "../utils/utils";
@@ -26,11 +25,7 @@ type GanttLayout = {
   handleSnapModeChange: (mode: "day" | "hour") => void;
 };
 
-const useGanttLayout = (
-  items: TimelineItem[],
-  filteredItems: TimelineItem[],
-  view: View,
-): GanttLayout => {
+const useGanttLayout = (items: TimelineItem[], filteredItems: TimelineItem[]): GanttLayout => {
   const [labelWidth, setLabelWidth] = useState(400);
   const [pixelsPerDay, setPixelsPerDay] = useState(30);
   const [axisHeight, setAxisHeight] = useState(36);
@@ -103,11 +98,10 @@ const useGanttLayout = (
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [view]);
+  }, []);
 
   // Initial zoom to fit all items
   useEffect(() => {
-    if (view !== "Gantt") { return; }
     const el = trackColRef.current;
     if (!el || items.length === 0) { setPixelsPerDay(30); return; }
     const allTs = items.flatMap((item) => {
@@ -120,7 +114,7 @@ const useGanttLayout = (
     const max = hasOpen ? Math.max(...allTs, Date.now()) : Math.max(...allTs) + 3 * MS;
     const days = Math.max(1, (max - min) / MS);
     setPixelsPerDay(Math.max(4, Math.min(200, el.clientWidth / days)));
-  }, [items, view]);
+  }, [items]);
 
   // Non-passive wheel listener for scroll-zoom
   useEffect(() => {
@@ -140,7 +134,7 @@ const useGanttLayout = (
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
-  }, [view]);
+  }, []);
 
   // Apply pending scroll after zoom
   useEffect(() => {
