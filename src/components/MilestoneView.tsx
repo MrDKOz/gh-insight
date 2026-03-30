@@ -27,7 +27,6 @@ import { Velocity } from "../charts/Velocity";
 
 import { applyFilters } from "../types/FilterTypes";
 import { exportCSV, exportChartPDF, exportGanttPDF, exportMarkdown, exportPDF, exportPNG, exportReviewWaitCSV, exportReviewWaitMarkdown, exportReviewWaitPDF, exportReviewWaitXLSX, exportSVG, exportXLSX } from "../utils/export";
-import { syncFiltersToUrl } from "../utils/urlUtils";
 import { FilterBar } from "./FilterBar";
 import { ItemList } from "./ItemList";
 import { ReviewWaitList } from "./ReviewWaitList";
@@ -107,7 +106,6 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
 
   const handleFiltersChange = useCallback((newFilters: Filters) => {
     dispatch({ type: "SET_FILTERS", filters: newFilters });
-    syncFiltersToUrl(newFilters);
   }, [dispatch]);
 
   // Read portal target nodes after mount — querying the DOM inline during

@@ -1,5 +1,4 @@
 import type { Milestone, TimelineItem } from "../../types/GitHubTypes";
-import type { Action } from "../milestoneReducer";
 import { initialState, milestoneReducer } from "../milestoneReducer";
 
 const ms1: Milestone = { number: 1, title: "Sprint 1", state: "open", openIssues: 2, closedIssues: 8, dueOn: null };
@@ -173,11 +172,10 @@ describe("REMOVE_MILESTONE", () => {
   });
 });
 
-describe("milestoneReducer — default case", () => {
-  it("returns state unchanged for an unknown action type", () => {
-    const next = milestoneReducer(initialState, { type: "UNKNOWN_ACTION" } as unknown as Action);
-
-    expect(next).toBe(initialState);
+describe("milestoneReducer — exhaustiveness check", () => {
+  it("TypeScript exhaustiveness: all known action types are handled without throwing", () => {
+    expect(() => milestoneReducer(initialState, { type: "RESET" })).not.toThrow();
+    expect(() => milestoneReducer(initialState, { type: "FETCH_LIST_START" })).not.toThrow();
   });
 });
 

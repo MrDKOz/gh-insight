@@ -25,7 +25,7 @@ import { useNewVersionAvailable } from "./hooks/useNewVersionAvailable";
 import { useSettings } from "./hooks/useSettings";
 import { muiDarkTheme, muiLightTheme } from "./theme";
 import { decryptToken } from "./utils/tokenCrypto";
-import { readUrlParams, setViewParam, syncUrlParams } from "./utils/urlUtils";
+import { readUrlParams, setViewParam, syncFiltersToUrl, syncUrlParams } from "./utils/urlUtils";
 
 // Evaluated once at module load — stable across the lifetime of the page
 const INITIAL_URL_PARAMS = readUrlParams();
@@ -139,8 +139,14 @@ const App: FunctionComponent = () => {
   // ── URL synchronisation ───────────────────────────────────────────────────
 
   useEffect(() => {
-    syncUrlParams(milestones.state.activeRepo, milestones.state.selected.map((m) => m.number), milestones.state.isDemo);
-  }, [milestones.state.activeRepo, milestones.state.selected, milestones.state.isDemo]);
+    syncUrlParams(
+      milestones.state.activeRepo,
+      milestones.state.selected.map((m) => m.number),
+      milestones.state.isDemo,
+    );
+    setViewParam(milestones.state.view);
+    syncFiltersToUrl(milestones.state.filters);
+  }, [milestones.state.activeRepo, milestones.state.selected, milestones.state.isDemo, milestones.state.view, milestones.state.filters]);
 
   useEffect(() => {
     document.body.classList.toggle("colorblind", settings.colorblindMode);
@@ -150,7 +156,6 @@ const App: FunctionComponent = () => {
 
   const handleViewChange = useCallback((v: View) => {
     milestones.dispatch({ type: "SET_VIEW", view: v });
-    setViewParam(v);
   }, [milestones]);
 
   // ── Config import / export ────────────────────────────────────────────────

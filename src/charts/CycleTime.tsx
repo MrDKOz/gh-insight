@@ -47,7 +47,10 @@ type Hover = {
 };
 
 const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, bankHolidays, colorblindMode, includePRs }) => {
-  const filteredItems = includePRs ? items : items.filter((i) => i.type === "issue");
+  const filteredItems = useMemo(
+    () => includePRs ? items : items.filter((i) => i.type === "issue"),
+    [items, includePRs],
+  );
   const chartColors = makeChartColors(colorblindMode);
   const isMulti = milestones.length > 1;
   const milestoneColorMap = useMemo(

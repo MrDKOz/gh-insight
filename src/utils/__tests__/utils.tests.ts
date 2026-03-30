@@ -1,7 +1,9 @@
 import type { TimelineItem } from "../../types/GitHubTypes";
+import { DEFAULT_FILTERS } from "../../types/FilterTypes";
 import { COLORS, COLORS_CB, labelTextColor, makeChartColors, makeStatusChipSx } from "../colorUtils";
 import { MS_PER_DAY, MS_PER_HOUR, durationDays, fmtDate, fmtDateTime, forecastCompletion, snapToHour } from "../dateUtils";
 import { assigneesOtherThanAuthor, hoverCardPos, itemEndDate, itemStatus, pluralize, safeUrl, upperBound } from "../displayUtils";
+import { readViewFiltersFromUrl, setViewParam, syncFiltersToUrl } from "../urlUtils";
 
 const issue = (overrides: Partial<{ closedAt: string | null }> = {}): TimelineItem => ({
   type: "issue", number: 1, title: "Test issue",
@@ -487,7 +489,7 @@ describe("forecastCompletion", () => {
   });
 
   it("ignores non-issue items (PRs) regardless of milestone", () => {
-    const pr: TimelineItem = {
+    const prItem: TimelineItem = {
       type: "pr", number: 99, title: "A PR",
       url: "https://github.com/o/r/pull/99", author: "bob",
       createdAt: new Date(490 * MS_PER_DAY).toISOString(),
@@ -498,7 +500,7 @@ describe("forecastCompletion", () => {
       linkedIssue: null, milestoneNumber: 1,
       labels: [], assignees: [], firstReviewAt: null,
     };
-    const items = [pr, mkForecastIssue(1, 490, null)];
+    const items = [prItem, mkForecastIssue(1, 490, null)];
 
     // Only 1 open issue, 0 closed → no forecast possible
     expect(forecastCompletion(items)).toBeNull();
@@ -526,5 +528,69 @@ describe("forecastCompletion", () => {
 
     // totalDays = ceil((today - day490) / MS) = 10
     expect(result?.totalDays).toBe(10);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// readViewFiltersFromUrl / syncFiltersToUrl round-trip tests
+// ---------------------------------------------------------------------------
+
+describe("syncFiltersToUrl / readViewFiltersFromUrl", () => {
+  beforeEach(() => {
+    // Reset to a clean URL before each test using jsdom's real history API
+    window.history.pushState(null, "", "/");
+  });
+
+  it("round-trips filters with labels, people, and status toggles", () => {
+    const filters = {
+      ...DEFAULT_FILTERS,
+      showOpenIssues: false,
+      showMergedPRs: false,
+      activeLabels: ["bug", "enhancement"],
+      activePeople: ["alice", "bob"],
+      peopleRole: "author" as const,
+    };
+    syncFiltersToUrl(filters);
+    const { filters: result } = readViewFiltersFromUrl();
+
+    expect(result.showOpenIssues).toBe(false);
+    expect(result.showMergedPRs).toBe(false);
+    expect(result.activeLabels).toEqual(["bug", "enhancement"]);
+    expect(result.activePeople).toEqual(["alice", "bob"]);
+    expect(result.peopleRole).toBe("author");
+  });
+
+  it("round-trips a non-default view via setViewParam", () => {
+    setViewParam("Burndown");
+    const { view } = readViewFiltersFromUrl();
+
+    expect(view).toBe("Burndown");
+  });
+
+  it("round-trips the default view without leaving a 'view' param in the URL", () => {
+    setViewParam("Gantt");
+    const { view } = readViewFiltersFromUrl();
+
+    // DEFAULT_VIEW is "Gantt" — the param should be omitted and the result defaults back
+    expect(view).toBe("Gantt");
+  });
+
+  it("empty labels and people arrays round-trip without producing stray params", () => {
+    syncFiltersToUrl({ ...DEFAULT_FILTERS, activeLabels: [], activePeople: [] });
+    const { filters } = readViewFiltersFromUrl();
+
+    expect(filters.activeLabels).toEqual([]);
+    expect(filters.activePeople).toEqual([]);
+    // The search string should not contain labels= or people= with empty value
+    expect(window.location.search).not.toMatch(/labels=/);
+    expect(window.location.search).not.toMatch(/people=/);
+  });
+
+  it("survives a round-trip when a label contains special characters", () => {
+    const label = "bug|feature";
+    syncFiltersToUrl({ ...DEFAULT_FILTERS, activeLabels: [label] });
+    const { filters } = readViewFiltersFromUrl();
+
+    expect(filters.activeLabels).toEqual([label]);
   });
 });

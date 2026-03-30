@@ -68,7 +68,10 @@ type MilestoneHover = {
 };
 
 const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblindMode, includePRs }) => {
-  const filteredItems = includePRs ? items : items.filter((i) => i.type === "issue");
+  const filteredItems = useMemo(
+    () => includePRs ? items : items.filter((i) => i.type === "issue"),
+    [items, includePRs],
+  );
   const chartColors = makeChartColors(colorblindMode);
   const isMulti = milestones.length > 1;
   const containerRef = useRef<HTMLDivElement>(null);

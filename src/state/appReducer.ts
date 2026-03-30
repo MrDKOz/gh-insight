@@ -132,8 +132,8 @@ const appReducer = (state: AppState, action: Action): AppState => {
 
     case "SET_REPO":
       return {
-        ...state,
         activeRepo:         action.repo,
+        // milestone slice — reset
         milestones:         [],
         selected:           [],
         itemsCache:         {},
@@ -142,6 +142,10 @@ const appReducer = (state: AppState, action: Action): AppState => {
         isDemo:             false,
         error:              null,
         emptyMilestoneNums: [],
+        // display state — preserved across repo change
+        view:               state.view,
+        filters:            state.filters,
+        includePRs:         state.includePRs,
       };
 
     case "SET_VIEW":
@@ -156,8 +160,10 @@ const appReducer = (state: AppState, action: Action): AppState => {
     case "SET_INCLUDE_PRS":
       return { ...state, includePRs: { ...state.includePRs, [action.chart]: action.value } };
 
-    default:
-      return state;
+    default: {
+      const _exhaustiveCheck: never = action;
+      return _exhaustiveCheck;
+    }
   }
 };
 
