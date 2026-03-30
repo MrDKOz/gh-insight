@@ -230,8 +230,7 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
         setExporting(null);
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- trackColRef is a stable ref object; its .current is read inside the callback
-    [filteredItems, milestones, title, view],
+    [filteredItems, milestones, title, trackColRef, view],
   );
 
   if (items.length === 0) {

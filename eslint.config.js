@@ -82,7 +82,7 @@ export default [
       "prefer-template": "warn",
       quotes: ["error", "double", { avoidEscape: true }],
       "require-await": "off",
-      "spaced-comment": ["error", "always"],
+      "spaced-comment": ["error", "always", { markers: ["/"] }],
       "template-curly-spacing": ["error", "never"],
       // @typescript-eslint rules
       "@typescript-eslint/await-thenable": "error",
@@ -167,5 +167,11 @@ export default [
   {
     files: ["**/*.tests.{ts,tsx}", "src/__tests__/setup.ts"],
     rules: { "no-console": "off" },
+  },
+  {
+    // This stub must use export default to match the html2canvas package API
+    // so Vite's alias can substitute it transparently for jsPDF's dynamic import.
+    files: ["src/utils/html2canvas-stub.ts"],
+    rules: { "no-restricted-exports": "off" },
   },
 ];
