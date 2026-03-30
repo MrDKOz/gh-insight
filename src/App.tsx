@@ -1,15 +1,13 @@
-import type { BankHoliday, Region } from "./api/bankHolidayApi";
 import type { AppPhase, View } from "./types/AppTypes";
-import type { Milestone, Repo, UserProfile } from "./types/GitHubTypes";
+import type { Repo, UserProfile } from "./types/GitHubTypes";
 import type { FunctionComponent } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { fetchBankHolidays } from "./api/bankHolidayApi";
-import { fetchMilestoneItems, fetchMilestones, fetchUserProfile, fetchUserRepos } from "./api/github";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { fetchUserProfile, fetchUserRepos } from "./api/github";
 import { AppHeader } from "./components/AppHeader";
 import { ContextBar } from "./components/ContextBar";
 import { EmptyState } from "./components/EmptyState";
@@ -17,138 +15,82 @@ import { KeyboardShortcuts } from "./components/KeyboardShortcuts";
 import { MilestoneView, readViewFiltersFromUrl } from "./components/MilestoneView";
 import { SettingsPopover } from "./components/SettingsPopover";
 import { SplashScreen } from "./components/SplashScreen";
-import { DEMO_DATA_BY_REPO, DEMO_REPOS, DEMO_USER } from "./data/demo";
+import { DEMO_REPOS, DEMO_USER } from "./data/demo";
+import { LS_TOKEN, useAuth } from "./hooks/useAuth";
+import { useBankHolidays } from "./hooks/useBankHolidays";
+import { useDarkMode } from "./hooks/useDarkMode";
+import { useMilestones } from "./hooks/useMilestones";
 import { useNewVersionAvailable } from "./hooks/useNewVersionAvailable";
 import { useSettings } from "./hooks/useSettings";
-import { initialState, milestoneReducer } from "./state/milestoneReducer";
 import { muiDarkTheme, muiLightTheme } from "./theme";
-import { DEFAULT_VIEW } from "./types/AppTypes";
-import { COLORS } from "./utils/colorUtils";
-import { EncryptionUnavailableError, decryptToken, encryptToken } from "./utils/tokenCrypto";
+import { decryptToken } from "./utils/tokenCrypto";
+import { readUrlParams, setViewParam, syncUrlParams } from "./utils/urlUtils";
 
-const LS_TOKEN = "gmt_token";
-const LS_DARK  = "gmt_dark";
-
-const readUrlParams = (): { owner: string; repo: string; milestoneNums: number[]; demo: boolean } => {
-  const p = new URLSearchParams(window.location.search);
-  const demo = p.get("demo") === "1";
-  const owner = demo ? "" : (p.get("owner") ?? "");
-  const repo  = demo ? "" : (p.get("repo")  ?? "");
-  const raw   = p.get("milestones") ?? "";
-  const milestoneNums = raw
-    .split(",")
-    .map((s) => parseInt(s, 10))
-    .filter((n) => Number.isFinite(n) && n > 0);
-  return { owner, repo, milestoneNums, demo };
-};
-
-const syncUrlParams = (activeRepo: Repo | null, selectedNums: number[], isDemo: boolean): void => {
-  const p = new URLSearchParams(window.location.search);
-  p.delete("owner"); p.delete("repo"); p.delete("demo"); p.delete("milestones");
-  if (isDemo) {
-    p.set("demo", "1");
-  } else if (activeRepo) {
-    p.set("owner", activeRepo.owner);
-    p.set("repo", activeRepo.name);
-  }
-  if (selectedNums.length > 0) { p.set("milestones", selectedNums.join(",")); }
-  const qs = p.toString();
-  window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
-};
-
-const MILESTONE_COLORS = [COLORS.issue, COLORS.prMerged, COLORS.success, COLORS.warning, COLORS.prClosed, COLORS.issueDark];
-
-const initDark = (): boolean => {
-  const isDark = localStorage.getItem(LS_DARK) !== "false";
-  document.body.classList.toggle("dark", isDark);
-  return isDark;
-};
-const INITIAL_DARK = initDark();
+// Evaluated once at module load — stable across the lifetime of the page
 const INITIAL_URL_PARAMS = readUrlParams();
 
 const App: FunctionComponent = () => {
-  const [phase, setPhase]           = useState<AppPhase>(() =>
-    localStorage.getItem(LS_TOKEN) || INITIAL_URL_PARAMS.demo ? "authenticating" : "splash",
-  );
-  const [dark, setDark]             = useState(INITIAL_DARK);
-  const [token, setToken]           = useState("");
-  const [tokenError, setTokenError] = useState<string | null>(null);
-  const [authError, setAuthError]   = useState<string | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [repos, setRepos]           = useState<Repo[]>([]);
-  const [activeRepo, setActiveRepo] = useState<Repo | null>(null);
-  const [isDemo, setIsDemo]         = useState(false);
-  const [settingsAnchor, setSettingsAnchor] = useState<HTMLElement | null>(null);
-  const { settings, updateSetting } = useSettings();
-  const [bankHolidays, setBankHolidays] = useState<BankHoliday[]>([]);
-  const newVersionAvailable = useNewVersionAvailable();
+  const { dark, toggleDark, applyDark } = useDarkMode();
+  const { settings, updateSetting }     = useSettings();
+  const newVersionAvailable             = useNewVersionAvailable();
 
-  const [view, setView] = useState<View>(() => readViewFiltersFromUrl().view);
-  const [configError, setConfigError] = useState<string | null>(null);
+  const initialPhase: AppPhase = localStorage.getItem(LS_TOKEN) || INITIAL_URL_PARAMS.demo
+    ? "authenticating"
+    : "splash";
+
+  const auth = useAuth(initialPhase);
+
+  const [activeRepo, setActiveRepo] = useState<Repo | null>(null);
+  const [settingsAnchor, setSettingsAnchor] = useState<HTMLElement | null>(null);
+  const [configError, setConfigError]       = useState<string | null>(null);
+  const [view, setView]                     = useState<View>(() => readViewFiltersFromUrl().view);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [state, dispatch] = useReducer(milestoneReducer, initialState);
+  const milestones = useMilestones({
+    activeRepo,
+    token: auth.token,
+    initialMilestoneNums: INITIAL_URL_PARAMS.milestoneNums,
+  });
 
-  const pendingUrlMilestones = useRef<number[]>(INITIAL_URL_PARAMS.milestoneNums);
-  const loadAbortRef    = useRef<AbortController | null>(null);
-  const refreshAbortRef = useRef<AbortController | null>(null);
-  const itemAbortRefs   = useRef<Map<number, AbortController>>(new Map());
+  const bankHolidays = useBankHolidays({
+    enabled: settings.highlightBankHolidays,
+    regions: settings.bankHolidayRegions,
+    allItems: milestones.allItems,
+  });
 
-  const milestoneColorFor = useCallback(
-    (num: number) => MILESTONE_COLORS[num % MILESTONE_COLORS.length] ?? "#0969da",
-    [],
-  );
+  // ── Auth orchestration ────────────────────────────────────────────────────
 
-  const saveToken = useCallback((raw: string) => {
-    encryptToken(raw)
-      .then((ct) => localStorage.setItem(LS_TOKEN, ct))
+  // Auto-login from stored token, or auto-start demo from URL param
+  useEffect(() => {
+    if (INITIAL_URL_PARAMS.demo) {
+      handleDemo();
+      return;
+    }
+    const stored = localStorage.getItem(LS_TOKEN);
+    if (!stored) { auth.setPhase("splash"); return; }
+    decryptToken(stored)
+      .then(async (decrypted) => {
+        const [profile, repoList] = await Promise.all([
+          fetchUserProfile(decrypted),
+          fetchUserRepos(decrypted),
+        ]);
+        auth.saveToken(decrypted);
+        transitionToDashboard(decrypted, profile, repoList);
+      })
       .catch((err: unknown) => {
-        if (err instanceof EncryptionUnavailableError) {
-          localStorage.setItem(LS_TOKEN, err.fallbackPayload);
-          setTokenError(
-            "Your browser's IndexedDB is unavailable (private browsing or enterprise policy). " +
-            "Your token is stored without encryption — avoid using this on shared devices.",
-          );
-        } else {
-          console.error("Failed to encrypt token:", err);
-          setTokenError(
-            "Your token could not be saved to storage — it will work for this session but will not persist after reload.",
-          );
-        }
+        console.error("Failed to decrypt stored token; session cleared.", err);
+        localStorage.removeItem(LS_TOKEN);
+        auth.setPhase("splash");
       });
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: runs once on mount
   }, []);
-
-  const loadDemoForRepo = useCallback((repo: Repo, urlMilestoneNums: number[]) => {
-    const data = DEMO_DATA_BY_REPO[repo.fullName];
-    if (!data) { return; }
-    const preSelected = urlMilestoneNums.length > 0
-      ? data.milestones.filter((m) => urlMilestoneNums.includes(m.number))
-      : [];
-    dispatch({
-      type:       "LOAD_DEMO",
-      milestones: data.milestones,
-      selected:   preSelected.length > 0 ? preSelected : data.milestones.slice(0, 1),
-      itemsCache: data.items,
-    });
-  }, []);
-
-  const handleDemo = useCallback(() => {
-    const firstRepo = DEMO_REPOS[0] ?? null;
-    setUserProfile(DEMO_USER);
-    setRepos(DEMO_REPOS);
-    setIsDemo(true);
-    setActiveRepo(firstRepo);
-    if (firstRepo) { loadDemoForRepo(firstRepo, pendingUrlMilestones.current); }
-    setPhase("dashboard");
-  }, [loadDemoForRepo]);
 
   const transitionToDashboard = useCallback((
     rawToken: string, profile: UserProfile, repoList: Repo[],
   ) => {
-    setToken(rawToken);
-    setUserProfile(profile);
-    setRepos(repoList);
-    // Auto-select repo from URL params if present
+    auth.setToken(rawToken);
+    auth.setUserProfile(profile);
+    auth.setRepos(repoList);
     const { owner, repo } = INITIAL_URL_PARAMS;
     const autoRepo = owner && repo
       ? (repoList.find((r) =>
@@ -157,179 +99,59 @@ const App: FunctionComponent = () => {
         ) ?? null)
       : null;
     setActiveRepo(autoRepo);
+    auth.setPhase("dashboard");
+  }, [auth]);
+
+  const { setUserProfile, setRepos, setPhase, disconnect } = auth;
+  const { loadDemoForRepo, resetMilestones } = milestones;
+
+  const handleDemo = useCallback(() => {
+    const firstRepo = DEMO_REPOS[0] ?? null;
+    setUserProfile(DEMO_USER);
+    setRepos(DEMO_REPOS);
     setPhase("dashboard");
-  }, []);
+    setActiveRepo(firstRepo);
+    if (firstRepo) { loadDemoForRepo(firstRepo, INITIAL_URL_PARAMS.milestoneNums); }
+  }, [setUserProfile, setRepos, setPhase, loadDemoForRepo]);
 
-  // On mount: auto-login from stored token or load demo from URL
-  useEffect(() => {
-    if (INITIAL_URL_PARAMS.demo) {
-      handleDemo();
-      return;
+  const handleDisconnect = useCallback(() => {
+    disconnect();
+    resetMilestones();
+    setActiveRepo(null);
+    setSettingsAnchor(null);
+  }, [disconnect, resetMilestones]);
+
+  // ── Repo / milestone orchestration ───────────────────────────────────────
+
+  const handleRepoSelect = useCallback((repo: Repo | null) => {
+    setActiveRepo(repo);
+    milestones.resetMilestones();
+    if (!repo) { return; }
+    if (milestones.state.isDemo) {
+      milestones.loadDemoForRepo(repo, []);
+    } else {
+      void milestones.loadMilestonesForRepo(repo);
     }
-    const stored = localStorage.getItem(LS_TOKEN);
-    if (!stored) { return; } // stays on splash
-    decryptToken(stored)
-      .then(async (decrypted) => {
-        const [profile, repoList] = await Promise.all([
-          fetchUserProfile(decrypted),
-          fetchUserRepos(decrypted),
-        ]);
-        saveToken(decrypted);
-        transitionToDashboard(decrypted, profile, repoList);
-      })
-      .catch((err: unknown) => {
-        console.error("Failed to decrypt stored token; session cleared.", err);
-        localStorage.removeItem(LS_TOKEN);
-        setPhase("splash");
-      });
+  }, [milestones]);
 
-    const abortMap = itemAbortRefs.current;
-    return () => {
-      loadAbortRef.current?.abort();
-      refreshAbortRef.current?.abort();
-      abortMap.forEach((ac) => ac.abort());
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: runs once on mount
-  }, []);
+  // ── URL synchronisation ───────────────────────────────────────────────────
+
+  useEffect(() => {
+    syncUrlParams(activeRepo, milestones.state.selected.map((m) => m.number), milestones.state.isDemo);
+  }, [activeRepo, milestones.state.selected, milestones.state.isDemo]);
 
   useEffect(() => {
     document.body.classList.toggle("colorblind", settings.colorblindMode);
   }, [settings.colorblindMode]);
 
-  // Sync URL params whenever relevant state changes
-  useEffect(() => {
-    syncUrlParams(activeRepo, state.selected.map((m) => m.number), isDemo);
-  }, [activeRepo, state.selected, isDemo]);
-
+  // ── View navigation ───────────────────────────────────────────────────────
 
   const handleViewChange = useCallback((v: View) => {
     setView(v);
-    const p = new URLSearchParams(window.location.search);
-    if (v !== DEFAULT_VIEW) { p.set("view", v); } else { p.delete("view"); }
-    const qs = p.toString();
-    window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
+    setViewParam(v);
   }, []);
 
-  const handleConnect = useCallback(async (inputToken: string) => {
-    setAuthError(null);
-    setPhase("authenticating");
-    try {
-      const [profile, repoList] = await Promise.all([
-        fetchUserProfile(inputToken),
-        fetchUserRepos(inputToken),
-      ]);
-      saveToken(inputToken);
-      transitionToDashboard(inputToken, profile, repoList);
-    } catch (e) {
-      setAuthError(e instanceof Error ? e.message : String(e));
-      setPhase("splash");
-    }
-  }, [saveToken, transitionToDashboard]);
-
-  const handleDisconnect = useCallback(() => {
-    localStorage.removeItem(LS_TOKEN);
-    setToken("");
-    setUserProfile(null);
-    setRepos([]);
-    setActiveRepo(null);
-    setIsDemo(false);
-    dispatch({ type: "RESET" });
-    setSettingsAnchor(null);
-    setPhase("splash");
-  }, []);
-
-  const toggleDark = useCallback(() => {
-    const next = !dark;
-    setDark(next);
-    localStorage.setItem(LS_DARK, String(next));
-    document.body.classList.toggle("dark", next);
-  }, [dark]);
-
-  const loadMilestonesForRepo = useCallback(async (repo: Repo) => {
-    loadAbortRef.current?.abort();
-    const ac = new AbortController();
-    loadAbortRef.current = ac;
-    dispatch({ type: "FETCH_LIST_START" });
-    try {
-      const milestones = await fetchMilestones(repo.owner, repo.name, token, ac.signal);
-      dispatch({ type: "FETCH_LIST_SUCCESS", milestones });
-    } catch (e) {
-      if (e instanceof DOMException && e.name === "AbortError") { return; }
-      dispatch({ type: "FETCH_LIST_ERROR", error: e instanceof Error ? e.message : String(e) });
-    }
-  }, [token]);
-
-  const handleRepoSelect = useCallback((repo: Repo | null) => {
-    setActiveRepo(repo);
-    dispatch({ type: "RESET" });
-    if (!repo) { return; }
-    if (isDemo) {
-      loadDemoForRepo(repo, []);
-      return;
-    }
-    void loadMilestonesForRepo(repo);
-  }, [isDemo, loadDemoForRepo, loadMilestonesForRepo]);
-
-  // Auto-load milestones for auto-selected repo (from URL params) on dashboard entry
-  const didAutoLoadRepo = useRef(false);
-  useEffect(() => {
-    if (didAutoLoadRepo.current || isDemo || !activeRepo || !token) { return; }
-    didAutoLoadRepo.current = true;
-    void loadMilestonesForRepo(activeRepo);
-  }, [activeRepo, isDemo, token, loadMilestonesForRepo]);
-
-  const addMilestone = useCallback(async (ms: Milestone) => {
-    if (state.selected.some((m) => m.number === ms.number)) { return; }
-    dispatch({ type: "SELECT_MILESTONE", milestone: ms });
-    if (!(ms.number in state.itemsCache)) {
-      if (!activeRepo) { return; }
-      const ac = new AbortController();
-      itemAbortRefs.current.set(ms.number, ac);
-      dispatch({ type: "FETCH_ITEMS_START", milestoneNumber: ms.number });
-      try {
-        const items = await fetchMilestoneItems(activeRepo.owner, activeRepo.name, token, ms.number, ac.signal);
-        dispatch({ type: "FETCH_ITEMS_SUCCESS", milestoneNumber: ms.number, items });
-      } catch (e) {
-        if (e instanceof DOMException && e.name === "AbortError") { return; }
-        dispatch({ type: "FETCH_ITEMS_ERROR", milestoneNumber: ms.number, error: e instanceof Error ? e.message : String(e) });
-      } finally {
-        itemAbortRefs.current.delete(ms.number);
-      }
-    }
-  }, [state.selected, state.itemsCache, activeRepo, token]);
-
-  const removeMilestone = useCallback((num: number) => {
-    dispatch({ type: "REMOVE_MILESTONE", milestoneNumber: num });
-  }, []);
-
-  // Auto-select milestones from URL params once the milestone list is available
-  const autoLoadedRef = useRef(false);
-  useEffect(() => {
-    const pending = pendingUrlMilestones.current;
-    if (autoLoadedRef.current || pending.length === 0 || state.milestones.length === 0) { return; }
-    autoLoadedRef.current = true;
-    for (const num of pending) {
-      const ms = state.milestones.find((m) => m.number === num);
-      if (ms) { void addMilestone(ms); }
-    }
-  }, [state.milestones, addMilestone]);
-
-  const refreshMilestones = useCallback(async () => {
-    if (state.selected.length === 0 || !activeRepo) { return; }
-    refreshAbortRef.current?.abort();
-    const ac = new AbortController();
-    refreshAbortRef.current = ac;
-    state.selected.forEach((ms) => dispatch({ type: "FETCH_ITEMS_START", milestoneNumber: ms.number }));
-    await Promise.all(state.selected.map(async (ms) => {
-      try {
-        const items = await fetchMilestoneItems(activeRepo.owner, activeRepo.name, token, ms.number, ac.signal);
-        dispatch({ type: "FETCH_ITEMS_SUCCESS", milestoneNumber: ms.number, items });
-      } catch (e) {
-        if (e instanceof DOMException && e.name === "AbortError") { return; }
-        dispatch({ type: "REFRESH_ITEMS_ERROR", milestoneNumber: ms.number, error: e instanceof Error ? e.message : String(e) });
-      }
-    }));
-  }, [state.selected, activeRepo, token]);
+  // ── Config import / export ────────────────────────────────────────────────
 
   const handleExportConfig = useCallback(() => {
     const config = { version: 1, owner: activeRepo?.owner ?? "", repo: activeRepo?.name ?? "", dark, settings };
@@ -356,14 +178,10 @@ const App: FunctionComponent = () => {
         if (typeof raw !== "object" || raw === null) { throw new Error("Not a valid config object"); }
         const c = raw as Record<string, unknown>;
         if (typeof c.version !== "number" || c.version !== 1) { throw new Error("Unsupported config version"); }
-        if (typeof c.dark === "boolean") {
-          setDark(c.dark);
-          localStorage.setItem(LS_DARK, String(c.dark));
-          document.body.classList.toggle("dark", c.dark);
-        }
+        if (typeof c.dark === "boolean") { applyDark(c.dark); }
         if (typeof c.token === "string" && c.token) {
-          setToken(c.token);
-          saveToken(c.token);
+          auth.setToken(c.token);
+          auth.saveToken(c.token);
         }
         if (typeof c.settings === "object" && c.settings !== null) {
           const s = c.settings as Record<string, unknown>;
@@ -371,7 +189,8 @@ const App: FunctionComponent = () => {
           if (typeof s.colorblindMode        === "boolean") { updateSetting("colorblindMode",        s.colorblindMode); }
           if (typeof s.highlightBankHolidays === "boolean") { updateSetting("highlightBankHolidays", s.highlightBankHolidays); }
           if (Array.isArray(s.bankHolidayRegions)) {
-            const isRegion = (v: unknown): v is Region => ["england-and-wales", "scotland", "northern-ireland", "US"].includes(v as string);
+            const isRegion = (v: unknown): v is "england-and-wales" | "scotland" | "northern-ireland" | "US" =>
+              ["england-and-wales", "scotland", "northern-ireland", "US"].includes(v as string);
             updateSetting("bankHolidayRegions", (s.bankHolidayRegions as unknown[]).filter(isRegion));
           }
         }
@@ -381,46 +200,20 @@ const App: FunctionComponent = () => {
       }
     };
     reader.readAsText(file);
-  }, [saveToken, updateSetting]);
+  }, [applyDark, auth, updateSetting]);
 
-  const allItems = useMemo(
-    () => state.selected.flatMap((ms) => state.itemsCache[ms.number] ?? []),
-    [state.selected, state.itemsCache],
-  );
-
-  useEffect(() => {
-    if (!settings.highlightBankHolidays || settings.bankHolidayRegions.length === 0 || allItems.length === 0) {
-      setBankHolidays([]);
-      return;
-    }
-    const timestamps = allItems.map((i) => new Date(i.createdAt).getTime());
-    const minTime = Math.min(...timestamps);
-    const maxTime = Math.max(...timestamps, Date.now());
-    fetchBankHolidays(settings.bankHolidayRegions, minTime, maxTime)
-      .then(setBankHolidays)
-      .catch(() => { /* silently ignore — feature is non-critical */ });
-  }, [settings.highlightBankHolidays, settings.bankHolidayRegions, allItems]);
-
-  const milestonesMeta = useMemo(
-    () => state.selected.map((ms) => ({
-      number: ms.number,
-      title:  ms.title,
-      color:  milestoneColorFor(ms.number),
-      dueOn:  ms.dueOn,
-    })),
-    [state.selected, milestoneColorFor],
-  );
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <ThemeProvider theme={dark ? muiDarkTheme : muiLightTheme}>
       <CssBaseline />
 
-      {phase !== "dashboard" ? (
+      {auth.phase !== "dashboard" ? (
         <SplashScreen
-          onConnect={handleConnect}
+          onConnect={auth.handleConnect}
           onDemo={handleDemo}
-          loading={phase === "authenticating"}
-          error={authError}
+          loading={auth.phase === "authenticating"}
+          error={auth.authError}
         />
       ) : (
         <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
@@ -440,7 +233,7 @@ const App: FunctionComponent = () => {
           )}
 
           <AppHeader
-            userProfile={userProfile ?? DEMO_USER}
+            userProfile={auth.userProfile ?? DEMO_USER}
             dark={dark}
             onToggleDark={toggleDark}
             onSettingsClick={(e) => setSettingsAnchor(e.currentTarget)}
@@ -458,49 +251,47 @@ const App: FunctionComponent = () => {
           />
 
           <ContextBar
-            repos={repos}
+            repos={auth.repos}
             activeRepo={activeRepo}
             onRepoChange={handleRepoSelect}
-            isDemo={isDemo}
-            milestones={state.milestones}
-            selected={state.selected}
-            loadingList={state.loadingList}
-            loadingNums={state.loadingNums}
-            colorFor={milestoneColorFor}
-            onAdd={addMilestone}
-            onRemove={removeMilestone}
-            onRefresh={refreshMilestones}
+            isDemo={milestones.state.isDemo}
+            milestones={milestones.state.milestones}
+            selected={milestones.state.selected}
+            loadingList={milestones.state.loadingList}
+            loadingNums={milestones.state.loadingNums}
+            colorFor={milestones.milestoneColorFor}
+            onAdd={milestones.addMilestone}
+            onRemove={milestones.removeMilestone}
+            onRefresh={milestones.refreshMilestones}
             view={view}
             onViewChange={handleViewChange}
-            hasItems={allItems.length > 0}
+            hasItems={milestones.allItems.length > 0}
           />
 
           <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
-            {/* Notification strip — only rendered when something needs attention */}
-            {(tokenError || configError || state.error || state.emptyMilestoneNums.length > 0 || state.loadingNums.length > 0) && (
+            {(auth.tokenError || configError || milestones.state.error || milestones.state.emptyMilestoneNums.length > 0 || milestones.state.loadingNums.length > 0) && (
               <Box sx={{ px: 3, pt: 2, display: "flex", flexDirection: "column", gap: 1 }}>
-                {tokenError && (
-                  <Alert severity="warning" onClose={() => setTokenError(null)}>{tokenError}</Alert>
+                {auth.tokenError && (
+                  <Alert severity="warning" onClose={auth.clearTokenError}>{auth.tokenError}</Alert>
                 )}
                 {configError && (
                   <Alert severity="error" onClose={() => setConfigError(null)}>{configError}</Alert>
                 )}
-                {state.error && <Alert severity="error">{state.error}</Alert>}
-                {state.emptyMilestoneNums.length > 0 && (
+                {milestones.state.error && <Alert severity="error">{milestones.state.error}</Alert>}
+                {milestones.state.emptyMilestoneNums.length > 0 && (
                   <Alert severity="warning">
-                    {state.emptyMilestoneNums.length === 1
-                      ? `Milestone #${state.emptyMilestoneNums[0] ?? "?"} has no items.`
-                      : `${state.emptyMilestoneNums.length} milestones have no items.`}
+                    {milestones.state.emptyMilestoneNums.length === 1
+                      ? `Milestone #${milestones.state.emptyMilestoneNums[0] ?? "?"} has no items.`
+                      : `${milestones.state.emptyMilestoneNums.length} milestones have no items.`}
                   </Alert>
                 )}
-                {state.loadingNums.length > 0 && (
+                {milestones.state.loadingNums.length > 0 && (
                   <Alert severity="info" role="status" aria-live="polite">Loading milestone data…</Alert>
                 )}
               </Box>
             )}
 
-            {/* Empty state: no repo selected */}
             {!activeRepo && (
               <EmptyState
                 icon={<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h2.5l2 2H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" /></svg>}
@@ -509,8 +300,7 @@ const App: FunctionComponent = () => {
               />
             )}
 
-            {/* Empty state: repo has no milestones */}
-            {activeRepo && state.milestones.length === 0 && !state.loadingList && !state.error && (
+            {activeRepo && milestones.state.milestones.length === 0 && !milestones.state.loadingList && !milestones.state.error && (
               <EmptyState
                 icon={<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" y1="22" x2="4" y2="15" /></svg>}
                 title="No milestones found"
@@ -518,12 +308,11 @@ const App: FunctionComponent = () => {
               />
             )}
 
-            {/* Main content */}
-            {allItems.length > 0 && milestonesMeta.length > 0 && (
+            {milestones.allItems.length > 0 && milestones.milestonesMeta.length > 0 && (
               <Box sx={{ flex: 1, px: 2, pt: 1.5, pb: 2, display: "flex", flexDirection: "column", overflow: "hidden" }}>
                 <MilestoneView
-                  items={allItems}
-                  milestones={milestonesMeta}
+                  items={milestones.allItems}
+                  milestones={milestones.milestonesMeta}
                   highlightWeekends={settings.highlightWeekends}
                   bankHolidays={bankHolidays}
                   colorblindMode={settings.colorblindMode}
