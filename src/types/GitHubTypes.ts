@@ -65,6 +65,7 @@ type MilestoneMeta = {
   title: string;
   color: string;
   dueOn: string | null;
+  kind: "milestone" | "epic";
 };
 
 type Repo = {

@@ -5,17 +5,17 @@ import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { fetchEpicItems, fetchEpics, fetchMilestoneItems, fetchMilestones } from "../api/github";
 import { DEMO_DATA_BY_REPO } from "../data/demo";
 import { appReducer, initialState } from "../state/appReducer";
-import { COLORS } from "../utils/colorUtils";
 import { readViewFiltersFromUrl } from "../utils/urlUtils";
 
+// Blues / greens — cool hues reserved for milestones
 const MILESTONE_COLORS = [
-  COLORS.issue, COLORS.prMerged, COLORS.success,
-  COLORS.warning, COLORS.prClosed, COLORS.issueDark,
+  "#0969da", "#1a7f37", "#0891b2", "#0d9488", "#059669", "#0550ae",
 ];
 
-// Distinct palette for epics so they are visually differentiated from milestones
+// Purples / pinks — warm/vivid hues reserved for epics so they are
+// immediately distinguishable from any milestone colour
 const EPIC_COLORS = [
-  "#8250df", "#cf222e", "#bf8700", "#1a7f37", "#0550ae", "#953800",
+  "#8250df", "#db2777", "#c026d3", "#9333ea", "#be185d", "#7c3aed",
 ];
 
 type LoadMilestonesOpts = {
@@ -226,12 +226,14 @@ const useMilestones = ({ token }: UseMilestonesOptions): UseMilestonesReturn => 
         title:  milestone.title,
         color:  milestoneColorFor(milestone.number),
         dueOn:  milestone.dueOn,
+        kind:   "milestone" as const,
       })),
       ...state.selectedEpics.map((epic) => ({
         number: epic.number,
-        title:  `Epic: ${epic.title}`,
+        title:  epic.title,
         color:  epicColorFor(epic.number),
         dueOn:  null,
+        kind:   "epic" as const,
       })),
     ],
     [state.selected, milestoneColorFor, state.selectedEpics, epicColorFor],

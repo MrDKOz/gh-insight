@@ -192,7 +192,11 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
                 <TableRow key={milestone.number} sx={{ "&:last-child td": { border: 0 } }}>
                   <TableCell>
                     <Stack direction="row" alignItems="center" gap={0.75}>
-                      <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: milestone.color, flexShrink: 0 }} />
+                      <Box sx={{
+                        width: 8, height: 8, flexShrink: 0, bgcolor: milestone.color,
+                        borderRadius: milestone.kind === "epic" ? "1px" : "50%",
+                        transform: milestone.kind === "epic" ? "rotate(45deg)" : "none",
+                      }} />
                       <Typography variant="caption" fontWeight={500} sx={{ lineHeight: 1.3 }}>{milestone.title}</Typography>
                     </Stack>
                   </TableCell>

@@ -28,7 +28,7 @@ const EpicPicker: FunctionComponent<Props> = ({ epics, selected, loadingNums, co
       {selected.map((epic) => (
         <Chip
           key={epic.number}
-          label={loadingNums.includes(epic.number) ? "…" : `Epic: ${epic.title}`}
+          label={loadingNums.includes(epic.number) ? "…" : `◆ ${epic.title}`}
           onDelete={() => onRemove(epic.number)}
           size="small"
           sx={{

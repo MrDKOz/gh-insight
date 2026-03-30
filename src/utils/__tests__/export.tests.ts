@@ -422,7 +422,7 @@ describe("buildReviewWaitRows — field mapping", () => {
   });
 
   it("uses milestone title when milestones are provided", () => {
-    const milestones = [{ number: 1, title: "Sprint 1", color: "#0969DA", dueOn: null }];
+    const milestones = [{ number: 1, title: "Sprint 1", color: "#0969DA", dueOn: null, kind: "milestone" as const }];
     const row = buildReviewWaitRows([reviewedPR], milestones)[0]!;
 
     expect(row.milestone).toBe("Sprint 1");
