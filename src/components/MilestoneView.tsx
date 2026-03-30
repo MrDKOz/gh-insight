@@ -108,6 +108,11 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
     dispatch({ type: "SET_FILTERS", filters: newFilters });
   }, [dispatch]);
 
+  const toggleBurndownPRs     = useCallback(() => dispatch({ type: "SET_INCLUDE_PRS", chart: "burndown",       value: !includePRs.burndown       }), [dispatch, includePRs.burndown]);
+  const toggleCycleTimePRs    = useCallback(() => dispatch({ type: "SET_INCLUDE_PRS", chart: "cycleTime",      value: !includePRs.cycleTime      }), [dispatch, includePRs.cycleTime]);
+  const toggleVelocityPRs     = useCallback(() => dispatch({ type: "SET_INCLUDE_PRS", chart: "velocity",       value: !includePRs.velocity       }), [dispatch, includePRs.velocity]);
+  const toggleCumulativeFlowPRs = useCallback(() => dispatch({ type: "SET_INCLUDE_PRS", chart: "cumulativeFlow", value: !includePRs.cumulativeFlow }), [dispatch, includePRs.cumulativeFlow]);
+
   // Read portal target nodes after mount — querying the DOM inline during
   // render returns null on first paint because sibling components haven't
   // been committed yet. useLayoutEffect runs synchronously after commit, so
@@ -232,25 +237,25 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
       )}
       {!noFilteredItems && view === "Burndown" && (
         <>
-          <FormControlLabel control={<Checkbox size="small" checked={includePRs.burndown} onChange={() => dispatch({ type: "SET_INCLUDE_PRS", chart: "burndown", value: !includePRs.burndown })} />} label="Include PRs" sx={{ alignSelf: "flex-start", ml: 0 }} />
+          <FormControlLabel control={<Checkbox size="small" checked={includePRs.burndown} onChange={toggleBurndownPRs} />} label="Include PRs" sx={{ alignSelf: "flex-start", ml: 0 }} />
           <Burndown items={filteredItems} milestones={milestones} highlightWeekends={highlightWeekends} bankHolidays={bankHolidays} colorblindMode={colorblindMode} includePRs={includePRs.burndown} />
         </>
       )}
       {!noFilteredItems && view === "Cycle Time" && (
         <>
-          <FormControlLabel control={<Checkbox size="small" checked={includePRs.cycleTime} onChange={() => dispatch({ type: "SET_INCLUDE_PRS", chart: "cycleTime", value: !includePRs.cycleTime })} />} label="Include PRs" sx={{ alignSelf: "flex-start", ml: 0 }} />
+          <FormControlLabel control={<Checkbox size="small" checked={includePRs.cycleTime} onChange={toggleCycleTimePRs} />} label="Include PRs" sx={{ alignSelf: "flex-start", ml: 0 }} />
           <CycleTime items={filteredItems} milestones={milestones} highlightWeekends={highlightWeekends} bankHolidays={bankHolidays} colorblindMode={colorblindMode} includePRs={includePRs.cycleTime} />
         </>
       )}
       {!noFilteredItems && view === "Velocity" && (
         <>
-          <FormControlLabel control={<Checkbox size="small" checked={includePRs.velocity} onChange={() => dispatch({ type: "SET_INCLUDE_PRS", chart: "velocity", value: !includePRs.velocity })} />} label="Include PRs" sx={{ alignSelf: "flex-start", ml: 0 }} />
+          <FormControlLabel control={<Checkbox size="small" checked={includePRs.velocity} onChange={toggleVelocityPRs} />} label="Include PRs" sx={{ alignSelf: "flex-start", ml: 0 }} />
           <Velocity items={filteredItems} milestones={milestones} colorblindMode={colorblindMode} includePRs={includePRs.velocity} />
         </>
       )}
       {!noFilteredItems && view === "Cumulative Flow" && (
         <>
-          <FormControlLabel control={<Checkbox size="small" checked={includePRs.cumulativeFlow} onChange={() => dispatch({ type: "SET_INCLUDE_PRS", chart: "cumulativeFlow", value: !includePRs.cumulativeFlow })} />} label="Include PRs" sx={{ alignSelf: "flex-start", ml: 0 }} />
+          <FormControlLabel control={<Checkbox size="small" checked={includePRs.cumulativeFlow} onChange={toggleCumulativeFlowPRs} />} label="Include PRs" sx={{ alignSelf: "flex-start", ml: 0 }} />
           <CumulativeFlow items={filteredItems} highlightWeekends={highlightWeekends} bankHolidays={bankHolidays} colorblindMode={colorblindMode} includePRs={includePRs.cumulativeFlow} />
         </>
       )}

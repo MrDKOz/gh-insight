@@ -4,7 +4,7 @@ import type { MilestoneMeta, TimelineItem } from "../types/GitHubTypes";
 import type { KeyboardEvent, MouseEvent, RefObject } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AuthorCard, AuthorTag } from "../components/AuthorTag";
 import { ItemHoverCard, fixedItemCardPos } from "../components/ItemHoverCard";
 import { COLORS, COLORS_CB } from "../utils/colorUtils";
@@ -697,4 +697,7 @@ const GanttView = forwardRef<GanttHandle, Props>(({
 
 GanttView.displayName = "GanttView";
 
-export { GanttView };
+const MemoGanttView = memo(GanttView);
+MemoGanttView.displayName = "GanttView";
+
+export { MemoGanttView as GanttView };
