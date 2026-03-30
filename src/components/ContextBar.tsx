@@ -84,8 +84,10 @@ const ContextBar: FunctionComponent<Props> = memo(({
           const query = inputValue.toLowerCase();
           return query ? options.filter((r) => r.fullName.toLowerCase().includes(query)) : options;
         }}
-        renderOption={(props, option) => (
-          <Box component="li" {...props} sx={{ ...(props as HTMLAttributes<HTMLLIElement>).style, width: "100%" }}>
+        renderOption={(props, option) => {
+          const { key, ...rest } = props as typeof props & { key: React.Key };
+          return (
+          <Box key={key} component="li" {...rest} sx={{ ...(rest as HTMLAttributes<HTMLLIElement>).style, width: "100%" }}>
             <Box sx={{ display: "flex", flexDirection: "column", minWidth: 0, width: "100%" }}>
               <Stack direction="row" alignItems="center" gap={0.75}>
                 {option.private && <LockIcon />}
@@ -98,7 +100,8 @@ const ContextBar: FunctionComponent<Props> = memo(({
               )}
             </Box>
           </Box>
-        )}
+          );
+        }}
         renderInput={(params) => (
           <TextField {...params} label="Repository" size="small" placeholder="Search repos…" />
         )}
