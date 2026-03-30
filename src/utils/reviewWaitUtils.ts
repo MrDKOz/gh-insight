@@ -89,5 +89,5 @@ const sortRows = (rows: PRRow[], col: SortCol, dir: SortDir): PRRow[] => {
   });
 };
 
-export { buildRows, sortRows, toDays };
+export { buildRows, sortRows };
 export type { PRRow, SortCol, SortDir };
