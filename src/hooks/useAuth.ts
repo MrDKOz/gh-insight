@@ -2,7 +2,7 @@ import type { AppPhase } from "../types/AppTypes";
 import type { Repo, UserProfile } from "../types/GitHubTypes";
 import { useCallback, useState } from "react";
 import { fetchUserProfile, fetchUserRepos } from "../api/github";
-import { EncryptionUnavailableError, encryptToken } from "../utils/tokenCrypto";
+import { EncryptionUnavailableError, deleteKey, encryptToken } from "../utils/tokenCrypto";
 
 const LS_TOKEN = "gmt_token";
 
@@ -72,6 +72,7 @@ const useAuth = (initialPhase: AppPhase): UseAuthReturn => {
 
   const disconnect = useCallback(() => {
     localStorage.removeItem(LS_TOKEN);
+    void deleteKey();
     setToken("");
     setUserProfile(null);
     setRepos([]);

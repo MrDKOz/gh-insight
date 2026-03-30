@@ -3,7 +3,7 @@
 // IndexedDB does not fully implement.
 import "fake-indexeddb/auto";
 
-import { EncryptionUnavailableError, decryptToken, encryptToken } from "../tokenCrypto";
+import { EncryptionUnavailableError, decryptToken, deleteKey, encryptToken } from "../tokenCrypto";
 
 // These tests run against the real Web Crypto API (available in jsdom) and
 // fake-indexeddb (installed as a dev dependency) for IndexedDB.
@@ -58,6 +58,26 @@ describe("decryptToken — legacy / fallback payloads", () => {
     const tooShort = `e:${btoa("short")}`;
 
     await expect(decryptToken(tooShort)).rejects.toThrow();
+  });
+});
+
+describe("deleteKey", () => {
+  it("removes the key so subsequent decrypt fails", async () => {
+    const token = "ghp_deleteme";
+    const encrypted = await encryptToken(token);
+
+    await expect(decryptToken(encrypted)).resolves.toBe(token);
+
+    await deleteKey();
+
+    // A new key is generated on the next encrypt, so the old ciphertext is unreadable
+    await expect(decryptToken(encrypted)).rejects.toThrow();
+  });
+
+
+  it("does not throw when called with no key stored", async () => {
+    // Key was deleted in the previous test; calling again must be a no-op
+    await expect(deleteKey()).resolves.toBeUndefined();
   });
 });
 

@@ -111,4 +111,25 @@ const decryptToken = async (stored: string): Promise<string> => {
   return decoder.decode(plaintext);
 };
 
-export { EncryptionUnavailableError, decryptToken, encryptToken };
+/**
+ * Deletes the AES-GCM key from IndexedDB. Call on disconnect so no trace of
+ * the key remains. Silently succeeds if the key or store doesn't exist.
+ */
+const deleteKey = async (): Promise<void> => {
+  try {
+    const db = await openDB();
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const req = db.transaction(STORE_NAME, "readwrite").objectStore(STORE_NAME).delete(KEY_ID);
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+      });
+    } finally {
+      db.close();
+    }
+  } catch {
+    // IndexedDB unavailable or key already absent — nothing to do.
+  }
+};
+
+export { EncryptionUnavailableError, decryptToken, deleteKey, encryptToken };
