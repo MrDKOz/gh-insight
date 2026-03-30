@@ -268,7 +268,7 @@ const App: FunctionComponent = () => {
                   </Alert>
                 )}
                 {milestones.state.loadingNums.length > 0 && (
-                  <Alert severity="info" role="status" aria-live="polite">Loading milestone data…</Alert>
+                  <Alert severity="info" role="status" aria-live="polite">Loading data…</Alert>
                 )}
                 {milestones.state.emptyEpicNums.length > 0 && (
                   <Alert severity="warning">
@@ -278,7 +278,7 @@ const App: FunctionComponent = () => {
                   </Alert>
                 )}
                 {milestones.state.loadingEpicNums.length > 0 && (
-                  <Alert severity="info" role="status" aria-live="polite">Loading epic data…</Alert>
+                  <Alert severity="info" role="status" aria-live="polite">Loading epic items…</Alert>
                 )}
               </Box>
             )}
@@ -287,7 +287,7 @@ const App: FunctionComponent = () => {
               <EmptyState
                 icon={<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h2.5l2 2H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" /></svg>}
                 title="Select a repository"
-                message="Choose a repository from the dropdown above to load its milestones"
+                message="Choose a repository from the dropdown above"
               />
             )}
 

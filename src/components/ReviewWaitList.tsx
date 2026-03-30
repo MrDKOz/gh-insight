@@ -122,7 +122,7 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
   if (rows.length === 0) {
     return (
       <Typography color="text.secondary" sx={{ py: 2 }}>
-        No pull requests found in the selected milestone{milestones.length !== 1 ? "s" : ""}.
+        No pull requests found in the selected items.
       </Typography>
     );
   }

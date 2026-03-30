@@ -166,7 +166,7 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
           {title}
         </Typography>
         <Typography color="text.secondary" sx={{ mt: 1 }}>
-          No items found in this milestone.
+          No items found.
         </Typography>
       </Paper>
     );

@@ -153,8 +153,8 @@ const ContextBar: FunctionComponent<Props> = memo(({
           size="small"
           onClick={onRefresh}
           disabled={loadingNums.length > 0}
-          title="Refetch data for selected milestones"
-          aria-label="Refresh milestone data"
+          title="Refetch data"
+          aria-label="Refresh data"
           sx={{ flexShrink: 0, color: "text.secondary", minWidth: "auto", px: 0.75 }}
         >
           ↻ Refresh
