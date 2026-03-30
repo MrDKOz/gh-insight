@@ -14,6 +14,7 @@ import { useMemo } from "react";
 import { COLORS, COLORS_CB } from "../utils/colorUtils";
 import { MS_PER_DAY, STALE_MS, fmtDate, forecastCompletion } from "../utils/dateUtils";
 import { pluralize } from "../utils/displayUtils";
+import { TABLE_HEADER_LABEL_SX } from "../utils/sxTokens";
 import { Stat } from "./Stat";
 
 type Props = {
@@ -183,12 +184,12 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
           <Table size="small" sx={{ "& .MuiTableCell-root": { py: 0.5, px: 1 } }}>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700, color: "text.secondary", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.06em", border: 0 }}>Milestone</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700, color: "text.secondary", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.06em", border: 0 }}>Open</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700, color: "text.secondary", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.06em", border: 0 }}>Closed/Merged</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700, color: "text.secondary", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.06em", border: 0 }}>Avg cycle</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700, color: "text.secondary", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.06em", border: 0 }}>Est. completion</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700, color: "text.secondary", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.06em", border: 0 }}>Stale</TableCell>
+                <TableCell sx={TABLE_HEADER_LABEL_SX}>Milestone</TableCell>
+                <TableCell align="right" sx={TABLE_HEADER_LABEL_SX}>Open</TableCell>
+                <TableCell align="right" sx={TABLE_HEADER_LABEL_SX}>Closed/Merged</TableCell>
+                <TableCell align="right" sx={TABLE_HEADER_LABEL_SX}>Avg cycle</TableCell>
+                <TableCell align="right" sx={TABLE_HEADER_LABEL_SX}>Est. completion</TableCell>
+                <TableCell align="right" sx={TABLE_HEADER_LABEL_SX}>Stale</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>

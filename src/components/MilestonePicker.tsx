@@ -9,6 +9,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
 import { pluralize } from "../utils/displayUtils";
+import { DOT_SX } from "../utils/sxTokens";
 
 type Props = {
   milestones: Milestone[];
@@ -69,7 +70,7 @@ const MilestonePicker: FunctionComponent<Props> = ({ milestones, selected, loadi
                 dense
               >
                 <Box
-                  sx={{ width: 9, height: 9, borderRadius: "50%", bgcolor: colorFor(milestone.number), mr: 1.5, flexShrink: 0 }}
+                  sx={{ ...DOT_SX, width: 9, height: 9, bgcolor: colorFor(milestone.number), mr: 1.5 }}
                 />
                 <Typography noWrap sx={{ flex: 1, fontSize: "0.8125rem" }}>
                   {milestone.title}

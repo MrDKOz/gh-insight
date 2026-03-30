@@ -19,7 +19,7 @@ import { COLORS, COLORS_CB, makeStatusChipSx } from "../utils/colorUtils";
 import { fmtDate } from "../utils/dateUtils";
 import { FS, buildMilestoneMap, safeUrl } from "../utils/displayUtils";
 import { buildRows, sortRows } from "../utils/reviewWaitUtils";
-import { RESIZE_HANDLE_SX } from "../utils/sxTokens";
+import { RESIZE_HANDLE_SX, TABLE_HEADER_CELL_SX } from "../utils/sxTokens";
 import { AuthorWithAssignees } from "./AuthorWithAssignees";
 import { LabelBadge } from "./LabelBadge";
 import { MilestonePill } from "./MilestonePill";
@@ -52,7 +52,7 @@ type ThProps = {
 
 // Defined at module level to prevent remount during resize drags.
 const Th: FunctionComponent<ThProps> = ({ col, label, active, dir, onSort, onResize, align = "left" }) => (
-  <TableCell align={align} sx={{ fontWeight: 600, fontSize: FS.sm, whiteSpace: "nowrap", py: 1, position: "relative", overflow: "hidden", userSelect: "none" }}>
+  <TableCell align={align} sx={TABLE_HEADER_CELL_SX}>
     <TableSortLabel
       active={active === col}
       direction={active === col ? dir : "asc"}
@@ -141,13 +141,13 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
             <Th col="created"     label="Created"            active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(COLUMN_INDICES.created)} />
             <Th col="firstReview" label="First Review"       active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(COLUMN_INDICES.firstReview)} />
             <Th col="wait"        label="Wait"               active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(COLUMN_INDICES.wait)} align="right" />
-            <TableCell sx={{ fontWeight: 600, fontSize: FS.sm, py: 1, position: "relative", overflow: "hidden", userSelect: "none" }}>
+            <TableCell sx={TABLE_HEADER_CELL_SX}>
               Wait vs Total
               <Box onMouseDown={resize(COLUMN_INDICES.bar)} sx={RESIZE_HANDLE_SX} />
             </TableCell>
             <Th col="total"       label="Total"              active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(COLUMN_INDICES.total)} align="right" />
             {isMulti && (
-              <TableCell sx={{ fontWeight: 600, fontSize: FS.sm, py: 1, position: "relative", overflow: "hidden", userSelect: "none" }}>
+              <TableCell sx={TABLE_HEADER_CELL_SX}>
                 Milestone
                 <Box onMouseDown={resize(COLUMN_INDICES.milestone)} sx={RESIZE_HANDLE_SX} />
               </TableCell>

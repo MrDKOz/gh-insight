@@ -1,3 +1,4 @@
+import type { SxProps } from "@mui/material/styles";
 import { FS } from "./displayUtils";
 
 /**
@@ -59,5 +60,52 @@ const RESIZE_HANDLE_SX = {
   },
   "&:hover::after": { bgcolor: "primary.main" },
 } as const;
+
+/**
+ * Sortable table header cell — used by ItemList and ReviewWaitList <Th> components.
+ */
+export const TABLE_HEADER_CELL_SX = {
+  fontWeight: 600,
+  fontSize: FS.sm,
+  py: 1,
+  whiteSpace: "nowrap",
+  position: "relative",
+  overflow: "hidden",
+  userSelect: "none",
+} as const satisfies SxProps;
+
+/**
+ * Compact uppercase label with letter-spacing — used in table column headers and section labels.
+ */
+export const TABLE_HEADER_LABEL_SX = {
+  fontWeight: 700,
+  color: "text.secondary",
+  fontSize: "0.7rem",
+  textTransform: "uppercase",
+  letterSpacing: "0.06em",
+  border: 0,
+} as const satisfies SxProps;
+
+/**
+ * Single tabular-nums token — use on any numeric column to prevent layout jitter.
+ */
+export const TABULAR_NUMS_SX = {
+  fontVariantNumeric: "tabular-nums",
+} as const satisfies SxProps;
+
+/**
+ * Produces the sx for a semi-transparent status indicator chip.
+ * bg: color at 13% opacity (hex 22); border: color at 40% opacity (hex 66).
+ */
+export const makeStatusIndicatorChipSx = (color: string) => ({
+  bgcolor: `${color}22`,
+  color,
+  border: `1px solid ${color}66`,
+  fontSize: FS.sm,
+  fontWeight: 700,
+  height: 20,
+  borderRadius: 0.5,
+  ml: 0.5,
+});
 
 export { CARD_LABEL_SX, CHART_EMPTY_STATE_SX, DOT_SX, HOVER_CARD_BASE_SX, RESIZE_HANDLE_SX, STAT_ROW_SX };

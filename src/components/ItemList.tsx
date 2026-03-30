@@ -16,7 +16,7 @@ import { useColumnResize } from "../hooks/useColumnResize";
 import { COLORS, COLORS_CB, makeStatusChipSx } from "../utils/colorUtils";
 import { MS_PER_DAY, fmtDate } from "../utils/dateUtils";
 import { FS, buildMilestoneMap, itemEndDate, itemStatus, pluralize, safeUrl } from "../utils/displayUtils";
-import { RESIZE_HANDLE_SX } from "../utils/sxTokens";
+import { RESIZE_HANDLE_SX, TABLE_HEADER_CELL_SX, TABULAR_NUMS_SX, makeStatusIndicatorChipSx } from "../utils/sxTokens";
 import { AuthorWithAssignees } from "./AuthorWithAssignees";
 import { LabelBadge } from "./LabelBadge";
 import { MilestonePill } from "./MilestonePill";
@@ -48,7 +48,7 @@ type ThProps = {
 const Th: FunctionComponent<ThProps> = ({ col, label, sortCol, sortDir, onSort, onResize }) => (
   <TableCell
     sortDirection={sortCol === col ? sortDir : false}
-    sx={{ fontWeight: 600, fontSize: FS.sm, py: 1, whiteSpace: "nowrap", position: "relative", overflow: "hidden", userSelect: "none" }}
+    sx={TABLE_HEADER_CELL_SX}
   >
     <TableSortLabel
       active={sortCol === col}
@@ -286,9 +286,9 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                   )}
                   {item.type === "pr" && (
                     <Box sx={{ mt: "2px", fontSize: FS.xs }}>
-                      <Box component="span" sx={{ color: palette.success, fontVariantNumeric: "tabular-nums" }}>+{item.additions}</Box>
+                      <Box component="span" sx={{ ...TABULAR_NUMS_SX, color: palette.success }}>+{item.additions}</Box>
                       <Box component="span" sx={{ color: "text.disabled" }}> / </Box>
-                      <Box component="span" sx={{ color: palette.prClosed, fontVariantNumeric: "tabular-nums" }}>-{item.deletions}</Box>
+                      <Box component="span" sx={{ ...TABULAR_NUMS_SX, color: palette.prClosed }}>-{item.deletions}</Box>
                     </Box>
                   )}
                 </TableCell>
@@ -306,21 +306,21 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                       <Chip
                         label="Approved"
                         size="small"
-                        sx={{ bgcolor: `${palette.success}22`, color: palette.success, border: `1px solid ${palette.success}66`, fontSize: FS.sm, fontWeight: 700, height: 20, borderRadius: 0.5, ml: 0.5 }}
+                        sx={makeStatusIndicatorChipSx(palette.success)}
                       />
                     )}
                     {item.type === "pr" && item.reviewDecision === "CHANGES_REQUESTED" && (
                       <Chip
                         label="Changes requested"
                         size="small"
-                        sx={{ bgcolor: `${palette.prClosed}22`, color: palette.prClosed, border: `1px solid ${palette.prClosed}66`, fontSize: FS.sm, fontWeight: 700, height: 20, borderRadius: 0.5, ml: 0.5 }}
+                        sx={makeStatusIndicatorChipSx(palette.prClosed)}
                       />
                     )}
                     {item.type === "pr" && item.reviewDecision === "REVIEW_REQUIRED" && (
                       <Chip
                         label="Awaiting review"
                         size="small"
-                        sx={{ bgcolor: `${palette.warning}22`, color: palette.warning, border: `1px solid ${palette.warning}66`, fontSize: FS.sm, fontWeight: 700, height: 20, borderRadius: 0.5, ml: 0.5 }}
+                        sx={makeStatusIndicatorChipSx(palette.warning)}
                       />
                     )}
                   </Box>
@@ -338,13 +338,13 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                 </TableCell>
                 <TableCell
                   align="right"
-                  sx={{ overflow: "hidden", whiteSpace: "nowrap", color: "text.secondary", fontSize: FS.base, fontVariantNumeric: "tabular-nums" }}
+                  sx={{ ...TABULAR_NUMS_SX, overflow: "hidden", whiteSpace: "nowrap", color: "text.secondary", fontSize: FS.base }}
                 >
                   {isOpen ? age : <Typography component="span" color="divider">—</Typography>}
                 </TableCell>
                 <TableCell
                   align="right"
-                  sx={{ overflow: "hidden", whiteSpace: "nowrap", color: "text.secondary", fontSize: FS.base, fontVariantNumeric: "tabular-nums" }}
+                  sx={{ ...TABULAR_NUMS_SX, overflow: "hidden", whiteSpace: "nowrap", color: "text.secondary", fontSize: FS.base }}
                 >
                   {days !== null ? days : <Typography component="span" color="divider">—</Typography>}
                 </TableCell>
