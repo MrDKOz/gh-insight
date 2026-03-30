@@ -1,6 +1,6 @@
 {
   "name": "github-work-visualiser",
-  "version": "2.0.7",
+  "version": "2.0.8",
   "license": "UNLICENSED",
   "type": "module",
   "main": "dist-electron/main.js",
