@@ -4,10 +4,10 @@ import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
-import { AuthorTag } from "../components/AuthorTag";
-import { LabelBadge } from "../components/LabelBadge";
 import { COLORS } from "../utils/colorUtils";
 import { FS, pluralize } from "../utils/displayUtils";
+import { AuthorTag } from "./AuthorTag";
+import { LabelBadge } from "./LabelBadge";
 
 type ItemHoverCardProps = {
   item:            TimelineItem;

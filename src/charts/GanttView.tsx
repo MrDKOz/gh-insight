@@ -6,11 +6,11 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AuthorCard, AuthorTag } from "../components/AuthorTag";
+import { ItemHoverCard, fixedItemCardPos } from "../components/ItemHoverCard";
 import { COLORS, COLORS_CB } from "../utils/colorUtils";
 import { MS, MS_HOUR, STALE_MS, durationDays, fmtDate, fmtDateTime, snapToHour } from "../utils/dateUtils";
 import { FS, itemEndDate, safeUrl } from "../utils/displayUtils";
 import { GanttLegend } from "./GanttLegend";
-import { ItemHoverCard, fixedItemCardPos } from "./ItemHoverCard";
 
 // ── Gantt layout hook ─────────────────────────────────────────────────────
 

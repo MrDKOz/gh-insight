@@ -4,12 +4,12 @@ import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { ItemHoverCard } from "../components/ItemHoverCard";
 import { makeChartColors } from "../utils/colorUtils";
 import { MS, fmtDate, fmtDateTime } from "../utils/dateUtils";
 import { hoverCardPos, itemEndDate, pluralize } from "../utils/displayUtils";
 import { CHART_EMPTY_STATE_SX } from "../utils/sxTokens";
 import { ChartLegend } from "./ChartLegend";
-import { ItemHoverCard } from "./ItemHoverCard";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
