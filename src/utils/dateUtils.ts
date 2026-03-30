@@ -6,11 +6,11 @@ import { upperBound } from "./displayUtils";
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
 /** Milliseconds in one day. */
-const MS = 86_400_000;
+const MS_PER_DAY = 86_400_000;
 /** Milliseconds in one hour. */
-const MS_HOUR = 3_600_000;
+const MS_PER_HOUR = 3_600_000;
 /** Threshold for "stale" open items — 7 days. */
-const STALE_MS = 7 * 86_400_000;
+const STALE_MS = 7 * MS_PER_DAY;
 
 /** "1 Jan" or "1 Jan 2024" — local date, safe for null/invalid ISO strings. */
 const fmtDate = (iso: string | null | undefined, includeYear = false): string => {
@@ -43,7 +43,7 @@ const snapToHour = (ms: number): number => {
 /** Days between two ISO date strings (rounded, clamped to 0). Returns null when end is null (open items). */
 const durationDays = (start: string, end: string | null): number | null => {
   if (!end) {return null;}
-  return Math.max(0, Math.round((new Date(end).getTime() - new Date(start).getTime()) / MS));
+  return Math.max(0, Math.round((new Date(end).getTime() - new Date(start).getTime()) / MS_PER_DAY));
 };
 
 /**
@@ -77,13 +77,13 @@ const forecastCompletion = (
   const allClosedTs   = closedIssues.flatMap((i) => i.closedAt ? [new Date(i.closedAt).getTime()] : []);
   const minTime       = Math.min(...allCreatedTs);
   const maxTime       = Math.max(...allCreatedTs, ...allClosedTs, todayMs);
-  const totalDays     = Math.max(Math.ceil((maxTime - minTime) / MS), 1);
+  const totalDays     = Math.max(Math.ceil((maxTime - minTime) / MS_PER_DAY), 1);
 
   // Build daily open-issue counts
   const sortedCreatedTs = [...allCreatedTs].sort((a, b) => a - b);
   const sortedClosedTs  = [...allClosedTs].sort((a, b) => a - b);
   const pts = Array.from({ length: totalDays + 1 }, (_, idx) => {
-    const t = minTime + idx * MS;
+    const t = minTime + idx * MS_PER_DAY;
     return upperBound(sortedCreatedTs, t) - upperBound(sortedClosedTs, t);
   });
 
@@ -103,9 +103,9 @@ const forecastCompletion = (
     const intercept = (sumY - slope * sumX) / n;
     if (slope < 0) {
       const zeroDayIdx    = -intercept / slope;
-      const windowStartT  = minTime + (totalDays - n + 1) * MS;
-      const candidate     = windowStartT + zeroDayIdx * MS;
-      if (candidate > todayMs && candidate <= todayMs + 365 * MS) {
+      const windowStartT  = minTime + (totalDays - n + 1) * MS_PER_DAY;
+      const candidate     = windowStartT + zeroDayIdx * MS_PER_DAY;
+      if (candidate > todayMs && candidate <= todayMs + 365 * MS_PER_DAY) {
         projectedT = candidate;
       }
     }
@@ -114,8 +114,8 @@ const forecastCompletion = (
   // ── Fallback: average close-rate ─────────────────────────────────────────────
   if (projectedT === null && closedCount > 0) {
     const daysPerClose = totalDays / closedCount;
-    const candidate    = todayMs + openCount * daysPerClose * MS;
-    if (candidate > todayMs && candidate <= todayMs + 365 * MS) {
+    const candidate    = todayMs + openCount * daysPerClose * MS_PER_DAY;
+    if (candidate > todayMs && candidate <= todayMs + 365 * MS_PER_DAY) {
       projectedT = candidate;
       method     = "velocity";
     }
@@ -129,4 +129,4 @@ const forecastCompletion = (
 const buildBankHolidayMap = (bankHolidays: ReadonlyArray<{ date: string; name: string }>): Map<string, string> =>
   new Map(bankHolidays.map((h) => [h.date, h.name]));
 
-export { DAY_NAMES, MS, MS_HOUR, STALE_MS, buildBankHolidayMap, durationDays, fmtDate, fmtDateTime, forecastCompletion, snapToHour };
+export { DAY_NAMES, MS_PER_DAY, MS_PER_HOUR, STALE_MS, buildBankHolidayMap, durationDays, fmtDate, fmtDateTime, forecastCompletion, snapToHour };

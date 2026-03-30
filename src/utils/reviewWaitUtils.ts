@@ -1,5 +1,5 @@
 import type { TimelineItem } from "../types/GitHubTypes";
-import { MS } from "./dateUtils";
+import { MS_PER_DAY } from "./dateUtils";
 import { itemStatus } from "./displayUtils";
 
 type SortCol = "number" | "title" | "author" | "status" | "created" | "firstReview" | "wait" | "total";
@@ -24,7 +24,7 @@ type PRRow = {
   milestoneNumber: number;
 };
 
-const toDays = (ms: number): number => Math.round(ms / MS);
+const toDays = (ms: number): number => Math.round(ms / MS_PER_DAY);
 
 const buildRows = (items: TimelineItem[]): PRRow[] => items
     .filter((i): i is Extract<TimelineItem, { type: "pr" }> => i.type === "pr")

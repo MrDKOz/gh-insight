@@ -1,18 +1,18 @@
-import { MS } from "./dateUtils";
+import { MS_PER_DAY } from "./dateUtils";
 
 type SvgBand = { x: string; w: string };
 
 /**
- * Returns SVG band rectangles for Saturday+Sunday within [minTime, minTime + totalDays * MS].
+ * Returns SVG band rectangles for Saturday+Sunday within [minTime, minTime + totalDays * MS_PER_DAY].
  * Each band spans two days. Used by SVG charts that highlight weekends.
  */
-const calcWeekendBands = (minTime: number, totalDays: number, L: number, CW: number): SvgBand[] => {
+const calcWeekendBands = (minTime: number, totalDays: number, paddingLeft: number, chartWidth: number): SvgBand[] => {
   const bands: SvgBand[] = [];
   for (let i = 0; i <= totalDays; i++) {
-    const day = new Date(minTime + i * MS);
+    const day = new Date(minTime + i * MS_PER_DAY);
     if (day.getUTCDay() !== 6) { continue; }
-    const x = L + (i / totalDays) * CW;
-    const w = Math.min((2 / totalDays) * CW, CW - (x - L));
+    const x = paddingLeft + (i / totalDays) * chartWidth;
+    const w = Math.min((2 / totalDays) * chartWidth, chartWidth - (x - paddingLeft));
     bands.push({ x: x.toFixed(1), w: w.toFixed(1) });
   }
   return bands;
@@ -25,16 +25,16 @@ const calcBankHolidayBands = (
   bankHolidays: ReadonlyArray<{ date: string }>,
   minTime: number,
   totalDays: number,
-  L: number,
-  CW: number,
+  paddingLeft: number,
+  chartWidth: number,
 ): SvgBand[] => {
-  const dayWidth = (1 / totalDays) * CW;
+  const dayWidth = (1 / totalDays) * chartWidth;
   return bankHolidays.flatMap(({ date }) => {
     const t = new Date(date).getTime();
-    if (t < minTime || t > minTime + totalDays * MS) { return []; }
-    const i = (t - minTime) / MS;
-    const x = L + (i / totalDays) * CW;
-    return [{ x: x.toFixed(1), w: Math.min(dayWidth, CW - (x - L)).toFixed(1) }];
+    if (t < minTime || t > minTime + totalDays * MS_PER_DAY) { return []; }
+    const i = (t - minTime) / MS_PER_DAY;
+    const x = paddingLeft + (i / totalDays) * chartWidth;
+    return [{ x: x.toFixed(1), w: Math.min(dayWidth, chartWidth - (x - paddingLeft)).toFixed(1) }];
   });
 };
 

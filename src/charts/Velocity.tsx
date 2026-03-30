@@ -7,7 +7,7 @@ import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { AuthorTag } from "../components/AuthorTag";
 import { calcXAxisIndices, calcYAxisStep } from "../utils/chartUtils";
 import { makeChartColors } from "../utils/colorUtils";
-import { DAY_NAMES, fmtDate } from "../utils/dateUtils";
+import { DAY_NAMES, MS_PER_DAY, fmtDate } from "../utils/dateUtils";
 import { FS, hoverCardPos, itemEndDate, pluralize } from "../utils/displayUtils";
 import { CARD_LABEL_SX, CHART_EMPTY_STATE_SX, DOT_SX, HOVER_CARD_BASE_SX, STAT_ROW_SX } from "../utils/sxTokens";
 import { ChartLegend } from "./ChartLegend";
@@ -19,8 +19,6 @@ type Props = {
   includePRs: boolean;
 };
 
-const DAY_MS = 86_400_000;
-
 const weekStart = (ms: number): number => {
   const d = new Date(ms);
   const dow = d.getUTCDay() === 0 ? 6 : d.getUTCDay() - 1; // Mon=0 … Sun=6 (UTC)
@@ -28,9 +26,14 @@ const weekStart = (ms: number): number => {
   return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - dow);
 };
 
-const L = 52, R = 20, T = 24, B = 48, W = 1200, H = 320;
-const CW = W - L - R;
-const CH = H - T - B;
+const PADDING_LEFT   = 52;
+const PADDING_RIGHT  = 20;
+const PADDING_TOP    = 24;
+const PADDING_BOTTOM = 48;
+const SVG_WIDTH      = 1200;
+const SVG_HEIGHT     = 320;
+const CHART_WIDTH    = SVG_WIDTH  - PADDING_LEFT  - PADDING_RIGHT;
+const CHART_HEIGHT   = SVG_HEIGHT - PADDING_TOP   - PADDING_BOTTOM;
 
 
 type Week = {
@@ -66,7 +69,7 @@ type MilestoneHover = {
 
 const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblindMode, includePRs }) => {
   const filteredItems = includePRs ? items : items.filter((i) => i.type === "issue");
-  const COL = makeChartColors(colorblindMode);
+  const chartColors = makeChartColors(colorblindMode);
   const isMulti = milestones.length > 1;
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<Hover | null>(null);
@@ -82,7 +85,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
       const ws = weekStart(new Date(endDate).getTime());
       let w = buckets.get(ws);
       if (!w) {
-        w = { startMs: ws, endMs: ws + 6 * DAY_MS, issues: 0, merged: 0, closed: 0, authors: [] };
+        w = { startMs: ws, endMs: ws + 6 * MS_PER_DAY, issues: 0, merged: 0, closed: 0, authors: [] };
         buckets.set(ws, w);
       }
       if (item.type === "issue")      {w.issues++;}
@@ -109,7 +112,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
       if (!bucket) {continue;}
       let entry = bucket.get(ws);
       if (!entry) {
-        entry = { startMs: ws, endMs: ws + 6 * DAY_MS, total: 0 };
+        entry = { startMs: ws, endMs: ws + 6 * MS_PER_DAY, total: 0 };
         bucket.set(ws, entry);
       }
       entry.total++;
@@ -133,15 +136,15 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
   const singleAxis = useMemo(() => {
     if (isMulti || weeks.length === 0) { return null; }
     const maxTotal = Math.max(...weeks.map((w) => w.issues + w.merged + w.closed), 1);
-    const slotW  = CW / weeks.length;
-    const barW   = Math.min(Math.max(slotW * 0.72, 6), 80);
-    const barX   = (i: number) => L + i * slotW + (slotW - barW) / 2;
+    const slotWidth  = CHART_WIDTH / weeks.length;
+    const barWidth   = Math.min(Math.max(slotWidth * 0.72, 6), 80);
+    const getBarX   = (i: number) => PADDING_LEFT + i * slotWidth + (slotWidth - barWidth) / 2;
     const yStep   = calcYAxisStep(maxTotal);
     const yLabels = Array.from({ length: Math.floor(maxTotal / yStep) + 1 }, (_, i) => i * yStep);
     const numX    = Math.min(8, weeks.length);
     const xIndices = calcXAxisIndices(weeks.length, numX);
-    const pyFn = (count: number) => T + (1 - count / maxTotal) * CH;
-    return { maxTotal, slotW, barW, barX, yLabels, numX, xIndices, pyFn };
+    const toSvgY = (count: number) => PADDING_TOP + (1 - count / maxTotal) * CHART_HEIGHT;
+    return { maxTotal, slotWidth, barWidth, getBarX, yLabels, numX, xIndices, toSvgY };
   }, [isMulti, weeks]);
 
   const multiAxis = useMemo(() => {
@@ -150,15 +153,15 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
       ...milestones.flatMap((ms) => [...(msWeekMap.get(ms.number)?.values() ?? [])].map((w) => w.total)),
       1,
     );
-    const slotW  = CW / allWeekStarts.length;
-    const msBarW = Math.max(Math.min((slotW * 0.8) / milestones.length, 40), 4);
-    const msBarX = (wi: number, mi: number) => L + wi * slotW + (slotW - msBarW * milestones.length) / 2 + mi * msBarW;
+    const slotWidth  = CHART_WIDTH / allWeekStarts.length;
+    const milestoneBarWidth = Math.max(Math.min((slotWidth * 0.8) / milestones.length, 40), 4);
+    const getMilestoneBarX = (wi: number, mi: number) => PADDING_LEFT + wi * slotWidth + (slotWidth - milestoneBarWidth * milestones.length) / 2 + mi * milestoneBarWidth;
     const yStep   = calcYAxisStep(maxTotal);
     const yLabels = Array.from({ length: Math.floor(maxTotal / yStep) + 1 }, (_, i) => i * yStep);
     const numX    = Math.min(8, allWeekStarts.length);
     const xIndices = calcXAxisIndices(allWeekStarts.length, numX);
-    const pyFn = (count: number) => T + (1 - count / maxTotal) * CH;
-    return { maxTotal, slotW, msBarW, msBarX, yLabels, numX, xIndices, pyFn };
+    const toSvgY = (count: number) => PADDING_TOP + (1 - count / maxTotal) * CHART_HEIGHT;
+    return { maxTotal, slotWidth, milestoneBarWidth, getMilestoneBarX, yLabels, numX, xIndices, toSvgY };
   }, [isMulti, allWeekStarts, milestones, msWeekMap]);
 
   if ((isMulti ? allWeekStarts.length : weeks.length) === 0) {
@@ -167,7 +170,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
 
   // ── Single-milestone rendering ───────────────────────────────────────────────
   if (!isMulti) {
-    const { maxTotal, barW, barX, pyFn, yLabels, numX, xIndices } = singleAxis!;
+    const { maxTotal, barWidth, getBarX, toSvgY, yLabels, numX, xIndices } = singleAxis!;
 
     const cardStyle = hover
       ? hoverCardPos(hover.x, hover.y, wrapRef.current?.offsetWidth ?? 800, 200, 94)
@@ -182,19 +185,19 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
             </Box>
             {hover.week.issues > 0 && (
               <Box sx={STAT_ROW_SX}>
-                <Box sx={{ ...DOT_SX, bgcolor: COL.issue }} />
+                <Box sx={{ ...DOT_SX, bgcolor: chartColors.issue }} />
                 {pluralize(hover.week.issues, "issue")} closed
               </Box>
             )}
             {hover.week.merged > 0 && (
               <Box sx={STAT_ROW_SX}>
-                <Box sx={{ ...DOT_SX, bgcolor: COL.prMerged }} />
+                <Box sx={{ ...DOT_SX, bgcolor: chartColors.prMerged }} />
                 {pluralize(hover.week.merged, "PR")} merged
               </Box>
             )}
             {hover.week.closed > 0 && (
               <Box sx={STAT_ROW_SX}>
-                <Box sx={{ ...DOT_SX, bgcolor: COL.prClosed }} />
+                <Box sx={{ ...DOT_SX, bgcolor: chartColors.prClosed }} />
                 {pluralize(hover.week.closed, "PR")} closed
               </Box>
             )}
@@ -234,57 +237,57 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
           </tbody>
         </table>
 
-        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block" }} aria-hidden="true" onMouseLeave={() => setHover(null)}>
+        <svg viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`} style={{ width: "100%", height: "auto", display: "block" }} aria-hidden="true" onMouseLeave={() => setHover(null)}>
           {yLabels.map((c) => (
-            <line key={c} x1={L} y1={pyFn(c).toFixed(1)} x2={L + CW} y2={pyFn(c).toFixed(1)}
-              stroke={COL.grid} strokeWidth={1} strokeDasharray="4 3" className="chart-grid" />
+            <line key={c} x1={PADDING_LEFT} y1={toSvgY(c).toFixed(1)} x2={PADDING_LEFT + CHART_WIDTH} y2={toSvgY(c).toFixed(1)}
+              stroke={chartColors.grid} strokeWidth={1} strokeDasharray="4 3" className="chart-grid" />
           ))}
 
           {weeks.map((week, i) => {
-            const bx      = barX(i);
-            const bottom  = T + CH;
-            const hIssue  = (week.issues / maxTotal) * CH;
-            const hMerged = (week.merged / maxTotal) * CH;
-            const hClosed = (week.closed / maxTotal) * CH;
+            const bx      = getBarX(i);
+            const bottom  = PADDING_TOP + CHART_HEIGHT;
+            const hIssue  = (week.issues / maxTotal) * CHART_HEIGHT;
+            const hMerged = (week.merged / maxTotal) * CHART_HEIGHT;
+            const hClosed = (week.closed / maxTotal) * CHART_HEIGHT;
             const yIssue  = bottom - hIssue;
             const yMerged = yIssue  - hMerged;
             const yClosed = yMerged - hClosed;
 
             return (
               <g key={week.startMs}>
-                {week.issues > 0 && <rect x={bx.toFixed(1)} y={yIssue.toFixed(1)} width={barW.toFixed(1)} height={hIssue.toFixed(1)} fill={COL.issue} opacity={0.88} rx={2} />}
-                {includePRs && week.merged > 0 && <rect x={bx.toFixed(1)} y={yMerged.toFixed(1)} width={barW.toFixed(1)} height={hMerged.toFixed(1)} fill={COL.prMerged} opacity={0.88} rx={2} />}
-                {includePRs && week.closed > 0 && <rect x={bx.toFixed(1)} y={yClosed.toFixed(1)} width={barW.toFixed(1)} height={hClosed.toFixed(1)} fill={COL.prClosed} opacity={0.88} rx={2} />}
-                <rect x={bx.toFixed(1)} y={T} width={barW.toFixed(1)} height={CH} fill="transparent" className="vel-hover-area" onMouseEnter={(e) => onEnter(e, week)} />
+                {week.issues > 0 && <rect x={bx.toFixed(1)} y={yIssue.toFixed(1)} width={barWidth.toFixed(1)} height={hIssue.toFixed(1)} fill={chartColors.issue} opacity={0.88} rx={2} />}
+                {includePRs && week.merged > 0 && <rect x={bx.toFixed(1)} y={yMerged.toFixed(1)} width={barWidth.toFixed(1)} height={hMerged.toFixed(1)} fill={chartColors.prMerged} opacity={0.88} rx={2} />}
+                {includePRs && week.closed > 0 && <rect x={bx.toFixed(1)} y={yClosed.toFixed(1)} width={barWidth.toFixed(1)} height={hClosed.toFixed(1)} fill={chartColors.prClosed} opacity={0.88} rx={2} />}
+                <rect x={bx.toFixed(1)} y={PADDING_TOP} width={barWidth.toFixed(1)} height={CHART_HEIGHT} fill="transparent" className="vel-hover-area" onMouseEnter={(e) => onEnter(e, week)} />
               </g>
             );
           })}
 
-          <line x1={L} y1={T + CH} x2={L + CW} y2={T + CH} stroke={COL.axis} strokeWidth={1} className="chart-axis" />
-          <line x1={L} y1={T}      x2={L}       y2={T + CH} stroke={COL.axis} strokeWidth={1} className="chart-axis" />
+          <line x1={PADDING_LEFT} y1={PADDING_TOP + CHART_HEIGHT} x2={PADDING_LEFT + CHART_WIDTH} y2={PADDING_TOP + CHART_HEIGHT} stroke={chartColors.axis} strokeWidth={1} className="chart-axis" />
+          <line x1={PADDING_LEFT} y1={PADDING_TOP}      x2={PADDING_LEFT}       y2={PADDING_TOP + CHART_HEIGHT} stroke={chartColors.axis} strokeWidth={1} className="chart-axis" />
 
           {yLabels.map((c) => (
-            <text key={c} x={L - 6} y={pyFn(c) + 4} textAnchor="end" fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">{c}</text>
+            <text key={c} x={PADDING_LEFT - 6} y={toSvgY(c) + 4} textAnchor="end" fill={chartColors.label} fontSize={10} fontFamily="inherit" className="chart-label">{c}</text>
           ))}
           {xIndices.map((wi, li) => (
-            <text key={wi} x={(barX(wi) + barW / 2).toFixed(1)} y={T + CH + 20}
+            <text key={wi} x={(getBarX(wi) + barWidth / 2).toFixed(1)} y={PADDING_TOP + CHART_HEIGHT + 20}
               textAnchor={li === 0 ? "start" : li === numX - 1 ? "end" : "middle"}
-              fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">
+              fill={chartColors.label} fontSize={10} fontFamily="inherit" className="chart-label">
               {fmtDate(new Date(weeks[wi]?.startMs ?? 0).toISOString())}
             </text>
           ))}
 
           <ChartLegend
             items={[
-              { color: COL.issue,    label: "Issues closed" },
+              { color: chartColors.issue,    label: "Issues closed" },
               ...(includePRs ? [
-                { color: COL.prMerged, label: "PRs merged" },
-                { color: COL.prClosed, label: "PRs closed" },
+                { color: chartColors.prMerged, label: "PRs merged" },
+                { color: chartColors.prClosed, label: "PRs closed" },
               ] : []),
             ]}
-            cx={L + CW / 2}
-            y={T - 8}
-            fill={COL.label}
+            cx={PADDING_LEFT + CHART_WIDTH / 2}
+            y={PADDING_TOP - 8}
+            fill={chartColors.label}
           />
         </svg>
       </Box>
@@ -292,7 +295,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
   }
 
   // ── Multi-milestone rendering (one bar per milestone per week) ───────────────
-  const { maxTotal, slotW, msBarW, msBarX, pyFn, yLabels, numX, xIndices } = multiAxis!;
+  const { maxTotal, slotWidth, milestoneBarWidth, getMilestoneBarX, toSvgY, yLabels, numX, xIndices } = multiAxis!;
 
   const msCardStyle = msHover
     ? hoverCardPos(msHover.x, msHover.y, wrapRef.current?.offsetWidth ?? 800, 210, 80)
@@ -335,10 +338,10 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
         </tbody>
       </table>
 
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block" }} aria-hidden="true" onMouseLeave={() => setMsHover(null)}>
+      <svg viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`} style={{ width: "100%", height: "auto", display: "block" }} aria-hidden="true" onMouseLeave={() => setMsHover(null)}>
         {yLabels.map((c) => (
-          <line key={c} x1={L} y1={pyFn(c).toFixed(1)} x2={L + CW} y2={pyFn(c).toFixed(1)}
-            stroke={COL.grid} strokeWidth={1} strokeDasharray="4 3" className="chart-grid" />
+          <line key={c} x1={PADDING_LEFT} y1={toSvgY(c).toFixed(1)} x2={PADDING_LEFT + CHART_WIDTH} y2={toSvgY(c).toFixed(1)}
+            stroke={chartColors.grid} strokeWidth={1} strokeDasharray="4 3" className="chart-grid" />
         ))}
 
         {allWeekStarts.map((ws, wi) => (
@@ -346,14 +349,14 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
             {milestones.map((ms, mi) => {
               const week = msWeekMap.get(ms.number)?.get(ws);
               if (!week || week.total === 0) {return null;}
-              const bx = msBarX(wi, mi);
-              const h  = (week.total / maxTotal) * CH;
-              const by = T + CH - h;
+              const bx = getMilestoneBarX(wi, mi);
+              const h  = (week.total / maxTotal) * CHART_HEIGHT;
+              const by = PADDING_TOP + CHART_HEIGHT - h;
               return (
                 <rect
                   key={ms.number}
                   x={bx.toFixed(1)} y={by.toFixed(1)}
-                  width={msBarW.toFixed(1)} height={h.toFixed(1)}
+                  width={milestoneBarWidth.toFixed(1)} height={h.toFixed(1)}
                   fill={ms.color} opacity={0.88} rx={2}
                   style={{ cursor: "pointer" }}
                   onMouseEnter={(e) => onMsEnter(e, ms, week)}
@@ -363,20 +366,20 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
           </g>
         ))}
 
-        <line x1={L} y1={T + CH} x2={L + CW} y2={T + CH} stroke={COL.axis} strokeWidth={1} className="chart-axis" />
-        <line x1={L} y1={T}      x2={L}       y2={T + CH} stroke={COL.axis} strokeWidth={1} className="chart-axis" />
+        <line x1={PADDING_LEFT} y1={PADDING_TOP + CHART_HEIGHT} x2={PADDING_LEFT + CHART_WIDTH} y2={PADDING_TOP + CHART_HEIGHT} stroke={chartColors.axis} strokeWidth={1} className="chart-axis" />
+        <line x1={PADDING_LEFT} y1={PADDING_TOP}      x2={PADDING_LEFT}       y2={PADDING_TOP + CHART_HEIGHT} stroke={chartColors.axis} strokeWidth={1} className="chart-axis" />
 
         {yLabels.map((c) => (
-          <text key={c} x={L - 6} y={pyFn(c) + 4} textAnchor="end" fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">{c}</text>
+          <text key={c} x={PADDING_LEFT - 6} y={toSvgY(c) + 4} textAnchor="end" fill={chartColors.label} fontSize={10} fontFamily="inherit" className="chart-label">{c}</text>
         ))}
         {xIndices.map((wi, li) => {
           const xs = allWeekStarts[wi];
           if (xs === undefined) { return null; }
-          const cx = L + wi * slotW + slotW / 2;
+          const cx = PADDING_LEFT + wi * slotWidth + slotWidth / 2;
           return (
-            <text key={wi} x={cx.toFixed(1)} y={T + CH + 20}
+            <text key={wi} x={cx.toFixed(1)} y={PADDING_TOP + CHART_HEIGHT + 20}
               textAnchor={li === 0 ? "start" : li === numX - 1 ? "end" : "middle"}
-              fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">
+              fill={chartColors.label} fontSize={10} fontFamily="inherit" className="chart-label">
               {fmtDate(new Date(xs).toISOString())}
             </text>
           );
@@ -384,9 +387,9 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
 
         <ChartLegend
           items={milestones.map((ms) => ({ color: ms.color, label: ms.title }))}
-          cx={L + CW / 2}
-          y={T - 8}
-          fill={COL.label}
+          cx={PADDING_LEFT + CHART_WIDTH / 2}
+          y={PADDING_TOP - 8}
+          fill={chartColors.label}
         />
 
       </svg>

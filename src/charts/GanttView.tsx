@@ -8,7 +8,7 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffec
 import { AuthorCard, AuthorTag } from "../components/AuthorTag";
 import { ItemHoverCard, fixedItemCardPos } from "../components/ItemHoverCard";
 import { COLORS, COLORS_CB } from "../utils/colorUtils";
-import { DAY_NAMES, MS, MS_HOUR, STALE_MS, buildBankHolidayMap, durationDays, fmtDate, fmtDateTime, snapToHour } from "../utils/dateUtils";
+import { DAY_NAMES, MS_PER_DAY, MS_PER_HOUR, STALE_MS, buildBankHolidayMap, durationDays, fmtDate, fmtDateTime, snapToHour } from "../utils/dateUtils";
 import { FS, itemEndDate, safeUrl } from "../utils/displayUtils";
 import { GanttLegend } from "./GanttLegend";
 
@@ -115,8 +115,8 @@ const useGanttLayout = (items: TimelineItem[], filteredItems: TimelineItem[]): G
     const rawMin = Math.min(...allTs);
     const min = new Date(new Date(rawMin).toISOString().slice(0, 10)).getTime();
     const hasOpen = items.some((item) => !itemEndDate(item));
-    const max = hasOpen ? Math.max(...allTs, Date.now()) : Math.max(...allTs) + 3 * MS;
-    const days = Math.max(1, (max - min) / MS);
+    const max = hasOpen ? Math.max(...allTs, Date.now()) : Math.max(...allTs) + 3 * MS_PER_DAY;
+    const days = Math.max(1, (max - min) / MS_PER_DAY);
     setPixelsPerDay(Math.max(4, Math.min(200, el.clientWidth / days)));
   }, [items]);
 
@@ -168,9 +168,9 @@ const useGanttLayout = (items: TimelineItem[], filteredItems: TimelineItem[]): G
     const hasOpenItems = filteredItems.some((item) => !itemEndDate(item));
     const max = hasOpenItems
       ? Math.max(...allTimestamps, now)
-      : Math.max(...allTimestamps) + 3 * MS;
+      : Math.max(...allTimestamps) + 3 * MS_PER_DAY;
     const tms = max - min || 1;
-    const tdays = tms / MS;
+    const tdays = tms / MS_PER_DAY;
     return {
       todayMs: now,
       minTime: min,
@@ -294,7 +294,7 @@ const GanttView = forwardRef<GanttHandle, Props>(({
         ? "tl-badge tl-badge--issue"
         : isClosedPR ? "tl-badge tl-badge--pr-closed" : "tl-badge tl-badge--pr";
       const isStale  = isOpen && (todayMs - new Date(item.updatedAt).getTime()) > STALE_MS;
-      const staleDays = isStale ? Math.floor((todayMs - new Date(item.updatedAt).getTime()) / MS) : 0;
+      const staleDays = isStale ? Math.floor((todayMs - new Date(item.updatedAt).getTime()) / MS_PER_DAY) : 0;
       const isDraft  = item.type === "pr" && item.isDraft;
 
       const endDate  = isOpen ? null : itemEndDate(item);
@@ -304,7 +304,7 @@ const GanttView = forwardRef<GanttHandle, Props>(({
         : new Date(new Date(item.createdAt).toISOString().slice(0, 10)).getTime();
       const snapEndMs = isOpen ? endMs
         : snapMode === "hour" ? snapToHour(endMs)
-        : startMs + (durationDays(item.createdAt, endDate) ?? 0) * MS;
+        : startMs + (durationDays(item.createdAt, endDate) ?? 0) * MS_PER_DAY;
 
       const leftPct  = ((startMs - minTime) / totalMs) * 100;
       const widthPct = Math.max(((snapEndMs - startMs) / totalMs) * 100, 0.3);
@@ -314,7 +314,7 @@ const GanttView = forwardRef<GanttHandle, Props>(({
       if (isOpen) {
         durationText = "ongoing";
       } else if (snapMode === "hour" && endDate) {
-        const hrs = Math.round((new Date(endDate).getTime() - new Date(item.createdAt).getTime()) / MS_HOUR);
+        const hrs = Math.round((new Date(endDate).getTime() - new Date(item.createdAt).getTime()) / MS_PER_HOUR);
         const d   = Math.floor(hrs / 24);
         const h   = hrs % 24;
         durationText = hrs === 0 ? "< 1h" : d === 0 ? `${hrs}h` : h === 0 ? `${d}d` : `${d}d ${h}h`;
@@ -361,18 +361,18 @@ const GanttView = forwardRef<GanttHandle, Props>(({
     if (!highlightWeekends) { return []; }
     const bands: { leftPct: number; widthPct: number }[] = [];
     // Start from UTC midnight before minTime so bands always cover full calendar days.
-    const dayFloor = Math.floor(minTime / MS) * MS;
-    for (let d = dayFloor; d < minTime + totalMs; d += MS) {
+    const dayFloor = Math.floor(minTime / MS_PER_DAY) * MS_PER_DAY;
+    for (let d = dayFloor; d < minTime + totalMs; d += MS_PER_DAY) {
       if (new Date(d).getUTCDay() !== 6) { continue; } // Saturday midnight UTC
       const bandLeft  = Math.max(d, minTime);
-      const bandRight = Math.min(d + 2 * MS, minTime + totalMs);
+      const bandRight = Math.min(d + 2 * MS_PER_DAY, minTime + totalMs);
       if (bandRight > bandLeft) {
         bands.push({
           leftPct:  ((bandLeft  - minTime) / totalMs) * 100,
           widthPct: ((bandRight - bandLeft) / totalMs) * 100,
         });
       }
-      d += MS; // skip Sunday
+      d += MS_PER_DAY; // skip Sunday
     }
     return bands;
   }, [highlightWeekends, minTime, totalMs]);
@@ -384,7 +384,7 @@ const GanttView = forwardRef<GanttHandle, Props>(({
     return bankHolidays.flatMap(({ date }) => {
       const t = new Date(date).getTime();
       if (t < minTime || t >= minTime + totalMs) { return []; }
-      return [{ leftPct: ((t - minTime) / totalMs) * 100, widthPct: (MS / totalMs) * 100 }];
+      return [{ leftPct: ((t - minTime) / totalMs) * 100, widthPct: (MS_PER_DAY / totalMs) * 100 }];
     });
   }, [bankHolidays, minTime, totalMs]);
 
@@ -396,13 +396,13 @@ const GanttView = forwardRef<GanttHandle, Props>(({
   const dateLabels = useMemo(() => {
     if (trackWidth === 0 || totalMs === 0) { return []; }
     const maxTime    = minTime + totalMs;
-    const dayWidthPx = (MS / totalMs) * trackWidth;
-    const withYear   = totalMs > 365 * MS;
+    const dayWidthPx = (MS_PER_DAY / totalMs) * trackWidth;
+    const withYear   = totalMs > 365 * MS_PER_DAY;
     const labels: { label: string; centerPct: number }[] = [];
 
-    // Center label text in the middle of its representative day (noon = t + MS/2)
+    // Center label text in the middle of its representative day (noon = t + MS_PER_DAY/2)
     const add = (t: number, label: string) => {
-      const centerPct = ((t + MS / 2 - minTime) / totalMs) * 100;
+      const centerPct = ((t + MS_PER_DAY / 2 - minTime) / totalMs) * 100;
       if (centerPct > -10 && centerPct < 110) { labels.push({ label, centerPct }); }
     };
 
@@ -410,19 +410,19 @@ const GanttView = forwardRef<GanttHandle, Props>(({
 
     if (dayWidthPx >= 90) {
       // Every day
-      for (let t = Math.ceil(minTime / MS) * MS; t < maxTime; t += MS) { add(t, dayLabel(t)); }
+      for (let t = Math.ceil(minTime / MS_PER_DAY) * MS_PER_DAY; t < maxTime; t += MS_PER_DAY) { add(t, dayLabel(t)); }
     } else if (dayWidthPx >= 13) {
       // Every Monday (7 days × 13 px ≈ 91 px between labels)
-      const firstMidnight = Math.ceil(minTime / MS) * MS;
+      const firstMidnight = Math.ceil(minTime / MS_PER_DAY) * MS_PER_DAY;
       const dow = new Date(firstMidnight).getUTCDay();
       const daysToMon = dow === 1 ? 0 : dow === 0 ? 1 : 8 - dow;
-      for (let t = firstMidnight + daysToMon * MS; t < maxTime; t += 7 * MS) { add(t, dayLabel(t)); }
+      for (let t = firstMidnight + daysToMon * MS_PER_DAY; t < maxTime; t += 7 * MS_PER_DAY) { add(t, dayLabel(t)); }
     } else if (dayWidthPx >= 7) {
       // Every other Monday (14 days × 7 px ≈ 98 px)
-      const firstMidnight = Math.ceil(minTime / MS) * MS;
+      const firstMidnight = Math.ceil(minTime / MS_PER_DAY) * MS_PER_DAY;
       const dow = new Date(firstMidnight).getUTCDay();
       const daysToMon = dow === 1 ? 0 : dow === 0 ? 1 : 8 - dow;
-      for (let t = firstMidnight + daysToMon * MS; t < maxTime; t += 14 * MS) { add(t, dayLabel(t)); }
+      for (let t = firstMidnight + daysToMon * MS_PER_DAY; t < maxTime; t += 14 * MS_PER_DAY) { add(t, dayLabel(t)); }
     } else if (dayWidthPx >= 3) {
       // 1st of each month (≈30 days × 3 px ≈ 90 px)
       const d = new Date(minTime);
@@ -470,9 +470,9 @@ const GanttView = forwardRef<GanttHandle, Props>(({
   // Pre-compute day separator props (null when grid lines would be too dense to be useful)
   const daySepProps = useMemo(() => {
     if (trackWidth === 0) { return null; }
-    const dayWidthPx = (MS / totalMs) * trackWidth;
+    const dayWidthPx = (MS_PER_DAY / totalMs) * trackWidth;
     if (dayWidthPx < 4) { return null; }
-    const firstMidnight = Math.ceil(minTime / MS) * MS;
+    const firstMidnight = Math.ceil(minTime / MS_PER_DAY) * MS_PER_DAY;
     const offsetPx = firstMidnight === minTime ? 0 : ((firstMidnight - minTime) / totalMs) * trackWidth;
     return { dayWidthPx, offsetPx };
   }, [trackWidth, totalMs, minTime]);
@@ -480,7 +480,7 @@ const GanttView = forwardRef<GanttHandle, Props>(({
   // Pre-compute cursor highlight band position
   const cursorBand = cursorInfo ? {
     leftPct:  ((cursorInfo.snappedMs - minTime) / totalMs) * 100,
-    widthPct: ((snapMode === "hour" ? MS_HOUR : MS) / totalMs) * 100,
+    widthPct: ((snapMode === "hour" ? MS_PER_HOUR : MS_PER_DAY) / totalMs) * 100,
   } : null;
 
   // Pre-compute cursor tooltip values to avoid repeated Date construction in JSX
@@ -557,7 +557,7 @@ const GanttView = forwardRef<GanttHandle, Props>(({
             const rect     = e.currentTarget.getBoundingClientRect();
             const x        = e.clientX - rect.left + e.currentTarget.scrollLeft;
             const rawMs    = minTime + (x / trackWidth) * totalMs;
-            const snapUnit = snapMode === "hour" ? MS_HOUR : MS;
+            const snapUnit = snapMode === "hour" ? MS_PER_HOUR : MS_PER_DAY;
             // Floor (not round) so we always highlight the column the cursor is IN
             const snappedMs = Math.floor(rawMs / snapUnit) * snapUnit;
             setCursorInfo({ snappedMs, clientX: e.clientX, clientY: e.clientY });

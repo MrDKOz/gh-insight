@@ -1,5 +1,5 @@
 import type { MilestoneMeta, TimelineItem } from "../types/GitHubTypes";
-import { MS, fmtDate } from "./dateUtils";
+import { MS_PER_DAY, fmtDate } from "./dateUtils";
 import { itemEndDate, itemStatus } from "./displayUtils";
 
 const safeFilename = (s: string): string =>
@@ -50,7 +50,7 @@ const buildRows = (items: TimelineItem[]): Row[] =>
       const status = itemStatus(item);
       const days =
         endDate != null
-          ? Math.max(0, Math.round((new Date(endDate).getTime() - new Date(item.createdAt).getTime()) / MS))
+          ? Math.max(0, Math.round((new Date(endDate).getTime() - new Date(item.createdAt).getTime()) / MS_PER_DAY))
           : null;
       const linked =
         item.type === "pr"
@@ -522,8 +522,8 @@ const buildReviewWaitRows = (items: TimelineItem[], milestones: MilestoneMeta[] 
         ? new Date(pr.mergedAt).getTime()
         : pr.closedAt ? new Date(pr.closedAt).getTime() : null;
       const reviewMs = pr.firstReviewAt ? new Date(pr.firstReviewAt).getTime() : null;
-      const waitDays = reviewMs !== null ? Math.max(0, Math.round((reviewMs - createdMs) / MS)) : null;
-      const totalDays = endMs !== null ? Math.max(0, Math.round((endMs - createdMs) / MS)) : null;
+      const waitDays = reviewMs !== null ? Math.max(0, Math.round((reviewMs - createdMs) / MS_PER_DAY)) : null;
+      const totalDays = endMs !== null ? Math.max(0, Math.round((endMs - createdMs) / MS_PER_DAY)) : null;
       const status = itemStatus(pr);
       return {
         num: `#${pr.number}`,

@@ -1,6 +1,6 @@
 import type { TimelineItem } from "../../types/GitHubTypes";
 import { COLORS, COLORS_CB, labelTextColor, makeChartColors, makeStatusChipSx } from "../colorUtils";
-import { MS, MS_HOUR, durationDays, fmtDate, fmtDateTime, forecastCompletion, snapToHour } from "../dateUtils";
+import { MS_PER_DAY, MS_PER_HOUR, durationDays, fmtDate, fmtDateTime, forecastCompletion, snapToHour } from "../dateUtils";
 import { assigneesOtherThanAuthor, hoverCardPos, itemEndDate, itemStatus, pluralize, safeUrl, upperBound } from "../displayUtils";
 
 const issue = (overrides: Partial<{ closedAt: string | null }> = {}): TimelineItem => ({
@@ -22,9 +22,9 @@ const pr = (overrides: Partial<{ mergedAt: string | null; closedAt: string | nul
   ...overrides,
 });
 
-describe("MS", () => {
+describe("MS_PER_DAY", () => {
   it("equals the number of milliseconds in one day", () => {
-    expect(MS).toBe(24 * 60 * 60 * 1000);
+    expect(MS_PER_DAY).toBe(24 * 60 * 60 * 1000);
   });
 });
 
@@ -229,9 +229,9 @@ describe("pluralize", () => {
   });
 });
 
-describe("MS_HOUR", () => {
+describe("MS_PER_HOUR", () => {
   it("equals the number of milliseconds in one hour", () => {
-    expect(MS_HOUR).toBe(60 * 60 * 1000);
+    expect(MS_PER_HOUR).toBe(60 * 60 * 1000);
   });
 });
 
@@ -386,7 +386,7 @@ describe("hoverCardPos", () => {
 
 // Use a fixed "today" far from epoch to avoid edge cases
 const TODAY_DAY = 500; // day 500 from epoch as the fixed "now"
-const TODAY_MS  = TODAY_DAY * MS;
+const TODAY_MS  = TODAY_DAY * MS_PER_DAY;
 
 const mkForecastIssue = (
   num: number,
@@ -399,9 +399,9 @@ const mkForecastIssue = (
   title: `Issue ${num}`,
   url: `https://github.com/o/r/issues/${num}`,
   author: "alice",
-  createdAt: new Date(createdDay * MS).toISOString(),
-  updatedAt: new Date((closedDay ?? createdDay) * MS).toISOString(),
-  closedAt: closedDay !== null ? new Date(closedDay * MS).toISOString() : null,
+  createdAt: new Date(createdDay * MS_PER_DAY).toISOString(),
+  updatedAt: new Date((closedDay ?? createdDay) * MS_PER_DAY).toISOString(),
+  closedAt: closedDay !== null ? new Date(closedDay * MS_PER_DAY).toISOString() : null,
   linkedPRs: [],
   milestoneNumber,
   labels: [],
@@ -458,7 +458,7 @@ describe("forecastCompletion", () => {
 
     expect(result).not.toBeNull();
     expect(result?.projectedDate.getTime()).toBeGreaterThan(TODAY_MS);
-    expect(result?.projectedDate.getTime()).toBeLessThanOrEqual(TODAY_MS + 365 * MS);
+    expect(result?.projectedDate.getTime()).toBeLessThanOrEqual(TODAY_MS + 365 * MS_PER_DAY);
   });
 
   it("reports correct openCount and closedCount", () => {
@@ -490,10 +490,10 @@ describe("forecastCompletion", () => {
     const pr: TimelineItem = {
       type: "pr", number: 99, title: "A PR",
       url: "https://github.com/o/r/pull/99", author: "bob",
-      createdAt: new Date(490 * MS).toISOString(),
-      updatedAt: new Date(495 * MS).toISOString(),
-      mergedAt: new Date(495 * MS).toISOString(),
-      closedAt: new Date(495 * MS).toISOString(),
+      createdAt: new Date(490 * MS_PER_DAY).toISOString(),
+      updatedAt: new Date(495 * MS_PER_DAY).toISOString(),
+      mergedAt: new Date(495 * MS_PER_DAY).toISOString(),
+      closedAt: new Date(495 * MS_PER_DAY).toISOString(),
       isDraft: false, reviewDecision: null, additions: 5, deletions: 2,
       linkedIssue: null, milestoneNumber: 1,
       labels: [], assignees: [], firstReviewAt: null,

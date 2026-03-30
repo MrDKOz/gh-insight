@@ -116,7 +116,7 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
   const resize = (i: number) => (e: React.MouseEvent) => startResize(i, e, widths[i] ?? 0);
 
   // Column indices: #=0, title=1, author=2, status=3, created=4, firstReview=5, wait=6, bar=7, total=8, [milestone=9]
-  const CI = { num: 0, title: 1, author: 2, status: 3, created: 4, firstReview: 5, wait: 6, bar: 7, total: 8, milestone: 9 };
+  const COLUMN_INDICES = { num: 0, title: 1, author: 2, status: 3, created: 4, firstReview: 5, wait: 6, bar: 7, total: 8, milestone: 9 };
 
   if (rows.length === 0) {
     return (
@@ -134,22 +134,22 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
         </colgroup>
         <TableHead>
           <TableRow>
-            <Th col="number"      label="#"                  active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(CI.num)} />
-            <Th col="title"       label="Pull Request"       active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(CI.title)} />
-            <Th col="author"      label="Author / Assignees" active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(CI.author)} />
-            <Th col="status"      label="Status"             active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(CI.status)} />
-            <Th col="created"     label="Created"            active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(CI.created)} />
-            <Th col="firstReview" label="First Review"       active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(CI.firstReview)} />
-            <Th col="wait"        label="Wait"               active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(CI.wait)} align="right" />
+            <Th col="number"      label="#"                  active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(COLUMN_INDICES.num)} />
+            <Th col="title"       label="Pull Request"       active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(COLUMN_INDICES.title)} />
+            <Th col="author"      label="Author / Assignees" active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(COLUMN_INDICES.author)} />
+            <Th col="status"      label="Status"             active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(COLUMN_INDICES.status)} />
+            <Th col="created"     label="Created"            active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(COLUMN_INDICES.created)} />
+            <Th col="firstReview" label="First Review"       active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(COLUMN_INDICES.firstReview)} />
+            <Th col="wait"        label="Wait"               active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(COLUMN_INDICES.wait)} align="right" />
             <TableCell sx={{ fontWeight: 600, fontSize: FS.sm, py: 1, position: "relative", overflow: "hidden", userSelect: "none" }}>
               Wait vs Total
-              <Box onMouseDown={resize(CI.bar)} sx={RESIZE_HANDLE_SX} />
+              <Box onMouseDown={resize(COLUMN_INDICES.bar)} sx={RESIZE_HANDLE_SX} />
             </TableCell>
-            <Th col="total"       label="Total"              active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(CI.total)} align="right" />
+            <Th col="total"       label="Total"              active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(COLUMN_INDICES.total)} align="right" />
             {isMulti && (
               <TableCell sx={{ fontWeight: 600, fontSize: FS.sm, py: 1, position: "relative", overflow: "hidden", userSelect: "none" }}>
                 Milestone
-                <Box onMouseDown={resize(CI.milestone)} sx={RESIZE_HANDLE_SX} />
+                <Box onMouseDown={resize(COLUMN_INDICES.milestone)} sx={RESIZE_HANDLE_SX} />
               </TableCell>
             )}
           </TableRow>

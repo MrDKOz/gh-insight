@@ -12,7 +12,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useMemo } from "react";
 import { COLORS, COLORS_CB } from "../utils/colorUtils";
-import { MS, STALE_MS, fmtDate, forecastCompletion } from "../utils/dateUtils";
+import { MS_PER_DAY, STALE_MS, fmtDate, forecastCompletion } from "../utils/dateUtils";
 import { pluralize } from "../utils/displayUtils";
 import { Stat } from "./Stat";
 
@@ -49,7 +49,7 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
 
     const cycleTimes = closedIssues.flatMap((i) =>
       i.closedAt !== null
-        ? [Math.round((new Date(i.closedAt).getTime() - new Date(i.createdAt).getTime()) / MS)]
+        ? [Math.round((new Date(i.closedAt).getTime() - new Date(i.createdAt).getTime()) / MS_PER_DAY)]
         : [],
     );
     const cycleStats = cycleTimes.length > 0 ? {
@@ -67,7 +67,7 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
     const reviewed   = prs.filter((p): p is typeof p & { firstReviewAt: string } => p.firstReviewAt !== null);
     const unreviewed = prs.filter((p) => p.firstReviewAt === null);
     const waitDays   = reviewed.map((p) =>
-      Math.round((new Date(p.firstReviewAt).getTime() - new Date(p.createdAt).getTime()) / MS),
+      Math.round((new Date(p.firstReviewAt).getTime() - new Date(p.createdAt).getTime()) / MS_PER_DAY),
     );
     const waitDetails = waitDays.length > 0 ? {
       avg:     Math.round(waitDays.reduce((a, b) => a + b, 0) / waitDays.length),
@@ -91,7 +91,7 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
         .filter((i): i is Extract<TimelineItem, { type: "issue" }> & { closedAt: string } =>
           i.type === "issue" && i.closedAt !== null,
         )
-        .map((i) => Math.round((new Date(i.closedAt).getTime() - new Date(i.createdAt).getTime()) / MS));
+        .map((i) => Math.round((new Date(i.closedAt).getTime() - new Date(i.createdAt).getTime()) / MS_PER_DAY));
       const avgCycle = closedIssuesCycle.length > 0
         ? Math.round(closedIssuesCycle.reduce((a, b) => a + b, 0) / closedIssuesCycle.length)
         : null;

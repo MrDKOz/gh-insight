@@ -42,8 +42,12 @@ const SEG_LABELS: Record<"issues" | "merged" | "closed" | "open", string> = {
   open:   "open",
 };
 
-// L is the left margin reserved for avatar + username label.
-const L = 170, R = 48, T = 20, B = 36, W = 1200;
+// PADDING_LEFT is the left margin reserved for avatar + username label.
+const PADDING_LEFT   = 170;
+const PADDING_RIGHT  = 48;
+const PADDING_TOP    = 20;
+const PADDING_BOTTOM = 36;
+const SVG_WIDTH      = 1200;
 const ROW_H = 36;
 const BAR_H = 22;
 const AVATAR_SIZE = 18;
@@ -51,7 +55,7 @@ const AVATAR_R_GAP = 6;   // px between avatar right edge and y-axis line
 const AVATAR_T_GAP = 5;   // px between text right edge and avatar left edge
 
 const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) => {
-  const COL = makeChartColors(colorblindMode);
+  const chartColors = makeChartColors(colorblindMode);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<Hover | null>(null);
   const clipId = `contrib-avatar-clip-${useId().replace(/:/g, "")}`;
@@ -125,14 +129,14 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
     );
   }
 
-  const segColors = { issues: COL.issue, merged: COL.prMerged, closed: COL.prClosed, open: COL.grid };
+  const segColors = { issues: chartColors.issue, merged: chartColors.prMerged, closed: chartColors.prClosed, open: chartColors.grid };
 
   const maxTotal = Math.max(...rows.map((r) => r.total), 1);
-  const CW = W - L - R;
-  const H  = T + rows.length * ROW_H + B;
+  const chartWidth = SVG_WIDTH - PADDING_LEFT - PADDING_RIGHT;
+  const svgHeight  = PADDING_TOP + rows.length * ROW_H + PADDING_BOTTOM;
 
-  const barX = (offset: number) => L + (offset / maxTotal) * CW;
-  const barW = (count: number)  => (count / maxTotal) * CW;
+  const getBarX = (offset: number) => PADDING_LEFT + (offset / maxTotal) * chartWidth;
+  const getBarWidth = (count: number)  => (count / maxTotal) * chartWidth;
 
   const cardStyle = hover
     ? hoverCardPos(hover.x, hover.y, wrapRef.current?.offsetWidth ?? 800, 210, 110)
@@ -143,7 +147,7 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
   const xTicks = Array.from({ length: Math.floor(maxTotal / xStep) + 1 }, (_, i) => i * xStep);
 
   // Avatar positions
-  const avatarX = L - AVATAR_R_GAP - AVATAR_SIZE;
+  const avatarX = PADDING_LEFT - AVATAR_R_GAP - AVATAR_SIZE;
   const textX   = avatarX - AVATAR_T_GAP;
 
   const LEGEND_ITEMS = [
@@ -203,7 +207,7 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
       </table>
 
       <svg
-        viewBox={`0 0 ${W} ${H}`}
+        viewBox={`0 0 ${SVG_WIDTH} ${svgHeight}`}
         style={{ width: "100%", height: "auto", display: "block" }}
         aria-hidden="true"
         onMouseLeave={() => setHover(null)}
@@ -218,13 +222,13 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
         {/* Grid lines */}
         {xTicks.map((v) => (
           <line key={v}
-            x1={barX(v).toFixed(1)} y1={T}
-            x2={barX(v).toFixed(1)} y2={T + rows.length * ROW_H}
-            stroke={COL.grid} strokeWidth={1} strokeDasharray="4 3" className="chart-grid" />
+            x1={getBarX(v).toFixed(1)} y1={PADDING_TOP}
+            x2={getBarX(v).toFixed(1)} y2={PADDING_TOP + rows.length * ROW_H}
+            stroke={chartColors.grid} strokeWidth={1} strokeDasharray="4 3" className="chart-grid" />
         ))}
 
         {rows.map((row, ri) => {
-          const cy = T + ri * ROW_H + ROW_H / 2 - BAR_H / 2;
+          const cy = PADDING_TOP + ri * ROW_H + ROW_H / 2 - BAR_H / 2;
           let offset = 0;
 
           const segments: Array<{ seg: "issues" | "merged" | "closed" | "open"; count: number }> = [
@@ -253,7 +257,7 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
                   x={textX.toFixed(1)}
                   y={cy + BAR_H / 2 + 4}
                   textAnchor="end"
-                  fill={COL.label}
+                  fill={chartColors.label}
                   fontSize={10}
                   fontFamily="inherit"
                   className="chart-label"
@@ -265,8 +269,8 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
               {/* Stacked segments */}
               {segments.map(({ seg, count }) => {
                 if (count === 0) {return null;}
-                const x = barX(offset);
-                const w = barW(count);
+                const x = getBarX(offset);
+                const w = getBarWidth(count);
                 offset += count;
                 return (
                   <rect
@@ -286,9 +290,9 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
 
               {/* Total label (right of bar) */}
               <text
-                x={(barX(row.total) + 5).toFixed(1)}
+                x={(getBarX(row.total) + 5).toFixed(1)}
                 y={cy + BAR_H / 2 + 4}
-                fill={COL.label}
+                fill={chartColors.label}
                 fontSize={9}
                 fontFamily="inherit"
                 className="chart-label"
@@ -300,16 +304,16 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
         })}
 
         {/* Axes */}
-        <line x1={L} y1={T} x2={L} y2={T + rows.length * ROW_H} stroke={COL.axis} strokeWidth={1} className="chart-axis" />
-        <line x1={L} y1={T + rows.length * ROW_H} x2={L + CW} y2={T + rows.length * ROW_H} stroke={COL.axis} strokeWidth={1} className="chart-axis" />
+        <line x1={PADDING_LEFT} y1={PADDING_TOP} x2={PADDING_LEFT} y2={PADDING_TOP + rows.length * ROW_H} stroke={chartColors.axis} strokeWidth={1} className="chart-axis" />
+        <line x1={PADDING_LEFT} y1={PADDING_TOP + rows.length * ROW_H} x2={PADDING_LEFT + chartWidth} y2={PADDING_TOP + rows.length * ROW_H} stroke={chartColors.axis} strokeWidth={1} className="chart-axis" />
 
         {/* X-axis labels */}
         {xTicks.map((v) => (
           <text key={v}
-            x={barX(v).toFixed(1)}
-            y={T + rows.length * ROW_H + 18}
+            x={getBarX(v).toFixed(1)}
+            y={PADDING_TOP + rows.length * ROW_H + 18}
             textAnchor="middle"
-            fill={COL.label}
+            fill={chartColors.label}
             fontSize={9}
             fontFamily="inherit"
             className="chart-label"
@@ -320,9 +324,9 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
 
         <ChartLegend
           items={LEGEND_ITEMS.map(({ seg, label }) => ({ color: segColors[seg], label }))}
-          cx={L + CW / 2}
-          y={T - 4}
-          fill={COL.label}
+          cx={PADDING_LEFT + chartWidth / 2}
+          y={PADDING_TOP - 4}
+          fill={chartColors.label}
         />
       </svg>
     </Box>

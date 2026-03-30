@@ -6,7 +6,7 @@ import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { ItemHoverCard } from "../components/ItemHoverCard";
 import { makeChartColors } from "../utils/colorUtils";
-import { DAY_NAMES, MS, fmtDate, fmtDateTime } from "../utils/dateUtils";
+import { DAY_NAMES, MS_PER_DAY, fmtDate, fmtDateTime } from "../utils/dateUtils";
 import { hoverCardPos, itemEndDate, pluralize } from "../utils/displayUtils";
 import { CHART_EMPTY_STATE_SX } from "../utils/sxTokens";
 import { ChartLegend } from "./ChartLegend";
@@ -20,16 +20,21 @@ type Props = {
   includePRs: boolean;
 };
 
-const L = 56, R = 20, T = 32, B = 48, W = 1200, H = 320;
-const CW = W - L - R;
-const CH = H - T - B;
+const PADDING_LEFT   = 56;
+const PADDING_RIGHT  = 20;
+const PADDING_TOP    = 32;
+const PADDING_BOTTOM = 48;
+const SVG_WIDTH      = 1200;
+const SVG_HEIGHT     = 320;
+const CHART_WIDTH    = SVG_WIDTH  - PADDING_LEFT  - PADDING_RIGHT;
+const CHART_HEIGHT   = SVG_HEIGHT - PADDING_TOP   - PADDING_BOTTOM;
 
 type Pt = {
   item: TimelineItem;
   endDate: string;
   endMs: number;
   days: number;
-  col: string;
+  color: string;
   typeLabel: string;
   firstReviewAt: string | null;
 };
@@ -43,7 +48,7 @@ type Hover = {
 
 const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, bankHolidays, colorblindMode, includePRs }) => {
   const filteredItems = includePRs ? items : items.filter((i) => i.type === "issue");
-  const COL = makeChartColors(colorblindMode);
+  const chartColors = makeChartColors(colorblindMode);
   const isMulti = milestones.length > 1;
   const milestoneColorMap = useMemo(
     () => new Map(milestones.map((m) => [m.number, m.color])),
@@ -57,21 +62,21 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
     const endDate = itemEndDate(item);
     if (!endDate) {return [];}
     const days = Math.round(
-      (new Date(endDate).getTime() - new Date(item.createdAt).getTime()) / MS,
+      (new Date(endDate).getTime() - new Date(item.createdAt).getTime()) / MS_PER_DAY,
     );
     // In multi-milestone mode, color by milestone; in single mode, by item type
-    const col = isMulti
-      ? (milestoneColorMap.get(item.milestoneNumber) ?? COL.issue)
-      : item.type === "issue" ? COL.issue
-        : item.mergedAt        ? COL.prMerged
-                               : COL.prClosed;
+    const color = isMulti
+      ? (milestoneColorMap.get(item.milestoneNumber) ?? chartColors.issue)
+      : item.type === "issue" ? chartColors.issue
+        : item.mergedAt        ? chartColors.prMerged
+                               : chartColors.prClosed;
     const typeLabel =
       item.type === "issue"  ? "Issue"
         : item.mergedAt      ? "PR (merged)"
                              : "PR (closed)";
     const firstReviewAt = item.type === "pr" ? item.firstReviewAt : null;
-    return [{ item, endDate, endMs: new Date(endDate).getTime(), days, col, typeLabel, firstReviewAt }];
-  }), [filteredItems, isMulti, milestoneColorMap, COL.issue, COL.prMerged, COL.prClosed]);
+    return [{ item, endDate, endMs: new Date(endDate).getTime(), days, color, typeLabel, firstReviewAt }];
+  }), [filteredItems, isMulti, milestoneColorMap, chartColors.issue, chartColors.prMerged, chartColors.prClosed]);
 
   const onEnter = useCallback((e: React.MouseEvent, p: Pt, idx: number) => {
     const rect = wrapRef.current?.getBoundingClientRect();
@@ -93,8 +98,8 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
   const yStep   = maxDays <= 14 ? 1 : maxDays <= 56 ? 7 : Math.ceil(maxDays / 8) * (maxDays > 100 ? 10 : 7);
   const yLabels = Array.from({ length: Math.floor(maxDays / yStep) + 1 }, (_, i) => i * yStep);
 
-  const pxFn = (ms: number)   => L + ((ms - minTime) / totalMs) * CW;
-  const pyFn = (days: number) => T + (1 - days / maxDays) * CH;
+  const toSvgX = (ms: number)   => PADDING_LEFT + ((ms - minTime) / totalMs) * CHART_WIDTH;
+  const toSvgY = (days: number) => PADDING_TOP + (1 - days / maxDays) * CHART_HEIGHT;
 
   const sorted = [...pts.map((p) => p.days)].sort((a, b) => a - b);
   const mid    = Math.floor(sorted.length / 2);
@@ -102,14 +107,14 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
     ? (sorted[mid] ?? 0)
     : Math.round(((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2);
   const mean   = Math.round(sorted.reduce((s, d) => s + d, 0) / sorted.length);
-  const showMean = mean !== median && Math.abs(pyFn(mean) - pyFn(median)) > 16;
+  const showMean = mean !== median && Math.abs(toSvgY(mean) - toSvgY(median)) > 16;
 
   const numX   = Math.min(8, pts.length);
   const xTimes = Array.from({ length: numX }, (_, i) =>
     minTime + (totalMs * i) / Math.max(numX - 1, 1),
   );
 
-  const svgPts = pts.map((p) => ({ x: pxFn(p.endMs), y: pyFn(p.days) }));
+  const svgPts = pts.map((p) => ({ x: toSvgX(p.endMs), y: toSvgY(p.days) }));
 
   const CLUSTER_R = 14;
   const SPREAD_STEP = 13;
@@ -137,7 +142,7 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
 
   const reviewWaitDays = hover?.pt.firstReviewAt
     ? Math.round(
-        (new Date(hover.pt.firstReviewAt).getTime() - new Date(hover.pt.item.createdAt).getTime()) / MS,
+        (new Date(hover.pt.firstReviewAt).getTime() - new Date(hover.pt.item.createdAt).getTime()) / MS_PER_DAY,
       )
     : null;
 
@@ -146,7 +151,7 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
       {hover && (
         <ItemHoverCard
           item={hover.pt.item}
-          dotColor={hover.pt.col}
+          dotColor={hover.pt.color}
           typeLabel={hover.pt.typeLabel}
           dateRange={`${DAY_NAMES[new Date(hover.pt.item.createdAt).getUTCDay()]} ${fmtDateTime(hover.pt.item.createdAt)} → ${DAY_NAMES[new Date(hover.pt.endDate).getUTCDay()]} ${fmtDateTime(hover.pt.endDate)}`}
           metric={`${pluralize(hover.pt.days, "day")} cycle time`}
@@ -181,47 +186,47 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
       </table>
 
       <svg
-        viewBox={`0 0 ${W} ${H}`}
+        viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
         style={{ width: "100%", height: "auto", display: "block" }}
         aria-hidden="true"
         onMouseLeave={() => { setHover(null); setHoveredIdx(null); }}
       >
-        {highlightWeekends && Array.from({ length: Math.ceil(totalMs / MS) + 1 }, (_, i) => {
-          const day = new Date(minTime + i * MS);
+        {highlightWeekends && Array.from({ length: Math.ceil(totalMs / MS_PER_DAY) + 1 }, (_, i) => {
+          const day = new Date(minTime + i * MS_PER_DAY);
           if (day.getUTCDay() !== 6) {return null;}
-          const x = L + (i * MS / totalMs) * CW;
-          const w = Math.min((2 * MS / totalMs) * CW, CW - (x - L));
-          return <rect key={i} x={x.toFixed(1)} y={T} width={w.toFixed(1)} height={CH} fill={COL.weekendBand} className="chart-weekend" />;
+          const x = PADDING_LEFT + (i * MS_PER_DAY / totalMs) * CHART_WIDTH;
+          const w = Math.min((2 * MS_PER_DAY / totalMs) * CHART_WIDTH, CHART_WIDTH - (x - PADDING_LEFT));
+          return <rect key={i} x={x.toFixed(1)} y={PADDING_TOP} width={w.toFixed(1)} height={CHART_HEIGHT} fill={chartColors.weekendBand} className="chart-weekend" />;
         })}
         {bankHolidays.flatMap(({ date }, i) => {
           const t = new Date(date).getTime();
           if (t < minTime || t > minTime + totalMs) {return [];}
-          const x = L + ((t - minTime) / totalMs) * CW;
-          const w = Math.min((MS / totalMs) * CW, CW - (x - L));
-          return [<rect key={i} x={x.toFixed(1)} y={T} width={w.toFixed(1)} height={CH} fill={COL.bankHoliday} className="chart-bank-holiday" />];
+          const x = PADDING_LEFT + ((t - minTime) / totalMs) * CHART_WIDTH;
+          const w = Math.min((MS_PER_DAY / totalMs) * CHART_WIDTH, CHART_WIDTH - (x - PADDING_LEFT));
+          return [<rect key={i} x={x.toFixed(1)} y={PADDING_TOP} width={w.toFixed(1)} height={CHART_HEIGHT} fill={chartColors.bankHoliday} className="chart-bank-holiday" />];
         })}
 
         {yLabels.map((d) => (
           <line key={d}
-            x1={L} y1={pyFn(d).toFixed(1)} x2={L + CW} y2={pyFn(d).toFixed(1)}
-            stroke={COL.grid} strokeWidth={1} strokeDasharray="4 3" className="chart-grid" />
+            x1={PADDING_LEFT} y1={toSvgY(d).toFixed(1)} x2={PADDING_LEFT + CHART_WIDTH} y2={toSvgY(d).toFixed(1)}
+            stroke={chartColors.grid} strokeWidth={1} strokeDasharray="4 3" className="chart-grid" />
         ))}
 
         <line
-          x1={L} y1={pyFn(median).toFixed(1)} x2={L + CW} y2={pyFn(median).toFixed(1)}
-          stroke={COL.median} strokeWidth={1.5} strokeDasharray="6 4" />
-        <text x={L + 4} y={pyFn(median) - 4} textAnchor="start"
-          fill={COL.median} fontSize={9} fontFamily="inherit">
+          x1={PADDING_LEFT} y1={toSvgY(median).toFixed(1)} x2={PADDING_LEFT + CHART_WIDTH} y2={toSvgY(median).toFixed(1)}
+          stroke={chartColors.median} strokeWidth={1.5} strokeDasharray="6 4" />
+        <text x={PADDING_LEFT + 4} y={toSvgY(median) - 4} textAnchor="start"
+          fill={chartColors.median} fontSize={9} fontFamily="inherit">
           median {median}d
         </text>
 
         {showMean && (
           <>
             <line
-              x1={L} y1={pyFn(mean).toFixed(1)} x2={L + CW} y2={pyFn(mean).toFixed(1)}
-              stroke={COL.mean} strokeWidth={1.5} strokeDasharray="6 4" />
-            <text x={L + 4} y={pyFn(mean) - 4} textAnchor="start"
-              fill={COL.mean} fontSize={9} fontFamily="inherit">
+              x1={PADDING_LEFT} y1={toSvgY(mean).toFixed(1)} x2={PADDING_LEFT + CHART_WIDTH} y2={toSvgY(mean).toFixed(1)}
+              stroke={chartColors.mean} strokeWidth={1.5} strokeDasharray="6 4" />
+            <text x={PADDING_LEFT + 4} y={toSvgY(mean) - 4} textAnchor="start"
+              fill={chartColors.mean} fontSize={9} fontFamily="inherit">
               mean {mean}d
             </text>
           </>
@@ -243,34 +248,34 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
             >
               <circle
                 cx={svgPt.x.toFixed(1)} cy={svgPt.y.toFixed(1)}
-                r={5} fill={p.col} opacity={0.82}
+                r={5} fill={p.color} opacity={0.82}
                 className="ct-dot"
                 onMouseEnter={(e) => onEnter(e, p, i)} />
             </g>
           );
         })}
 
-        <line x1={L} y1={T + CH} x2={L + CW} y2={T + CH} stroke={COL.axis} strokeWidth={1} className="chart-axis" />
-        <line x1={L} y1={T}      x2={L}       y2={T + CH} stroke={COL.axis} strokeWidth={1} className="chart-axis" />
+        <line x1={PADDING_LEFT} y1={PADDING_TOP + CHART_HEIGHT} x2={PADDING_LEFT + CHART_WIDTH} y2={PADDING_TOP + CHART_HEIGHT} stroke={chartColors.axis} strokeWidth={1} className="chart-axis" />
+        <line x1={PADDING_LEFT} y1={PADDING_TOP}      x2={PADDING_LEFT}       y2={PADDING_TOP + CHART_HEIGHT} stroke={chartColors.axis} strokeWidth={1} className="chart-axis" />
 
         {yLabels.map((d) => (
-          <text key={d} x={L - 6} y={pyFn(d) + 4} textAnchor="end"
-            fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">
+          <text key={d} x={PADDING_LEFT - 6} y={toSvgY(d) + 4} textAnchor="end"
+            fill={chartColors.label} fontSize={10} fontFamily="inherit" className="chart-label">
             {d}d
           </text>
         ))}
 
         {xTimes.map((t, i) => (
-          <text key={t} x={pxFn(t)} y={T + CH + 20}
+          <text key={t} x={toSvgX(t)} y={PADDING_TOP + CHART_HEIGHT + 20}
             textAnchor={i === 0 ? "start" : i === numX - 1 ? "end" : "middle"}
-            fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label">
+            fill={chartColors.label} fontSize={10} fontFamily="inherit" className="chart-label">
             {fmtDate(new Date(t).toISOString())}
           </text>
         ))}
 
-        <text x={12} y={T + CH / 2} textAnchor="middle"
-          fill={COL.label} fontSize={10} fontFamily="inherit" className="chart-label"
-          transform={`rotate(-90 12 ${T + CH / 2})`}>
+        <text x={12} y={PADDING_TOP + CHART_HEIGHT / 2} textAnchor="middle"
+          fill={chartColors.label} fontSize={10} fontFamily="inherit" className="chart-label"
+          transform={`rotate(-90 12 ${PADDING_TOP + CHART_HEIGHT / 2})`}>
           Days to close
         </text>
 
@@ -278,16 +283,16 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
           items={isMulti
             ? milestones.map((ms) => ({ color: ms.color, label: ms.title }))
             : [
-                { color: COL.issue,    label: "Issues" },
+                { color: chartColors.issue,    label: "Issues" },
                 ...(includePRs ? [
-                  { color: COL.prMerged, label: "PRs merged" },
-                  { color: COL.prClosed, label: "PRs closed" },
+                  { color: chartColors.prMerged, label: "PRs merged" },
+                  { color: chartColors.prClosed, label: "PRs closed" },
                 ] : []),
               ]
           }
-          cx={L + CW / 2}
-          y={T - 8}
-          fill={COL.label}
+          cx={PADDING_LEFT + CHART_WIDTH / 2}
+          y={PADDING_TOP - 8}
+          fill={chartColors.label}
         />
 
       </svg>

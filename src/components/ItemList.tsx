@@ -14,7 +14,7 @@ import Typography from "@mui/material/Typography";
 import { memo, useMemo, useState } from "react";
 import { useColumnResize } from "../hooks/useColumnResize";
 import { COLORS, COLORS_CB, makeStatusChipSx } from "../utils/colorUtils";
-import { MS, fmtDate } from "../utils/dateUtils";
+import { MS_PER_DAY, fmtDate } from "../utils/dateUtils";
 import { FS, buildMilestoneMap, itemEndDate, itemStatus, pluralize, safeUrl } from "../utils/displayUtils";
 import { RESIZE_HANDLE_SX } from "../utils/sxTokens";
 import { AuthorWithAssignees } from "./AuthorWithAssignees";
@@ -126,8 +126,8 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
         case "days": {
           const ea = itemEndDate(a),
             eb = itemEndDate(b);
-          const da = ea ? (new Date(ea).getTime() - new Date(a.createdAt).getTime()) / MS : Infinity;
-          const db = eb ? (new Date(eb).getTime() - new Date(b.createdAt).getTime()) / MS : Infinity;
+          const da = ea ? (new Date(ea).getTime() - new Date(a.createdAt).getTime()) / MS_PER_DAY : Infinity;
+          const db = eb ? (new Date(eb).getTime() - new Date(b.createdAt).getTime()) / MS_PER_DAY : Infinity;
           cmp = da - db;
           break;
         }
@@ -138,9 +138,9 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
       const status     = itemStatus(item);
       const isOpen     = status === "Open";
       const isClosedPR = item.type === "pr" && !item.mergedAt && !!item.closedAt;
-      const days       = end ? Math.round((new Date(end).getTime() - new Date(item.createdAt).getTime()) / MS) : null;
-      const age        = Math.floor((now - new Date(item.createdAt).getTime()) / MS);
-      const staleDays  = Math.floor((now - new Date(item.updatedAt).getTime()) / MS);
+      const days       = end ? Math.round((new Date(end).getTime() - new Date(item.createdAt).getTime()) / MS_PER_DAY) : null;
+      const age        = Math.floor((now - new Date(item.createdAt).getTime()) / MS_PER_DAY);
+      const staleDays  = Math.floor((now - new Date(item.updatedAt).getTime()) / MS_PER_DAY);
       return {
         item, end, status, isOpen, days, age, staleDays,
         badgeKey: item.type === "issue" ? "issue" : isClosedPR ? "pr-closed" : "pr",
@@ -162,7 +162,7 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
   const resize = (i: number) => (e: React.MouseEvent) => startResize(i, e, widths[i] ?? 0);
 
   // Column indices shift when milestone is visible.
-  const ci = isMulti
+  const columnIndices = isMulti
     ? { type: 0, num: 1, title: 2, author: 3, status: 4, milestone: 5, created: 6, closed: 7, age: 8, days: 9 }
     : { type: 0, num: 1, title: 2, author: 3, status: 4, milestone: -1, created: 5, closed: 6, age: 7, days: 8 };
 
@@ -174,16 +174,16 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
         </colgroup>
         <TableHead>
           <TableRow>
-            <Th col="type"      label="Type"               sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(ci.type)} />
-            <Th col="number"    label="#"                  sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(ci.num)} />
-            <Th col="title"     label="Title"              sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(ci.title)} />
-            <Th col="author"    label="Author / Assignees" sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(ci.author)} />
-            <Th col="status"    label="Status"             sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(ci.status)} />
-            {isMulti && <Th col="milestone" label="Milestone" sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(ci.milestone)} />}
-            <Th col="created"   label="Created"            sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(ci.created)} />
-            <Th col="closed"    label="Closed"             sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(ci.closed)} />
-            <Th col="age"       label="Age"                sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(ci.age)} />
-            <Th col="days"      label="Days"               sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(ci.days)} />
+            <Th col="type"      label="Type"               sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(columnIndices.type)} />
+            <Th col="number"    label="#"                  sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(columnIndices.num)} />
+            <Th col="title"     label="Title"              sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(columnIndices.title)} />
+            <Th col="author"    label="Author / Assignees" sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(columnIndices.author)} />
+            <Th col="status"    label="Status"             sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(columnIndices.status)} />
+            {isMulti && <Th col="milestone" label="Milestone" sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(columnIndices.milestone)} />}
+            <Th col="created"   label="Created"            sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(columnIndices.created)} />
+            <Th col="closed"    label="Closed"             sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(columnIndices.closed)} />
+            <Th col="age"       label="Age"                sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(columnIndices.age)} />
+            <Th col="days"      label="Days"               sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(columnIndices.days)} />
           </TableRow>
         </TableHead>
         <TableBody>
