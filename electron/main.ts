@@ -18,11 +18,16 @@ const GH_CANDIDATES = [
   "C:\\Program Files\\GitHub CLI\\gh.exe", // Windows installer default
 ];
 
-async function getGhToken(): Promise<string> {
+// Deduplicates concurrent IPC calls — if gh:check fires at the same time as
+// gh:get-token (e.g. because SplashScreen re-mounted), they share one subprocess
+// invocation instead of racing over the credential store.
+let inflight: Promise<string> | null = null;
+
+async function doGetGhToken(): Promise<string> {
   let lastErr: unknown;
   for (const candidate of GH_CANDIDATES) {
     try {
-      const { stdout } = await execFileAsync(candidate, ["auth", "token"]);
+      const { stdout } = await execFileAsync(candidate, ["auth", "token"], { timeout: 10_000 });
       const token = stdout.trim();
       if (token) { return token; }
     } catch (err) {
@@ -34,6 +39,13 @@ async function getGhToken(): Promise<string> {
     "Install gh from https://cli.github.com and run `gh auth login`.",
     { cause: lastErr },
   );
+}
+
+async function getGhToken(): Promise<string> {
+  if (!inflight) {
+    inflight = doGetGhToken().finally(() => { inflight = null; });
+  }
+  return inflight;
 }
 
 function createWindow(): void {

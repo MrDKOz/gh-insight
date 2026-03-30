@@ -22,6 +22,7 @@ type UseAuthReturn = {
   saveToken: (raw: string) => void;
   handleConnect: (inputToken: string) => Promise<void>;
   connectWithGhCli: () => Promise<void>;
+  checkGhCli: () => Promise<boolean>;
   disconnect: () => void;
 };
 
@@ -71,6 +72,13 @@ const useAuth = (initialPhase: AppPhase): UseAuthReturn => {
     }
   }, [saveToken]);
 
+  // Stable ref — used by SplashScreen's useEffect so it doesn't re-fire on
+  // every render and race with a concurrent sign-in attempt.
+  const checkGhCli = useCallback(
+    (): Promise<boolean> => window.electronAPI!.checkGhCli(),
+    [],
+  );
+
   // Authenticate using the token managed by the locally-installed gh CLI.
   // The token is held in React state only — gh handles its own persistence so
   // we do not store it in localStorage or IndexedDB.
@@ -112,6 +120,7 @@ const useAuth = (initialPhase: AppPhase): UseAuthReturn => {
     saveToken,
     handleConnect,
     connectWithGhCli,
+    checkGhCli,
     disconnect,
   };
 };

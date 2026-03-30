@@ -183,7 +183,9 @@ const App: FunctionComponent = () => {
           onConnect={auth.handleConnect}
           {...(isElectron() ? {
             onConnectWithGhCli: auth.connectWithGhCli,
-            onCheckGhCli: () => window.electronAPI!.checkGhCli(),
+            // useCallback equivalent — stable ref so SplashScreen's useEffect
+            // doesn't re-fire on every render and race with sign-in clicks
+            onCheckGhCli: auth.checkGhCli,
           } : {})}
           onDemo={handleDemo}
           loading={auth.phase === "authenticating"}
