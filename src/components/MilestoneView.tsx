@@ -1,9 +1,10 @@
 import type { BankHoliday } from "../api/bankHolidayApi";
+import type { Action } from "../state/appReducer";
 import type { ExportFormat, GanttHandle, View  } from "../types/AppTypes";
 import type { Filters } from "../types/FilterTypes";
 
 import type { MilestoneMeta, TimelineItem } from "../types/GitHubTypes";
-import type { FunctionComponent } from "react";
+import type { Dispatch, FunctionComponent } from "react";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
@@ -24,9 +25,9 @@ import { CycleTime } from "../charts/CycleTime";
 import { GanttView } from "../charts/GanttView";
 import { Velocity } from "../charts/Velocity";
 
-import { DEFAULT_VIEW, VIEWS } from "../types/AppTypes";
 import { applyFilters } from "../types/FilterTypes";
 import { exportCSV, exportChartPDF, exportGanttPDF, exportMarkdown, exportPDF, exportPNG, exportReviewWaitCSV, exportReviewWaitMarkdown, exportReviewWaitPDF, exportReviewWaitXLSX, exportSVG, exportXLSX } from "../utils/export";
+import { syncFiltersToUrl } from "../utils/urlUtils";
 import { FilterBar } from "./FilterBar";
 import { ItemList } from "./ItemList";
 import { ReviewWaitList } from "./ReviewWaitList";
@@ -39,6 +40,9 @@ type Props = {
   bankHolidays: BankHoliday[];
   colorblindMode: boolean;
   view: View;
+  filters: Filters;
+  includePRs: { burndown: boolean; cumulativeFlow: boolean; cycleTime: boolean; velocity: boolean };
+  dispatch: Dispatch<Action>;
 };
 
 // Only show export formats whose output visually matches what is on screen:
@@ -57,75 +61,14 @@ const formatsForView = (v: View): ExportFormat[] => {
   return ["PNG — Current view", "PDF", "SVG"];
 };
 
-// ---------------------------------------------------------------------------
-// URL state — view is managed by App; filters are managed here.
-// Both write to the same URLSearchParams so they don't clobber each other.
-// ---------------------------------------------------------------------------
-
-const readViewFiltersFromUrl = (): { view: View; filters: Filters } => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const rawView = urlParams.get("view") ?? "";
-  const view: View = (VIEWS as readonly string[]).includes(rawView) ? (rawView as View) : DEFAULT_VIEW;
-
-  const hide = new Set((urlParams.get("hide") ?? "").split(",").filter(Boolean));
-  const rawRole = urlParams.get("role");
-
-  const filters: Filters = {
-    createdStart:     urlParams.get("created_from") ?? "",
-    createdEnd:       urlParams.get("created_to") ?? "",
-    closedStart:      urlParams.get("closed_from") ?? "",
-    closedEnd:        urlParams.get("closed_to") ?? "",
-    showOpenIssues:   !hide.has("oi"),
-    showClosedIssues: !hide.has("ci"),
-    showOpenPRs:      !hide.has("op"),
-    showMergedPRs:    !hide.has("mp"),
-    showClosedPRs:    !hide.has("cp"),
-    // "|" separator; each value is URI-encoded so "|" inside a label/name is safe
-    activeLabels: (urlParams.get("labels") ?? "").split("|").filter(Boolean).map(decodeURIComponent),
-    activePeople: (urlParams.get("people") ?? "").split("|").filter(Boolean).map(decodeURIComponent),
-    peopleRole:   rawRole === "author" ? "author" : rawRole === "assignees" ? "assignees" : "either",
-  };
-  return { view, filters };
-};
-
-const syncFiltersToUrl = (filters: Filters): void => {
-  // Read the current params so App-owned keys (owner/repo/milestones/demo/view) are preserved
-  const urlParams = new URLSearchParams(window.location.search);
-
-  if (filters.createdStart) {urlParams.set("created_from", filters.createdStart);} else {urlParams.delete("created_from");}
-  if (filters.createdEnd)   {urlParams.set("created_to",   filters.createdEnd);}   else {urlParams.delete("created_to");}
-  if (filters.closedStart)  {urlParams.set("closed_from",  filters.closedStart);}  else {urlParams.delete("closed_from");}
-  if (filters.closedEnd)    {urlParams.set("closed_to",    filters.closedEnd);}    else {urlParams.delete("closed_to");}
-
-  const hidden: string[] = [];
-  if (!filters.showOpenIssues)   {hidden.push("oi");}
-  if (!filters.showClosedIssues) {hidden.push("ci");}
-  if (!filters.showOpenPRs)      {hidden.push("op");}
-  if (!filters.showMergedPRs)    {hidden.push("mp");}
-  if (!filters.showClosedPRs)    {hidden.push("cp");}
-  if (hidden.length > 0) {urlParams.set("hide", hidden.join(","));} else {urlParams.delete("hide");}
-
-  if (filters.activeLabels.length > 0) {urlParams.set("labels", filters.activeLabels.map(encodeURIComponent).join("|"));} else {urlParams.delete("labels");}
-  if (filters.activePeople.length > 0) {urlParams.set("people", filters.activePeople.map(encodeURIComponent).join("|"));} else {urlParams.delete("people");}
-
-  if (filters.peopleRole !== "either") {urlParams.set("role", filters.peopleRole);} else {urlParams.delete("role");}
-
-  const qs = urlParams.toString();
-  window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
-};
-
-const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, bankHolidays, colorblindMode, view }) => {
+const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, bankHolidays, colorblindMode, view, filters, includePRs, dispatch }) => {
   const [exportAnchor, setExportAnchor] = useState<HTMLElement | null>(null);
   const [exporting, setExporting] = useState<ExportFormat | null>(null);
-  const [filters, setFilters] = useState<Filters>(() => readViewFiltersFromUrl().filters);
   const [exportError, setExportError] = useState<string | null>(null);
   const [copyTooltip, setCopyTooltip] = useState<"idle" | "copied">("idle");
 
   const [toolbarSlot, setToolbarSlot] = useState<Element | null>(null);
   const [filterSlot, setFilterSlot] = useState<Element | null>(null);
-  const [includePRs, setIncludePRs] = useState({ burndown: false, cumulativeFlow: false, cycleTime: false, velocity: false });
-  const toggleIncludePRs = (chart: keyof typeof includePRs) =>
-    setIncludePRs((prev) => ({ ...prev, [chart]: !prev[chart] }));
 
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -163,9 +106,9 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
   );
 
   const handleFiltersChange = useCallback((newFilters: Filters) => {
-    setFilters(newFilters);
+    dispatch({ type: "SET_FILTERS", filters: newFilters });
     syncFiltersToUrl(newFilters);
-  }, []);
+  }, [dispatch]);
 
   // Read portal target nodes after mount — querying the DOM inline during
   // render returns null on first paint because sibling components haven't
@@ -291,25 +234,25 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
       )}
       {!noFilteredItems && view === "Burndown" && (
         <>
-          <FormControlLabel control={<Checkbox size="small" checked={includePRs.burndown} onChange={() => toggleIncludePRs("burndown")} />} label="Include PRs" sx={{ alignSelf: "flex-start", ml: 0 }} />
+          <FormControlLabel control={<Checkbox size="small" checked={includePRs.burndown} onChange={() => dispatch({ type: "SET_INCLUDE_PRS", chart: "burndown", value: !includePRs.burndown })} />} label="Include PRs" sx={{ alignSelf: "flex-start", ml: 0 }} />
           <Burndown items={filteredItems} milestones={milestones} highlightWeekends={highlightWeekends} bankHolidays={bankHolidays} colorblindMode={colorblindMode} includePRs={includePRs.burndown} />
         </>
       )}
       {!noFilteredItems && view === "Cycle Time" && (
         <>
-          <FormControlLabel control={<Checkbox size="small" checked={includePRs.cycleTime} onChange={() => toggleIncludePRs("cycleTime")} />} label="Include PRs" sx={{ alignSelf: "flex-start", ml: 0 }} />
+          <FormControlLabel control={<Checkbox size="small" checked={includePRs.cycleTime} onChange={() => dispatch({ type: "SET_INCLUDE_PRS", chart: "cycleTime", value: !includePRs.cycleTime })} />} label="Include PRs" sx={{ alignSelf: "flex-start", ml: 0 }} />
           <CycleTime items={filteredItems} milestones={milestones} highlightWeekends={highlightWeekends} bankHolidays={bankHolidays} colorblindMode={colorblindMode} includePRs={includePRs.cycleTime} />
         </>
       )}
       {!noFilteredItems && view === "Velocity" && (
         <>
-          <FormControlLabel control={<Checkbox size="small" checked={includePRs.velocity} onChange={() => toggleIncludePRs("velocity")} />} label="Include PRs" sx={{ alignSelf: "flex-start", ml: 0 }} />
+          <FormControlLabel control={<Checkbox size="small" checked={includePRs.velocity} onChange={() => dispatch({ type: "SET_INCLUDE_PRS", chart: "velocity", value: !includePRs.velocity })} />} label="Include PRs" sx={{ alignSelf: "flex-start", ml: 0 }} />
           <Velocity items={filteredItems} milestones={milestones} colorblindMode={colorblindMode} includePRs={includePRs.velocity} />
         </>
       )}
       {!noFilteredItems && view === "Cumulative Flow" && (
         <>
-          <FormControlLabel control={<Checkbox size="small" checked={includePRs.cumulativeFlow} onChange={() => toggleIncludePRs("cumulativeFlow")} />} label="Include PRs" sx={{ alignSelf: "flex-start", ml: 0 }} />
+          <FormControlLabel control={<Checkbox size="small" checked={includePRs.cumulativeFlow} onChange={() => dispatch({ type: "SET_INCLUDE_PRS", chart: "cumulativeFlow", value: !includePRs.cumulativeFlow })} />} label="Include PRs" sx={{ alignSelf: "flex-start", ml: 0 }} />
           <CumulativeFlow items={filteredItems} highlightWeekends={highlightWeekends} bankHolidays={bankHolidays} colorblindMode={colorblindMode} includePRs={includePRs.cumulativeFlow} />
         </>
       )}
@@ -344,4 +287,4 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
   );
 };
 
-export { MilestoneView, readViewFiltersFromUrl };
+export { MilestoneView };

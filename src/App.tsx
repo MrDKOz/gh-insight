@@ -12,7 +12,7 @@ import { AppHeader } from "./components/AppHeader";
 import { ContextBar } from "./components/ContextBar";
 import { EmptyState } from "./components/EmptyState";
 import { KeyboardShortcuts } from "./components/KeyboardShortcuts";
-import { MilestoneView, readViewFiltersFromUrl } from "./components/MilestoneView";
+import { MilestoneView } from "./components/MilestoneView";
 import { SettingsPopover } from "./components/SettingsPopover";
 import { SplashScreen } from "./components/SplashScreen";
 import { DEMO_REPOS, DEMO_USER } from "./data/demo";
@@ -41,12 +41,9 @@ const App: FunctionComponent = () => {
 
   const auth = useAuth(initialPhase);
 
-  const [activeRepo, setActiveRepo] = useState<Repo | null>(null);
   const [settingsAnchor, setSettingsAnchor] = useState<HTMLElement | null>(null);
-  const [view, setView]                     = useState<View>(() => readViewFiltersFromUrl().view);
 
   const milestones = useMilestones({
-    activeRepo,
     token: auth.token,
   });
 
@@ -74,7 +71,9 @@ const App: FunctionComponent = () => {
           r.name.toLowerCase()  === repo.toLowerCase()
         ) ?? null)
       : null;
-    setActiveRepo(autoRepo);
+    if (autoRepo) {
+      milestones.dispatch({ type: "SET_REPO", repo: autoRepo });
+    }
     setPhase("dashboard");
     if (autoRepo) {
       void loadMilestonesForRepo(autoRepo, {
@@ -82,16 +81,18 @@ const App: FunctionComponent = () => {
         overrideToken:  rawToken,
       });
     }
-  }, [setToken, setUserProfile, setRepos, setPhase, loadMilestonesForRepo]);
+  }, [setToken, setUserProfile, setRepos, setPhase, loadMilestonesForRepo, milestones]);
 
   const handleDemo = useCallback(() => {
     const firstRepo = DEMO_REPOS[0] ?? null;
     setUserProfile(DEMO_USER);
     setRepos(DEMO_REPOS);
     setPhase("dashboard");
-    setActiveRepo(firstRepo);
-    if (firstRepo) { loadDemoForRepo(firstRepo, INITIAL_URL_PARAMS.milestoneNums); }
-  }, [setUserProfile, setRepos, setPhase, loadDemoForRepo]);
+    if (firstRepo) {
+      milestones.dispatch({ type: "SET_REPO", repo: firstRepo });
+      loadDemoForRepo(firstRepo, INITIAL_URL_PARAMS.milestoneNums);
+    }
+  }, [setUserProfile, setRepos, setPhase, loadDemoForRepo, milestones]);
 
   // Auto-login from stored token, or auto-start demo from URL param
   useEffect(() => {
@@ -120,15 +121,13 @@ const App: FunctionComponent = () => {
   const handleDisconnect = useCallback(() => {
     disconnect();
     resetMilestones();
-    setActiveRepo(null);
     setSettingsAnchor(null);
   }, [disconnect, resetMilestones]);
 
   // ── Repo / milestone orchestration ───────────────────────────────────────
 
   const handleRepoSelect = useCallback((repo: Repo | null) => {
-    setActiveRepo(repo);
-    milestones.resetMilestones();
+    milestones.dispatch({ type: "SET_REPO", repo });
     if (!repo) { return; }
     if (milestones.state.isDemo) {
       milestones.loadDemoForRepo(repo, []);
@@ -140,8 +139,8 @@ const App: FunctionComponent = () => {
   // ── URL synchronisation ───────────────────────────────────────────────────
 
   useEffect(() => {
-    syncUrlParams(activeRepo, milestones.state.selected.map((m) => m.number), milestones.state.isDemo);
-  }, [activeRepo, milestones.state.selected, milestones.state.isDemo]);
+    syncUrlParams(milestones.state.activeRepo, milestones.state.selected.map((m) => m.number), milestones.state.isDemo);
+  }, [milestones.state.activeRepo, milestones.state.selected, milestones.state.isDemo]);
 
   useEffect(() => {
     document.body.classList.toggle("colorblind", settings.colorblindMode);
@@ -150,14 +149,14 @@ const App: FunctionComponent = () => {
   // ── View navigation ───────────────────────────────────────────────────────
 
   const handleViewChange = useCallback((v: View) => {
-    setView(v);
+    milestones.dispatch({ type: "SET_VIEW", view: v });
     setViewParam(v);
-  }, []);
+  }, [milestones]);
 
   // ── Config import / export ────────────────────────────────────────────────
 
   const { configError, clearConfigError, fileInputRef, handleExportConfig, handleImportConfig } = useConfigImportExport({
-    activeRepo,
+    activeRepo: milestones.state.activeRepo,
     dark,
     settings,
     applyDark,
@@ -217,7 +216,7 @@ const App: FunctionComponent = () => {
 
           <ContextBar
             repos={auth.repos}
-            activeRepo={activeRepo}
+            activeRepo={milestones.state.activeRepo}
             onRepoChange={handleRepoSelect}
             isDemo={milestones.state.isDemo}
             milestones={milestones.state.milestones}
@@ -228,7 +227,7 @@ const App: FunctionComponent = () => {
             onAdd={milestones.addMilestone}
             onRemove={milestones.removeMilestone}
             onRefresh={milestones.refreshMilestones}
-            view={view}
+            view={milestones.state.view}
             onViewChange={handleViewChange}
             hasItems={milestones.allItems.length > 0}
           />
@@ -257,7 +256,7 @@ const App: FunctionComponent = () => {
               </Box>
             )}
 
-            {!activeRepo && (
+            {!milestones.state.activeRepo && (
               <EmptyState
                 icon={<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h2.5l2 2H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" /></svg>}
                 title="Select a repository"
@@ -265,7 +264,7 @@ const App: FunctionComponent = () => {
               />
             )}
 
-            {activeRepo && milestones.state.milestones.length === 0 && !milestones.state.loadingList && !milestones.state.error && (
+            {milestones.state.activeRepo && milestones.state.milestones.length === 0 && !milestones.state.loadingList && !milestones.state.error && (
               <EmptyState
                 icon={<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" y1="22" x2="4" y2="15" /></svg>}
                 title="No milestones found"
@@ -281,7 +280,10 @@ const App: FunctionComponent = () => {
                   highlightWeekends={settings.highlightWeekends}
                   bankHolidays={bankHolidays}
                   colorblindMode={settings.colorblindMode}
-                  view={view}
+                  view={milestones.state.view}
+                  filters={milestones.state.filters}
+                  includePRs={milestones.state.includePRs}
+                  dispatch={milestones.dispatch}
                 />
               </Box>
             )}

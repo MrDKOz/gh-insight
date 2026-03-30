@@ -1,10 +1,12 @@
-import type { MilestoneState } from "../state/milestoneReducer";
+import type { Action, AppState } from "../state/appReducer";
 import type { Milestone, MilestoneMeta, Repo, TimelineItem } from "../types/GitHubTypes";
+import type { Dispatch } from "react";
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { fetchMilestoneItems, fetchMilestones } from "../api/github";
 import { DEMO_DATA_BY_REPO } from "../data/demo";
-import { initialState, milestoneReducer } from "../state/milestoneReducer";
+import { appReducer, initialState } from "../state/appReducer";
 import { COLORS } from "../utils/colorUtils";
+import { readViewFiltersFromUrl } from "../utils/urlUtils";
 
 const MILESTONE_COLORS = [
   COLORS.issue, COLORS.prMerged, COLORS.success,
@@ -17,12 +19,12 @@ type LoadMilestonesOpts = {
 };
 
 type UseMilestonesOptions = {
-  activeRepo: Repo | null;
   token: string;
 };
 
 type UseMilestonesReturn = {
-  state: MilestoneState;
+  state: AppState;
+  dispatch: Dispatch<Action>;
   allItems: TimelineItem[];
   milestonesMeta: MilestoneMeta[];
   milestoneColorFor: (num: number) => string;
@@ -34,8 +36,13 @@ type UseMilestonesReturn = {
   resetMilestones: () => void;
 };
 
-const useMilestones = ({ activeRepo, token }: UseMilestonesOptions): UseMilestonesReturn => {
-  const [state, dispatch] = useReducer(milestoneReducer, initialState);
+const useMilestones = ({ token }: UseMilestonesOptions): UseMilestonesReturn => {
+  const urlState = readViewFiltersFromUrl();
+  const [state, dispatch] = useReducer(appReducer, {
+    ...initialState,
+    view:    urlState.view,
+    filters: urlState.filters,
+  });
 
   const loadAbortRef    = useRef<AbortController | null>(null);
   const refreshAbortRef = useRef<AbortController | null>(null);
@@ -105,15 +112,14 @@ const useMilestones = ({ activeRepo, token }: UseMilestonesOptions): UseMileston
   }, [token]);
 
   const addMilestone = useCallback(async (milestone: Milestone) => {
-    if (state.selected.some((m) => m.number === milestone.number)) { return; }
     dispatch({ type: "SELECT_MILESTONE", milestone });
     if (!(milestone.number in state.itemsCache)) {
-      if (!activeRepo) { return; }
+      if (!state.activeRepo) { return; }
       const ac = new AbortController();
       itemAbortRefs.current.set(milestone.number, ac);
       dispatch({ type: "FETCH_ITEMS_START", milestoneNumber: milestone.number });
       try {
-        const items = await fetchMilestoneItems(activeRepo.owner, activeRepo.name, token, milestone.number, ac.signal);
+        const items = await fetchMilestoneItems(state.activeRepo.owner, state.activeRepo.name, token, milestone.number, ac.signal);
         dispatch({ type: "FETCH_ITEMS_SUCCESS", milestoneNumber: milestone.number, items });
       } catch (e) {
         if (e instanceof DOMException && e.name === "AbortError") { return; }
@@ -122,28 +128,28 @@ const useMilestones = ({ activeRepo, token }: UseMilestonesOptions): UseMileston
         itemAbortRefs.current.delete(milestone.number);
       }
     }
-  }, [state.selected, state.itemsCache, activeRepo, token]);
+  }, [state.itemsCache, state.activeRepo, token]);
 
   const removeMilestone = useCallback((num: number) => {
     dispatch({ type: "REMOVE_MILESTONE", milestoneNumber: num });
   }, []);
 
   const refreshMilestones = useCallback(async () => {
-    if (state.selected.length === 0 || !activeRepo) { return; }
+    if (state.selected.length === 0 || !state.activeRepo) { return; }
     refreshAbortRef.current?.abort();
     const ac = new AbortController();
     refreshAbortRef.current = ac;
     state.selected.forEach((milestone) => dispatch({ type: "FETCH_ITEMS_START", milestoneNumber: milestone.number }));
     await Promise.all(state.selected.map(async (milestone) => {
       try {
-        const items = await fetchMilestoneItems(activeRepo.owner, activeRepo.name, token, milestone.number, ac.signal);
+        const items = await fetchMilestoneItems(state.activeRepo!.owner, state.activeRepo!.name, token, milestone.number, ac.signal);
         dispatch({ type: "FETCH_ITEMS_SUCCESS", milestoneNumber: milestone.number, items });
       } catch (e) {
         if (e instanceof DOMException && e.name === "AbortError") { return; }
         dispatch({ type: "REFRESH_ITEMS_ERROR", milestoneNumber: milestone.number, error: e instanceof Error ? e.message : String(e) });
       }
     }));
-  }, [state.selected, activeRepo, token]);
+  }, [state.selected, state.activeRepo, token]);
 
   const resetMilestones = useCallback(() => {
     dispatch({ type: "RESET" });
@@ -166,6 +172,7 @@ const useMilestones = ({ activeRepo, token }: UseMilestonesOptions): UseMileston
 
   return {
     state,
+    dispatch,
     allItems,
     milestonesMeta,
     milestoneColorFor,
