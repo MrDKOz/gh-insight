@@ -70,6 +70,10 @@ const ContextBar: FunctionComponent<Props> = memo(({
         onChange={(_, v) => onRepoChange(v)}
         getOptionLabel={(r) => r.fullName}
         isOptionEqualToValue={(a, b) => a.fullName === b.fullName}
+        filterOptions={(options, { inputValue }) => {
+          const query = inputValue.toLowerCase();
+          return query ? options.filter((r) => r.fullName.toLowerCase().includes(query)) : options;
+        }}
         renderOption={(props, option) => (
           <Box component="li" {...props} sx={{ ...(props as HTMLAttributes<HTMLLIElement>).style, width: "100%" }}>
             <Box sx={{ display: "flex", flexDirection: "column", minWidth: 0, width: "100%" }}>
