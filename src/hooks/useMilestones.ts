@@ -18,8 +18,9 @@ const EPIC_COLORS    = ["#8250df", "#db2777", "#c026d3", "#9333ea", "#be185d", "
 const EPIC_COLORS_CB = ["#E69F00", "#D55E00", "#CC79A7", "#b87e00", "#a44b00", "#a85b88"];
 
 type LoadMilestonesOpts = {
-  autoSelectNums?: number[];
-  overrideToken?:  string;
+  autoSelectNums?:     number[];
+  autoSelectEpicNums?: number[];
+  overrideToken?:      string;
 };
 
 type UseMilestonesOptions = {
@@ -143,10 +144,27 @@ const useMilestones = ({ token, colorblindMode = false }: UseMilestonesOptions):
 
     if (epicsResult.status === "fulfilled") {
       dispatch({ type: "FETCH_EPIC_LIST_SUCCESS", epics: epicsResult.value });
+      const autoEpicNums = opts?.autoSelectEpicNums ?? [];
+      if (autoEpicNums.length > 0) {
+        const toSelectEpics = epicsResult.value.filter((e) => autoEpicNums.includes(e.number));
+        for (const epic of toSelectEpics) {
+          dispatch({ type: "SELECT_EPIC", epic });
+          const ac2 = new AbortController();
+          epicAbortRefs.current.set(epic.number, ac2);
+          dispatch({ type: "FETCH_EPIC_ITEMS_START", epicNumber: epic.number });
+          fetchEpicItems(repo.owner, repo.name, effectiveToken, epic.number, ac2.signal)
+            .then((items) => { dispatch({ type: "FETCH_EPIC_ITEMS_SUCCESS", epicNumber: epic.number, items }); })
+            .catch((e) => {
+              if (e instanceof DOMException && e.name === "AbortError") { return; }
+              dispatch({ type: "FETCH_EPIC_ITEMS_ERROR", epicNumber: epic.number, error: e instanceof Error ? e.message : String(e) });
+            })
+            .finally(() => { epicAbortRefs.current.delete(epic.number); });
+        }
+      }
     } else {
       if (epicsResult.reason instanceof DOMException && epicsResult.reason.name === "AbortError") { return; }
-      // Epic list failure is non-fatal — just clear the loading state silently
-      dispatch({ type: "FETCH_EPIC_LIST_SUCCESS", epics: [] });
+      // Epic list failure is non-fatal — clear the loading state without blocking the UI
+      dispatch({ type: "FETCH_EPIC_LIST_ERROR", error: epicsResult.reason instanceof Error ? epicsResult.reason.message : String(epicsResult.reason) });
     }
   }, [token]);
 

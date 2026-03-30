@@ -24,6 +24,7 @@ const triggerBlobDownload = (content: string, filename: string, mime: string): v
 };
 
 type Row = {
+  kind: string;
   type: string;
   num: string;
   title: string;
@@ -42,8 +43,9 @@ type Row = {
   url: string;
 };
 
-const buildRows = (items: TimelineItem[]): Row[] =>
-  [...items]
+const buildRows = (items: TimelineItem[], milestones: MilestoneMeta[] = []): Row[] => {
+  const msKind = new Map(milestones.map((m) => [m.number, m.kind]));
+  return [...items]
     .sort((a, b) => a.number - b.number)
     .map((item) => {
       const endDate = itemEndDate(item);
@@ -68,7 +70,10 @@ const buildRows = (items: TimelineItem[]): Row[] =>
           : "—"
           : "—";
       const size = item.type === "pr" ? `+${item.additions} / -${item.deletions}` : "—";
+      const rawKind = msKind.get(item.milestoneNumber);
+      const kind = rawKind === "epic" ? "Epic" : "Milestone";
       return {
+        kind,
         type: item.type === "issue" ? "Issue" : "PR",
         num: `#${item.number}`,
         title: item.title,
@@ -87,32 +92,33 @@ const buildRows = (items: TimelineItem[]): Row[] =>
         url: item.url,
       };
     });
+};
 
-const COLS = ["Type", "Number", "Title", "Author", "Assignees", "Labels", "Status", "Draft", "Reopened", "Review State", "Size (+/-)", "Opened", "Closed/Merged", "Duration (days)", "Linked to", "URL"] as const;
+const COLS = ["Source Type", "Type", "Number", "Title", "Author", "Assignees", "Labels", "Status", "Draft", "Reopened", "Review State", "Size (+/-)", "Opened", "Closed/Merged", "Duration (days)", "Linked to", "URL"] as const;
 
-const exportCSV = (items: TimelineItem[], title: string): void => {
-  const rows = buildRows(items);
+const exportCSV = (items: TimelineItem[], title: string, milestones: MilestoneMeta[] = []): void => {
+  const rows = buildRows(items, milestones);
   const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
   const lines = [
     COLS.map(esc).join(","),
     ...rows.map((r) =>
-      [r.type, r.num, r.title, r.author, r.assignees, r.labels, r.status, r.draft, r.reopened, r.reviewState, r.size, r.opened, r.closed, r.duration, r.linked, r.url].map(esc).join(","),
+      [r.kind, r.type, r.num, r.title, r.author, r.assignees, r.labels, r.status, r.draft, r.reopened, r.reviewState, r.size, r.opened, r.closed, r.duration, r.linked, r.url].map(esc).join(","),
     ),
   ];
   triggerBlobDownload(lines.join("\r\n"), `${safeFilename(title)}.csv`, "text/csv;charset=utf-8;");
 };
 
-const exportMarkdown = (items: TimelineItem[], title: string): void => {
-  const rows = buildRows(items);
+const exportMarkdown = (items: TimelineItem[], title: string, milestones: MilestoneMeta[] = []): void => {
+  const rows = buildRows(items, milestones);
   const pipe = (s: string) => s.replace(/\|/g, "\\|");
   const lines = [
     `# ${title}`,
     "",
-    "| Type | # | Title | Author | Assignees | Labels | Status | Draft | Reopened | Review State | Size (+/-) | Opened | Closed/Merged | Duration | Linked to |",
-    "|------|---|-------|--------|-----------|--------|--------|-------|----------|--------------|------------|--------|---------------|----------|-----------|",
+    "| Source Type | Type | # | Title | Author | Assignees | Labels | Status | Draft | Reopened | Review State | Size (+/-) | Opened | Closed/Merged | Duration | Linked to |",
+    "|-------------|------|---|-------|--------|-----------|--------|--------|-------|----------|--------------|------------|--------|---------------|----------|-----------|",
     ...rows.map(
       (r) =>
-        `| ${r.type} | [${r.num}](${r.url}) | ${pipe(r.title)} | ${r.author} | ${r.assignees} | ${pipe(r.labels)} | ${r.status} | ${r.draft} | ${r.reopened} | ${r.reviewState} | ${r.size} | ${r.opened} | ${r.closed} | ${r.duration === "—" ? "—" : `${r.duration} days`} | ${r.linked} |`,
+        `| ${r.kind} | ${r.type} | [${r.num}](${r.url}) | ${pipe(r.title)} | ${r.author} | ${r.assignees} | ${pipe(r.labels)} | ${r.status} | ${r.draft} | ${r.reopened} | ${r.reviewState} | ${r.size} | ${r.opened} | ${r.closed} | ${r.duration === "—" ? "—" : `${r.duration} days`} | ${r.linked} |`,
     ),
   ];
   triggerBlobDownload(lines.join("\n"), `${safeFilename(title)}.md`, "text/markdown;charset=utf-8;");
@@ -388,9 +394,9 @@ const drawPDFTable = (
   }
 };
 
-const exportPDF = async (items: TimelineItem[], title: string): Promise<void> => {
+const exportPDF = async (items: TimelineItem[], title: string, milestones: MilestoneMeta[] = []): Promise<void> => {
   const { jsPDF } = await import("jspdf");
-  const rows = buildRows(items);
+  const rows = buildRows(items, milestones);
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
 
   doc.setFontSize(16);
@@ -405,39 +411,40 @@ const exportPDF = async (items: TimelineItem[], title: string): Promise<void> =>
   );
 
   // Available width: 297 (A4 landscape) − 14 (left) − 14 (right) = 269 mm
-  // Type(13)+#(14)+Title(48)+Author(18)+Assignees(16)+Labels(15)+Status(17)+Draft(10)+Reopened(10)+ReviewState(20)+Opened(21)+Closed(21)+Days(12)+Linked(18)+Size(16) = 269
+  // SrcType(13)+Type(12)+#(13)+Title(44)+Author(17)+Assignees(15)+Labels(14)+Status(16)+Draft(9)+Reopened(9)+ReviewState(19)+Opened(20)+Closed(20)+Days(11)+Linked(17)+Size(20) = 269
   drawPDFTable(
     doc,
     30,
     [
-      { label: "Type",          width: 13  },
-      { label: "#",             width: 14  },
-      { label: "Title",         width: 48  },
-      { label: "Author",        width: 18  },
-      { label: "Assignees",     width: 16  },
-      { label: "Labels",        width: 15  },
-      { label: "Status",        width: 17  },
-      { label: "Draft",         width: 10  },
-      { label: "Reopened",      width: 10  },
-      { label: "Review State",  width: 20  },
-      { label: "Opened",        width: 21  },
-      { label: "Closed/Merged", width: 21  },
-      { label: "Days",          width: 12  },
-      { label: "Linked to",     width: 18  },
-      { label: "Size (+/-)",    width: 16  },
+      { label: "Source Type",   width: 13  },
+      { label: "Type",          width: 12  },
+      { label: "#",             width: 13  },
+      { label: "Title",         width: 44  },
+      { label: "Author",        width: 17  },
+      { label: "Assignees",     width: 15  },
+      { label: "Labels",        width: 14  },
+      { label: "Status",        width: 16  },
+      { label: "Draft",         width: 9   },
+      { label: "Reopened",      width: 9   },
+      { label: "Review State",  width: 19  },
+      { label: "Opened",        width: 20  },
+      { label: "Closed/Merged", width: 20  },
+      { label: "Days",          width: 11  },
+      { label: "Linked to",     width: 17  },
+      { label: "Size (+/-)",    width: 20  },
     ],
-    rows.map((r) => [r.type, r.num, r.title, r.author, r.assignees, r.labels, r.status, r.draft, r.reopened, r.reviewState, r.opened, r.closed, r.duration, r.linked, r.size]),
+    rows.map((r) => [r.kind, r.type, r.num, r.title, r.author, r.assignees, r.labels, r.status, r.draft, r.reopened, r.reviewState, r.opened, r.closed, r.duration, r.linked, r.size]),
     (i) => rows[i]?.url,
-    1, // "#" column carries the hyperlink
+    2, // "#" column carries the hyperlink
   );
 
   doc.save(`${safeFilename(title)}.pdf`);
 };
 
-const exportXLSX = async (items: TimelineItem[], title: string): Promise<void> => {
+const exportXLSX = async (items: TimelineItem[], title: string, milestones: MilestoneMeta[] = []): Promise<void> => {
   const { default: writeXlsxFile } = await import("write-excel-file/browser");
 
-  const rows = buildRows(items);
+  const rows = buildRows(items, milestones);
 
   const HEADER = {
     fontWeight: "bold" as const,
@@ -448,6 +455,7 @@ const exportXLSX = async (items: TimelineItem[], title: string): Promise<void> =
   const headerRow = COLS.map((value) => ({ value, ...HEADER }));
 
   const dataRows = rows.map((r) => [
+    { value: r.kind },
     { value: r.type },
     { value: r.num },
     { value: r.title },
@@ -468,6 +476,7 @@ const exportXLSX = async (items: TimelineItem[], title: string): Promise<void> =
 
   await writeXlsxFile([headerRow, ...dataRows], {
     columns: [
+      { width: 12 },
       { width: 8 },
       { width: 10 },
       { width: 52 },
@@ -494,6 +503,7 @@ const exportXLSX = async (items: TimelineItem[], title: string): Promise<void> =
 // #, Title, Author, Status, Created, First Review, Wait (days), Total (days)
 
 type ReviewWaitRow = {
+  kind: string;
   num: string;
   milestone: string;
   title: string;
@@ -510,10 +520,11 @@ type ReviewWaitRow = {
   url: string;
 };
 
-const RW_COLS = ["#", "Milestone", "Title", "Author", "Assignees", "Labels", "Status", "Draft", "Created", "First Review", "Wait (days)", "Total (days)", "Size (+/-)", "URL"] as const;
+const RW_COLS = ["Source Type", "#", "Milestone", "Title", "Author", "Assignees", "Labels", "Status", "Draft", "Created", "First Review", "Wait (days)", "Total (days)", "Size (+/-)", "URL"] as const;
 
 const buildReviewWaitRows = (items: TimelineItem[], milestones: MilestoneMeta[] = []): ReviewWaitRow[] => {
   const msTitle = new Map(milestones.map((m) => [m.number, m.title]));
+  const msKind  = new Map(milestones.map((m) => [m.number, m.kind]));
   return items
     .filter((i): i is Extract<TimelineItem, { type: "pr" }> => i.type === "pr")
     .map((pr) => {
@@ -525,7 +536,10 @@ const buildReviewWaitRows = (items: TimelineItem[], milestones: MilestoneMeta[] 
       const waitDays = reviewMs !== null ? Math.max(0, Math.round((reviewMs - createdMs) / MS_PER_DAY)) : null;
       const totalDays = endMs !== null ? Math.max(0, Math.round((endMs - createdMs) / MS_PER_DAY)) : null;
       const status = itemStatus(pr);
+      const rawKind = msKind.get(pr.milestoneNumber);
+      const kind = rawKind === "epic" ? "Epic" : "Milestone";
       return {
+        kind,
         num: `#${pr.number}`,
         milestone: msTitle.get(pr.milestoneNumber) ?? String(pr.milestoneNumber),
         title: pr.title,
@@ -555,7 +569,7 @@ const exportReviewWaitCSV = (items: TimelineItem[], title: string, milestones: M
   const lines = [
     RW_COLS.map(esc).join(","),
     ...rows.map((r) =>
-      [r.num, r.milestone, r.title, r.author, r.assignees, r.labels, r.status, r.draft, r.created, r.firstReview, r.waitDays, r.totalDays, r.size, r.url].map(esc).join(","),
+      [r.kind, r.num, r.milestone, r.title, r.author, r.assignees, r.labels, r.status, r.draft, r.created, r.firstReview, r.waitDays, r.totalDays, r.size, r.url].map(esc).join(","),
     ),
   ];
   triggerBlobDownload(lines.join("\r\n"), `${safeFilename(title)}_review_wait.csv`, "text/csv;charset=utf-8;");
@@ -567,10 +581,10 @@ const exportReviewWaitMarkdown = (items: TimelineItem[], title: string, mileston
   const lines = [
     `# ${title} — Review Wait`,
     "",
-    "| # | Milestone | Title | Author | Assignees | Labels | Status | Draft | Created | First Review | Wait (days) | Total (days) | Size (+/-) |",
-    "|---|-----------|-------|--------|-----------|--------|--------|-------|---------|--------------|-------------|--------------|------------|",
+    "| Source Type | # | Milestone | Title | Author | Assignees | Labels | Status | Draft | Created | First Review | Wait (days) | Total (days) | Size (+/-) |",
+    "|-------------|---|-----------|-------|--------|-----------|--------|--------|-------|---------|--------------|-------------|--------------|------------|",
     ...rows.map(
-      (r) => `| [${r.num}](${r.url}) | ${r.milestone} | ${pipe(r.title)} | ${r.author} | ${r.assignees} | ${pipe(r.labels)} | ${r.status} | ${r.draft} | ${r.created} | ${r.firstReview} | ${r.waitDays} | ${r.totalDays} | ${r.size} |`,
+      (r) => `| ${r.kind} | [${r.num}](${r.url}) | ${r.milestone} | ${pipe(r.title)} | ${r.author} | ${r.assignees} | ${pipe(r.labels)} | ${r.status} | ${r.draft} | ${r.created} | ${r.firstReview} | ${r.waitDays} | ${r.totalDays} | ${r.size} |`,
     ),
   ];
   triggerBlobDownload(lines.join("\n"), `${safeFilename(title)}_review_wait.md`, "text/markdown;charset=utf-8;");
@@ -582,6 +596,7 @@ const exportReviewWaitXLSX = async (items: TimelineItem[], title: string, milest
   const HEADER = { fontWeight: "bold" as const, backgroundColor: "#0969DA", color: "#FFFFFF" };
   const headerRow = RW_COLS.map((value) => ({ value, ...HEADER }));
   const dataRows = rows.map((r) => [
+    { value: r.kind },
     { value: r.num },
     { value: r.milestone },
     { value: r.title },
@@ -598,7 +613,7 @@ const exportReviewWaitXLSX = async (items: TimelineItem[], title: string, milest
     { value: r.url },
   ]);
   await writeXlsxFile([headerRow, ...dataRows], {
-    columns: [{ width: 8 }, { width: 20 }, { width: 52 }, { width: 18 }, { width: 20 }, { width: 24 }, { width: 10 }, { width: 10 }, { width: 16 }, { width: 16 }, { width: 14 }, { width: 14 }, { width: 16 }, { width: 44 }],
+    columns: [{ width: 12 }, { width: 8 }, { width: 20 }, { width: 52 }, { width: 18 }, { width: 20 }, { width: 24 }, { width: 10 }, { width: 10 }, { width: 16 }, { width: 16 }, { width: 14 }, { width: 14 }, { width: 16 }, { width: 44 }],
     fileName: `${safeFilename(title)}_review_wait.xlsx`,
   });
 };
@@ -615,28 +630,29 @@ const exportReviewWaitPDF = async (items: TimelineItem[], title: string, milesto
   doc.text(`Generated ${fmtDate(new Date().toISOString(), true)}  ·  ${rows.length} PR${rows.length !== 1 ? "s" : ""}`, 14, 25);
 
   // Available width: 297 (A4 landscape) − 14 (left) − 14 (right) = 269 mm
-  // #(14)+Milestone(20)+Title(60)+Author(22)+Assignees(20)+Labels(15)+Status(16)+Draft(10)+Created(22)+FirstReview(22)+Wait(16)+Total(16)+Size(16) = 269
+  // SrcType(13)+#(13)+Milestone(19)+Title(55)+Author(20)+Assignees(18)+Labels(14)+Status(15)+Draft(9)+Created(20)+FirstReview(20)+Wait(14)+Total(14)+Size(15) = 269
   drawPDFTable(
     doc,
     30,
     [
-      { label: "#",            width: 14  },
-      { label: "Milestone",    width: 20  },
-      { label: "Title",        width: 60  },
-      { label: "Author",       width: 22  },
-      { label: "Assignees",    width: 20  },
-      { label: "Labels",       width: 15  },
-      { label: "Status",       width: 16  },
-      { label: "Draft",        width: 10  },
-      { label: "Created",      width: 22  },
-      { label: "First Review", width: 22  },
-      { label: "Wait (d)",     width: 16  },
-      { label: "Total (d)",    width: 16  },
-      { label: "Size (+/-)",   width: 16  },
+      { label: "Source Type",  width: 13  },
+      { label: "#",            width: 13  },
+      { label: "Milestone",    width: 19  },
+      { label: "Title",        width: 55  },
+      { label: "Author",       width: 20  },
+      { label: "Assignees",    width: 18  },
+      { label: "Labels",       width: 14  },
+      { label: "Status",       width: 15  },
+      { label: "Draft",        width: 9   },
+      { label: "Created",      width: 20  },
+      { label: "First Review", width: 20  },
+      { label: "Wait (d)",     width: 14  },
+      { label: "Total (d)",    width: 14  },
+      { label: "Size (+/-)",   width: 15  },
     ],
-    rows.map((r) => [r.num, r.milestone, r.title, r.author, r.assignees, r.labels, r.status, r.draft, r.created, r.firstReview, r.waitDays, r.totalDays, r.size]),
+    rows.map((r) => [r.kind, r.num, r.milestone, r.title, r.author, r.assignees, r.labels, r.status, r.draft, r.created, r.firstReview, r.waitDays, r.totalDays, r.size]),
     (i) => rows[i]?.url,
-    0, // "#" column carries the hyperlink
+    1, // "#" column carries the hyperlink
   );
 
   doc.save(`${safeFilename(title)}_review_wait.pdf`);

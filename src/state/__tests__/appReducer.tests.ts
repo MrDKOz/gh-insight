@@ -422,6 +422,39 @@ describe("REMOVE_EPIC", () => {
   });
 });
 
+describe("FETCH_EPIC_LIST_START", () => {
+  it("sets loadingEpicList and clears epics", () => {
+    const state = { ...initialState, epics: [epic1], loadingEpicList: false };
+    const next = appReducer(state, { type: "FETCH_EPIC_LIST_START" });
+
+    expect(next.loadingEpicList).toBe(true);
+    expect(next.epics).toEqual([]);
+  });
+});
+
+describe("FETCH_EPIC_LIST_ERROR", () => {
+  it("clears loadingEpicList and surfaces the error", () => {
+    const state = { ...initialState, loadingEpicList: true };
+    const next = appReducer(state, { type: "FETCH_EPIC_LIST_ERROR", error: "network error" });
+
+    expect(next.loadingEpicList).toBe(false);
+    expect(next.error).toBe("network error");
+    // epics is not reset by the error — it retains whatever value was there
+    expect(next.epics).toEqual(initialState.epics);
+  });
+});
+
+describe("FETCH_EPIC_ITEMS_ERROR", () => {
+  it("removes the epic from selectedEpics and loadingEpicNums, surfaces the error", () => {
+    const state = { ...initialState, selectedEpics: [epic1], loadingEpicNums: [100] };
+    const next = appReducer(state, { type: "FETCH_EPIC_ITEMS_ERROR", epicNumber: 100, error: "fetch failed" });
+
+    expect(next.selectedEpics).toEqual([]);
+    expect(next.loadingEpicNums).not.toContain(100);
+    expect(next.error).toBe("fetch failed");
+  });
+});
+
 describe("FETCH_EPIC_ITEMS_SUCCESS", () => {
   it("stores items in epicItemsCache and removes number from loadingEpicNums", () => {
     const epicItem: TimelineItem = { ...item, milestoneNumber: 100 };

@@ -86,8 +86,9 @@ const App: FunctionComponent = () => {
     setPhase("dashboard");
     if (autoRepo) {
       void loadMilestonesForRepo(autoRepo, {
-        autoSelectNums: INITIAL_URL_PARAMS.milestoneNums,
-        overrideToken:  rawToken,
+        autoSelectNums:     INITIAL_URL_PARAMS.milestoneNums,
+        autoSelectEpicNums: INITIAL_URL_PARAMS.epicNums,
+        overrideToken:      rawToken,
       });
     }
   }, [setToken, setUserProfile, setRepos, setPhase, loadMilestonesForRepo, milestoneDispatch]);
@@ -156,10 +157,11 @@ const App: FunctionComponent = () => {
       milestones.state.activeRepo,
       milestones.state.selected.map((m) => m.number),
       milestones.state.isDemo,
+      milestones.state.selectedEpics.map((e) => e.number),
     );
     setViewParam(milestones.state.view);
     syncFiltersToUrl(milestones.state.filters);
-  }, [milestones.state.activeRepo, milestones.state.selected, milestones.state.isDemo, milestones.state.view, milestones.state.filters]);
+  }, [milestones.state.activeRepo, milestones.state.selected, milestones.state.isDemo, milestones.state.view, milestones.state.filters, milestones.state.selectedEpics]);
 
   useEffect(() => {
     document.body.classList.toggle("colorblind", settings.colorblindMode);

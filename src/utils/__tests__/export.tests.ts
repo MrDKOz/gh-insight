@@ -169,6 +169,26 @@ describe("buildRows — field mapping", () => {
     expect(row.status).toBe("Closed");
   });
 
+  it("defaults kind to 'Milestone' when no milestones meta provided", () => {
+    const row = buildRows([closedIssue])[0]!;
+
+    expect(row.kind).toBe("Milestone");
+  });
+
+  it("sets kind to 'Epic' when the milestoneNumber matches an epic entry", () => {
+    const meta = [{ number: 1, title: "Sprint 1", color: "#0969DA", dueOn: null, kind: "epic" as const }];
+    const row = buildRows([closedIssue], meta)[0]!;
+
+    expect(row.kind).toBe("Epic");
+  });
+
+  it("sets kind to 'Milestone' when the milestoneNumber matches a milestone entry", () => {
+    const meta = [{ number: 1, title: "Sprint 1", color: "#0969DA", dueOn: null, kind: "milestone" as const }];
+    const row = buildRows([closedIssue], meta)[0]!;
+
+    expect(row.kind).toBe("Milestone");
+  });
+
   it("calculates duration in days correctly", () => {
     const row = buildRows([closedIssue])[0]!; // 10 days
 
@@ -434,6 +454,19 @@ describe("buildReviewWaitRows — field mapping", () => {
     expect(row.milestone).toBe("1");
   });
 
+  it("sets kind to 'Epic' when the milestoneNumber matches an epic entry", () => {
+    const meta = [{ number: 1, title: "Sprint 1", color: "#0969DA", dueOn: null, kind: "epic" as const }];
+    const row = buildReviewWaitRows([reviewedPR], meta)[0]!;
+
+    expect(row.kind).toBe("Epic");
+  });
+
+  it("defaults kind to 'Milestone' when no milestones meta provided", () => {
+    const row = buildReviewWaitRows([reviewedPR])[0]!;
+
+    expect(row.kind).toBe("Milestone");
+  });
+
   it("filters out issues — only PRs are included", () => {
     const rows = buildReviewWaitRows([closedIssue, reviewedPR]);
 
@@ -486,6 +519,7 @@ describe("exportCSV", () => {
   it("includes the header row with all expected columns", () => {
     exportCSV([closedIssue], "Sprint 1");
 
+    expect(capturedContent).toContain('"Source Type"');
     expect(capturedContent).toContain('"Type"');
     expect(capturedContent).toContain('"Number"');
     expect(capturedContent).toContain('"Title"');

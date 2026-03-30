@@ -66,7 +66,7 @@ const fetchMilestones = async (owner: string, repo: string, token: string, signa
   while (true) {
     const response = await fetch(
       `${GH_API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/milestones?state=all&per_page=100&page=${page}`,
-      { headers: authHeaders(token), signal: signal ?? null },
+      { headers: authHeaders(token), ...(signal ? { signal } : {}) },
     );
     await checkResponse(response);
     const data = decodeOrThrow(await response.json() as unknown, t.array(RawMilestoneCodec));
@@ -256,7 +256,7 @@ const gqlFetch = async <T>(
     method: "POST",
     headers: { ...authHeaders(token), "Content-Type": "application/json" },
     body: JSON.stringify({ query, variables }),
-    signal: signal ?? null,
+    ...(signal ? { signal } : {}),
   });
   await checkResponse(response);
   const envelope = decodeOrThrow(await response.json() as unknown, GQLEnvelopeCodec);
@@ -638,7 +638,7 @@ const fetchUserRepos = async (token: string, signal?: AbortSignal): Promise<Repo
   while (true) {
     const response = await fetch(
       `${GH_API}/user/repos?per_page=100&page=${page}&sort=updated&affiliation=owner,collaborator,organization_member`,
-      { headers: authHeaders(token), signal: signal ?? null },
+      { headers: authHeaders(token), ...(signal ? { signal } : {}) },
     );
     await checkResponse(response);
     const data = decodeOrThrow(await response.json() as unknown, t.array(RawRepoCodec));

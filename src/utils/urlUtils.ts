@@ -3,7 +3,7 @@ import type { Filters } from "../types/FilterTypes";
 import type { Repo } from "../types/GitHubTypes";
 import { DEFAULT_VIEW, VIEWS } from "../types/AppTypes";
 
-const readUrlParams = (): { owner: string; repo: string; milestoneNums: number[]; demo: boolean } => {
+const readUrlParams = (): { owner: string; repo: string; milestoneNums: number[]; epicNums: number[]; demo: boolean } => {
   const urlParams = new URLSearchParams(window.location.search);
   const demo  = urlParams.get("demo") === "1";
   const owner = demo ? "" : (urlParams.get("owner") ?? "");
@@ -13,12 +13,17 @@ const readUrlParams = (): { owner: string; repo: string; milestoneNums: number[]
     .split(",")
     .map((s) => parseInt(s, 10))
     .filter((n) => Number.isFinite(n) && n > 0);
-  return { owner, repo, milestoneNums, demo };
+  const rawEpics = urlParams.get("epics") ?? "";
+  const epicNums = rawEpics
+    .split(",")
+    .map((s) => parseInt(s, 10))
+    .filter((n) => Number.isFinite(n) && n > 0);
+  return { owner, repo, milestoneNums, epicNums, demo };
 };
 
-const syncUrlParams = (activeRepo: Repo | null, selectedNums: number[], isDemo: boolean): void => {
+const syncUrlParams = (activeRepo: Repo | null, selectedNums: number[], isDemo: boolean, selectedEpicNums: number[] = []): void => {
   const urlParams = new URLSearchParams(window.location.search);
-  urlParams.delete("owner"); urlParams.delete("repo"); urlParams.delete("demo"); urlParams.delete("milestones");
+  urlParams.delete("owner"); urlParams.delete("repo"); urlParams.delete("demo"); urlParams.delete("milestones"); urlParams.delete("epics");
   if (isDemo) {
     urlParams.set("demo", "1");
   } else if (activeRepo) {
@@ -26,6 +31,7 @@ const syncUrlParams = (activeRepo: Repo | null, selectedNums: number[], isDemo: 
     urlParams.set("repo",  activeRepo.name);
   }
   if (selectedNums.length > 0) { urlParams.set("milestones", selectedNums.join(",")); }
+  if (selectedEpicNums.length > 0) { urlParams.set("epics", selectedEpicNums.join(",")); }
   const qs = urlParams.toString();
   window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
 };

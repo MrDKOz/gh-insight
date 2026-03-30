@@ -139,15 +139,15 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
           else if (fmt === "PDF")                {await exportReviewWaitPDF(filteredItems, title, milestones);}
           else if (fmt === "PNG — Current view") {await exportPNG(container, ganttRef.current?.trackColEl ?? null, title, "current");}
         } else if (fmt === "SVG")                {exportSVG(container, title);}
-        else if (fmt === "CSV")                  {exportCSV(filteredItems, title);}
-        else if (fmt === "Markdown")             {exportMarkdown(filteredItems, title);}
-        else if (fmt === "XLSX")                 {await exportXLSX(filteredItems, title);}
+        else if (fmt === "CSV")                  {exportCSV(filteredItems, title, milestones);}
+        else if (fmt === "Markdown")             {exportMarkdown(filteredItems, title, milestones);}
+        else if (fmt === "XLSX")                 {await exportXLSX(filteredItems, title, milestones);}
         else if (fmt === "PNG — Current view")   {await exportPNG(container, ganttRef.current?.trackColEl ?? null, title, "current");}
         else if (fmt === "PNG — Full timeline")  {await exportPNG(container, ganttRef.current?.trackColEl ?? null, title, "full");}
         else if (fmt === "PDF") {
           if (view === "Gantt")          {await exportGanttPDF(container, ganttRef.current?.trackColEl ?? null, title);}
           else if (CHART_VIEWS.has(view)){await exportChartPDF(container, title);}
-          else                           {await exportPDF(filteredItems, title);}
+          else                           {await exportPDF(filteredItems, title, milestones);}
         }
       } catch (e) {
         console.error(`Export ${fmt} failed:`, e);
