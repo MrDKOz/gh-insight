@@ -33,7 +33,7 @@ const GanttLegend: FunctionComponent<GanttLegendProps> = ({ hasOpenIssues, color
           { bg: prClosedBg, label: "PRs (closed)" },
         ].map(({ bg, label, dashed, borderColor }) => (
           <Box key={label} sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: FS.md }}>
-            <Box sx={{ width: 20, height: 14, borderRadius: "3px", flexShrink: 0, background: bg, ...(dashed ? { border: `1.5px dashed ${borderColor ?? palette.issue}` } : {}) }} />
+            <Box sx={{ width: 20, height: 14, borderRadius: "3px", flexShrink: 0, background: bg, ...(dashed ? { border: `2px dashed ${borderColor ?? palette.issue}` } : {}) }} />
             {label}
           </Box>
         ))}

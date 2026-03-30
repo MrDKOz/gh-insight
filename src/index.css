@@ -147,7 +147,7 @@ body.dark {
   border-radius: 3px;
   text-transform: uppercase;
   flex-shrink: 0;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.02em;
 }
 
 .tl-badge--issue     { background: #0969da; color: #fff; }
@@ -249,14 +249,14 @@ body.dark {
 
 .tl-bar--issue-open {
   background: linear-gradient(135deg, rgba(9, 105, 218, 0.45) 0%, rgba(5, 80, 174, 0.45) 100%);
-  border: 1.5px dashed #0969da;
+  border: 2px dashed #0969da;
   color: #fff;
   text-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
 }
 
 .tl-bar--pr-open {
   background: linear-gradient(135deg, rgba(130, 80, 223, 0.45) 0%, rgba(102, 57, 186, 0.45) 100%);
-  border: 1.5px dashed #8250df;
+  border: 2px dashed #8250df;
   color: #fff;
   text-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
 }
