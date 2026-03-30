@@ -51,10 +51,9 @@ const useGanttLayout = (items: TimelineItem[], filteredItems: TimelineItem[]): G
   useLayoutEffect(() => { labelWidthRef.current = labelWidth; }, [labelWidth]);
 
   const handleFitToScreen = useCallback(() => {
-    const trackColElement = trackColRef.current;
-    if (!trackColElement) { return; }
+    if (!trackColRef.current) { return; }
     const { totalDays } = stateRef.current;
-    setPixelsPerDay(Math.max(4, Math.min(200, trackColElement.clientWidth / totalDays)));
+    setPixelsPerDay(Math.max(4, Math.min(200, trackColRef.current.clientWidth / totalDays)));
   }, []);
 
   const handleSnapModeChange = useCallback((mode: "day" | "hour") => {
@@ -106,8 +105,7 @@ const useGanttLayout = (items: TimelineItem[], filteredItems: TimelineItem[]): G
   }, []);
 
   useEffect(() => {
-    const trackColElement = trackColRef.current;
-    if (!trackColElement || items.length === 0) { setPixelsPerDay(30); return; }
+    if (!trackColRef.current || items.length === 0) { setPixelsPerDay(30); return; }
     const allTs = items.flatMap((item) => {
       const end = itemEndDate(item);
       return [new Date(item.createdAt).getTime(), ...(end ? [new Date(end).getTime()] : [])];
@@ -117,7 +115,7 @@ const useGanttLayout = (items: TimelineItem[], filteredItems: TimelineItem[]): G
     const hasOpen = items.some((item) => !itemEndDate(item));
     const max = hasOpen ? Math.max(...allTs, Date.now()) : Math.max(...allTs) + 3 * MS_PER_DAY;
     const days = Math.max(1, (max - min) / MS_PER_DAY);
-    setPixelsPerDay(Math.max(4, Math.min(200, trackColElement.clientWidth / days)));
+    setPixelsPerDay(Math.max(4, Math.min(200, trackColRef.current.clientWidth / days)));
   }, [items]);
 
   useEffect(() => {
