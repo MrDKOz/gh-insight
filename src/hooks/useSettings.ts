@@ -1,21 +1,9 @@
 import type { Region } from "../api/bankHolidayApi";
+import type { Settings } from "../types/SettingsTypes";
+import { DEFAULT_SETTINGS } from "../types/SettingsTypes";
 import { useCallback, useState } from "react";
 
 const VALID_REGIONS: Region[] = ["england-and-wales", "scotland", "northern-ireland", "US"];
-
-type Settings = {
-  highlightWeekends: boolean;
-  colorblindMode: boolean;
-  highlightBankHolidays: boolean;
-  bankHolidayRegions: Region[];
-};
-
-const DEFAULT_SETTINGS: Settings = {
-  highlightWeekends: false,
-  colorblindMode: false,
-  highlightBankHolidays: false,
-  bankHolidayRegions: ["england-and-wales"],
-};
 
 const LS_KEY = "gmt_settings";
 
@@ -58,4 +46,4 @@ const useSettings = (): { settings: Settings; updateSetting: <K extends keyof Se
 };
 
 export { useSettings };
-export type { Settings };
+export type { Settings } from "../types/SettingsTypes";

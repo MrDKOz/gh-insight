@@ -1,5 +1,5 @@
 import type { Region } from "../api/bankHolidayApi";
-import type { Settings } from "../hooks/useSettings";
+import type { Settings } from "../types/SettingsTypes";
 import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
