@@ -1,6 +1,6 @@
 import type { AppPhase, View } from "./types/AppTypes";
 import type { Repo, UserProfile } from "./types/GitHubTypes";
-import type { FunctionComponent } from "react";
+import type { ChangeEvent, FunctionComponent } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -166,38 +166,36 @@ const App: FunctionComponent = () => {
     }
   }, [activeRepo, dark, settings]);
 
-  const handleImportConfig = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportConfig = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) { return; }
     const reader = new FileReader();
     reader.onload = (ev) => {
-      try {
-        if (typeof ev.target?.result !== "string") { throw new Error("File could not be read as text"); }
-        const raw: unknown = JSON.parse(ev.target.result);
-        if (typeof raw !== "object" || raw === null) { throw new Error("Not a valid config object"); }
-        const c = raw as Record<string, unknown>;
-        if (typeof c.version !== "number" || c.version !== 1) { throw new Error("Unsupported config version"); }
-        if (typeof c.dark === "boolean") { applyDark(c.dark); }
-        if (typeof c.token === "string" && c.token) {
-          auth.setToken(c.token);
-          auth.saveToken(c.token);
-        }
-        if (typeof c.settings === "object" && c.settings !== null) {
-          const s = c.settings as Record<string, unknown>;
-          if (typeof s.highlightWeekends     === "boolean") { updateSetting("highlightWeekends",     s.highlightWeekends); }
-          if (typeof s.colorblindMode        === "boolean") { updateSetting("colorblindMode",        s.colorblindMode); }
-          if (typeof s.highlightBankHolidays === "boolean") { updateSetting("highlightBankHolidays", s.highlightBankHolidays); }
-          if (Array.isArray(s.bankHolidayRegions)) {
-            const isRegion = (v: unknown): v is "england-and-wales" | "scotland" | "northern-ireland" | "US" =>
-              ["england-and-wales", "scotland", "northern-ireland", "US"].includes(v as string);
-            updateSetting("bankHolidayRegions", (s.bankHolidayRegions as unknown[]).filter(isRegion));
-          }
-        }
-        setSettingsAnchor(null);
-      } catch (err) {
-        setConfigError(`Config import failed: ${err instanceof Error ? err.message : "invalid file"}`);
+      const fail = (msg: string) => setConfigError(`Config import failed: ${msg}`);
+      if (typeof ev.target?.result !== "string") { fail("File could not be read as text"); return; }
+      let raw: unknown;
+      try { raw = JSON.parse(ev.target.result); } catch { fail("invalid file"); return; }
+      if (typeof raw !== "object" || raw === null) { fail("Not a valid config object"); return; }
+      const c = raw as Record<string, unknown>;
+      if (typeof c.version !== "number" || c.version !== 1) { fail("Unsupported config version"); return; }
+      if (typeof c.dark === "boolean") { applyDark(c.dark); }
+      if (typeof c.token === "string" && c.token) {
+        auth.setToken(c.token);
+        auth.saveToken(c.token);
       }
+      if (typeof c.settings === "object" && c.settings !== null) {
+        const s = c.settings as Record<string, unknown>;
+        if (typeof s.highlightWeekends     === "boolean") { updateSetting("highlightWeekends",     s.highlightWeekends); }
+        if (typeof s.colorblindMode        === "boolean") { updateSetting("colorblindMode",        s.colorblindMode); }
+        if (typeof s.highlightBankHolidays === "boolean") { updateSetting("highlightBankHolidays", s.highlightBankHolidays); }
+        if (Array.isArray(s.bankHolidayRegions)) {
+          const isRegion = (v: unknown): v is "england-and-wales" | "scotland" | "northern-ireland" | "US" =>
+            ["england-and-wales", "scotland", "northern-ireland", "US"].includes(v as string);
+          updateSetting("bankHolidayRegions", (s.bankHolidayRegions as unknown[]).filter(isRegion));
+        }
+      }
+      setSettingsAnchor(null);
     };
     reader.readAsText(file);
   }, [applyDark, auth, updateSetting]);
