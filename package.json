@@ -43,6 +43,9 @@
       "dist/**",
       "dist-electron/**"
     ],
+    "publish": {
+      "provider": "github"
+    },
     "linux": {
       "target": "AppImage"
     },
