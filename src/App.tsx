@@ -6,7 +6,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchUserProfile, fetchUserRepos } from "./api/github";
 import { AppHeader } from "./components/AppHeader";
 import { ContextBar } from "./components/ContextBar";
@@ -43,6 +43,11 @@ const App: FunctionComponent = () => {
   const auth = useAuth(initialPhase);
 
   const [settingsAnchor, setSettingsAnchor] = useState<HTMLElement | null>(null);
+  // Ensures the auto-login effect runs exactly once on mount. Without this,
+  // changes to transitionToDashboard's reference (caused by token state
+  // updating after gh CLI auth) re-trigger the effect, which finds nothing in
+  // localStorage and immediately kicks the user back to the splash screen.
+  const autoLoginRan = useRef(false);
 
   const milestones = useMilestones({
     token: auth.token,
@@ -95,8 +100,12 @@ const App: FunctionComponent = () => {
     }
   }, [setUserProfile, setRepos, setPhase, loadDemoForRepo, milestoneDispatch]);
 
-  // Auto-login from stored token, or auto-start demo from URL param
+  // Auto-login from stored token, or auto-start demo from URL param.
+  // The ref guard ensures this runs exactly once — dependency changes caused
+  // by token state updating (e.g. after gh CLI auth) must not re-fire it.
   useEffect(() => {
+    if (autoLoginRan.current) { return; }
+    autoLoginRan.current = true;
     if (INITIAL_URL_PARAMS.demo) {
       handleDemo();
       return;
