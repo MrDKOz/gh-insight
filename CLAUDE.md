@@ -17,7 +17,10 @@ React 19 + TypeScript + Vite single-page app that fetches GitHub milestone data 
 Before writing inline markup or logic that looks like something already in the codebase, check whether a shared component or utility already covers it. If the same pattern appears more than once, extract it.
 
 - UI patterns (avatar, hover card, badge) → `src/components/`
-- Pure logic (date formatting, positioning helpers) → `src/utils/utils.ts`
+- Date/time logic → `src/utils/dateUtils.ts`
+- Display/presentation helpers → `src/utils/displayUtils.ts`
+- Colour palette and palette-aware helpers → `src/utils/colorUtils.ts`
+- Shared MUI sx tokens → `src/utils/sxTokens.ts`
 - Chart-specific colour constants → local `C` / `COL` objects inside the chart file
 - `AuthorTag` and `AuthorCard` are the canonical way to render an author anywhere in the app — do not re-implement inline avatar markup
 
@@ -64,7 +67,7 @@ The CSP lives in `index.html`. The `stripDevCspPlugin` in `vite.config.ts` remov
 
 ### URL and input validation
 
-- `safeUrl()` in `src/utils/utils.ts` validates that a URL's hostname is exactly `github.com` or a `*.github.com` subdomain — never accept arbitrary `https:` URLs
+- `safeUrl()` in `src/utils/displayUtils.ts` validates that a URL's hostname is exactly `github.com` or a `*.github.com` subdomain — never accept arbitrary `https:` URLs
 - `fmtDate()` guards against malformed ISO strings with `isNaN(d.getTime())` and returns `"N/A"`
 - `durationDays()` clamps with `Math.max(0, ...)` to prevent timezone-jitter producing negative values
 
@@ -82,7 +85,7 @@ The CSP lives in `index.html`. The `stripDevCspPlugin` in `vite.config.ts` remov
 
 - Use `position: fixed` with coordinates from `getBoundingClientRect()` so cards work correctly inside scrollable containers
 - Use a `setTimeout` (150 ms) before hiding so the user can move the mouse from the trigger element onto the card itself — clear the timer on `onMouseEnter` of the card
-- Use `hoverCardPos()` from `src/utils/utils.ts` for cards that need edge-detection (flip left/right, clamp to viewport) within a chart wrapper
+- Use `hoverCardPos()` from `src/utils/displayUtils.ts` for cards that need edge-detection (flip left/right, clamp to viewport) within a chart wrapper
 - Use `barCardStyle()` (local to `GanttView`) for fixed-position cards that need window-level edge detection
 - Never use native `title` attributes for meaningful data — use a MUI `Paper` card
 
@@ -90,7 +93,7 @@ The CSP lives in `index.html`. The `stripDevCspPlugin` in `vite.config.ts` remov
 
 **Every colour used in the app must be routed through the palette system** so it automatically respects the colorblind toggle:
 
-- Named colour tokens live in `COLORS` (default) and `COLORS_CB` (Okabe-Ito) in `src/utils/utils.ts`
+- Named colour tokens live in `COLORS` (default) and `COLORS_CB` (Okabe-Ito) in `src/utils/colorUtils.ts`
 - `makeChartColors(colorblindMode)` exposes the right set for SVG charts — add new tokens to **both** objects and to the `makeChartColors` return value
 - The `body.colorblind` class (toggled in `App.tsx`) drives CSS overrides for Gantt/CSS-only colours — add `body.colorblind .your-class` and `body.dark.colorblind .your-class` rules alongside every new colour in `index.css`
 - Never hardcode a colour value in a chart, component, or CSS rule without also providing a colorblind-safe alternative in the same diff
@@ -128,7 +131,7 @@ The CSP lives in `index.html`. The `stripDevCspPlugin` in `vite.config.ts` remov
 ### Adding fields to `TimelineItem`
 
 When adding a new field:
-1. Add to both `IssueItem` and `PRItem` in `src/types.ts`
+1. Add to both `IssueItem` and `PRItem` in `src/types/GitHubTypes.ts`
 2. Fetch it in `src/api/github.ts` (GraphQL query + mapping)
 3. Add it to all demo items in `src/data/demo.ts`
 4. Include it in **both** export groups in `src/utils/export.ts`:
@@ -148,7 +151,7 @@ When adding a new field:
 - Tests live in `src/**/__tests__/` and use Vitest + Testing Library
 - Run with `npm test` (already passes `--run` — do not add a second `--run` flag)
 - Keep tests up to date whenever types or logic change; if a type gains a new required field, update every fixture that constructs that type
-- Unit-test pure utilities (`utils.ts`, `export.ts`, state reducers) thoroughly
+- Unit-test pure utilities (`colorUtils.ts`, `dateUtils.ts`, `displayUtils.ts`, `export.ts`, state reducers) thoroughly
 - Component smoke tests are acceptable for UI components; avoid testing implementation details
 
 ---
@@ -200,15 +203,26 @@ These upgrades are currently blocked by the plugin ecosystem — do not attempt 
 src/
   api/          GitHub REST + GraphQL calls
   charts/       SVG chart components (Burndown, CycleTime, Velocity, CumulativeFlow)
-  components/   UI components (Timeline, GanttView, FilterBar, StatsBar, AuthorTag, …)
+  components/   UI components (GanttView, MilestoneView, FilterBar, StatsBar, AuthorTag, …)
   data/         Demo data (relative dates, varied authors)
-  state/        Reducers / pure state logic
-  utils/        Shared helpers (utils.ts, export.ts, tokenCrypto.ts)
-  types.ts      Shared TypeScript interfaces
+  hooks/        Custom React hooks (useGanttLayout, useSettings, …)
+  state/        Reducers / pure state logic (milestoneReducer)
+  types/        TypeScript type definitions by domain:
+                  GitHubTypes.ts  — API contract types (IssueItem, PRItem, Milestone, …)
+                  AppTypes.ts     — App-layer types (View, ExportFormat, AppPhase, GanttHandle)
+                  SettingsTypes.ts — Settings type and defaults
+  utils/        Shared helpers:
+                  colorUtils.ts  — COLORS, COLORS_CB, makeChartColors, makeStatusChipSx
+                  dateUtils.ts   — MS, fmtDate, fmtDateTime, snapToHour, forecastCompletion
+                  displayUtils.ts — FS, hoverCardPos, safeUrl, itemEndDate, itemStatus, pluralize
+                  sxTokens.ts    — shared MUI sx design token objects
+                  export.ts      — CSV/XLSX/PDF/PNG/SVG export
+                  tokenCrypto.ts — PAT encryption via IndexedDB + SubtleCrypto
   index.css     Gantt canvas + SVG chart CSS only
   theme.ts      Redgate Honeycomb MUI theme configuration
 ```
 
 - API calls belong in `src/api/` — no `fetch` calls inside components
-- Shared logic (date formatting, position helpers, colour constants) belongs in `src/utils/utils.ts`
+- GitHub domain types belong in `src/types/GitHubTypes.ts`; app-layer types in `src/types/AppTypes.ts`
+- Date/time logic → `src/utils/dateUtils.ts`; colour palette → `src/utils/colorUtils.ts`; presentation helpers → `src/utils/displayUtils.ts`; shared sx tokens → `src/utils/sxTokens.ts`
 - Chart-local colour maps (`C`, `COL`) stay inside the chart file — they are not shared because each chart uses different colours and they serve as html-to-image fallbacks
