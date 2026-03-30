@@ -56,7 +56,7 @@ const App: FunctionComponent = () => {
   // ── Auth orchestration ────────────────────────────────────────────────────
 
   const { setToken, setUserProfile, setRepos, setPhase, saveToken, disconnect } = auth;
-  const { loadDemoForRepo, loadMilestonesForRepo, resetMilestones } = milestones;
+  const { dispatch: milestoneDispatch, loadDemoForRepo, loadMilestonesForRepo, resetMilestones } = milestones;
 
   const transitionToDashboard = useCallback((
     rawToken: string, profile: UserProfile, repoList: Repo[],
@@ -72,7 +72,7 @@ const App: FunctionComponent = () => {
         ) ?? null)
       : null;
     if (autoRepo) {
-      milestones.dispatch({ type: "SET_REPO", repo: autoRepo });
+      milestoneDispatch({ type: "SET_REPO", repo: autoRepo });
     }
     setPhase("dashboard");
     if (autoRepo) {
@@ -81,7 +81,7 @@ const App: FunctionComponent = () => {
         overrideToken:  rawToken,
       });
     }
-  }, [setToken, setUserProfile, setRepos, setPhase, loadMilestonesForRepo, milestones]);
+  }, [setToken, setUserProfile, setRepos, setPhase, loadMilestonesForRepo, milestoneDispatch]);
 
   const handleDemo = useCallback(() => {
     const firstRepo = DEMO_REPOS[0] ?? null;
@@ -89,10 +89,10 @@ const App: FunctionComponent = () => {
     setRepos(DEMO_REPOS);
     setPhase("dashboard");
     if (firstRepo) {
-      milestones.dispatch({ type: "SET_REPO", repo: firstRepo });
+      milestoneDispatch({ type: "SET_REPO", repo: firstRepo });
       loadDemoForRepo(firstRepo, INITIAL_URL_PARAMS.milestoneNums);
     }
-  }, [setUserProfile, setRepos, setPhase, loadDemoForRepo, milestones]);
+  }, [setUserProfile, setRepos, setPhase, loadDemoForRepo, milestoneDispatch]);
 
   // Auto-login from stored token, or auto-start demo from URL param
   useEffect(() => {
