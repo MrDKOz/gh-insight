@@ -1,11 +1,10 @@
-import type { BankHoliday } from "../api/bankHolidayApi";
-import type { MilestoneMeta, TimelineItem } from "../types/GitHubTypes";
-import type { GanttHandle } from "../types/AppTypes";
-import type { MouseEvent } from "react";
 import type { BarHover } from "./BarHoverCard";
+import type { BankHoliday } from "../api/bankHolidayApi";
+import type { GanttHandle } from "../types/AppTypes";
+import type { MilestoneMeta, TimelineItem } from "../types/GitHubTypes";
+import type { MouseEvent } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
-import Typography from "@mui/material/Typography";
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { useGanttLayout } from "../hooks/useGanttLayout";
 import { COLORS, COLORS_CB } from "../utils/colorUtils";

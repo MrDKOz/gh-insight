@@ -1,8 +1,8 @@
 import type { BankHoliday } from "../api/bankHolidayApi";
-import type { MilestoneMeta, TimelineItem } from "../types/GitHubTypes";
-import type { ExportFormat, View } from "../types/AppTypes";
+import type { ExportFormat, GanttHandle, View  } from "../types/AppTypes";
 import type { Filters } from "../types/FilterTypes";
-import type { GanttHandle } from "../types/AppTypes";
+
+import type { MilestoneMeta, TimelineItem } from "../types/GitHubTypes";
 import type { FunctionComponent } from "react";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
@@ -22,10 +22,10 @@ import { Contributors } from "../charts/Contributors";
 import { CumulativeFlow } from "../charts/CumulativeFlow";
 import { CycleTime } from "../charts/CycleTime";
 import { Velocity } from "../charts/Velocity";
-import { exportCSV, exportChartPDF, exportGanttPDF, exportMarkdown, exportPDF, exportPNG, exportReviewWaitCSV, exportReviewWaitMarkdown, exportReviewWaitPDF, exportReviewWaitXLSX, exportSVG, exportXLSX } from "../utils/export";
 
 import { DEFAULT_VIEW, VIEWS } from "../types/AppTypes";
 import { applyFilters } from "../types/FilterTypes";
+import { exportCSV, exportChartPDF, exportGanttPDF, exportMarkdown, exportPDF, exportPNG, exportReviewWaitCSV, exportReviewWaitMarkdown, exportReviewWaitPDF, exportReviewWaitXLSX, exportSVG, exportXLSX } from "../utils/export";
 import { FilterBar } from "./FilterBar";
 import { GanttView } from "./GanttView";
 import { ItemList } from "./ItemList";

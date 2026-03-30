@@ -1,7 +1,7 @@
 import type { FunctionComponent } from "react";
 import Chip from "@mui/material/Chip";
-import { FS } from "../utils/displayUtils";
 import { labelTextColor } from "../utils/colorUtils";
+import { FS } from "../utils/displayUtils";
 
 type Props = {
   name: string;

@@ -1,4 +1,5 @@
 import type { MilestoneMeta, TimelineItem } from "../types/GitHubTypes";
+import type { SortCol, SortDir } from "../utils/reviewWaitUtils";
 import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
@@ -17,9 +18,8 @@ import { useColumnResize } from "../hooks/useColumnResize";
 import { COLORS, COLORS_CB, makeStatusChipSx } from "../utils/colorUtils";
 import { fmtDate } from "../utils/dateUtils";
 import { FS, safeUrl } from "../utils/displayUtils";
-import { RESIZE_HANDLE_SX } from "../utils/sxTokens";
 import { buildRows, sortRows } from "../utils/reviewWaitUtils";
-import type { PRRow, SortCol, SortDir } from "../utils/reviewWaitUtils";
+import { RESIZE_HANDLE_SX } from "../utils/sxTokens";
 import { AuthorWithAssignees } from "./AuthorWithAssignees";
 import { LabelBadge } from "./LabelBadge";
 import { MilestonePill } from "./MilestonePill";

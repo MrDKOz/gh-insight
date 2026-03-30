@@ -1,7 +1,6 @@
-import type { TimelineItem } from "../types/GitHubTypes";
 import type { Filters, PeopleRole } from "../types/FilterTypes";
+import type { TimelineItem } from "../types/GitHubTypes";
 import type { FunctionComponent } from "react";
-import { DEFAULT_FILTERS } from "../types/FilterTypes";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -12,9 +11,10 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useMemo, useState } from "react";
+import { DEFAULT_FILTERS } from "../types/FilterTypes";
 import { COLORS, COLORS_CB, labelTextColor } from "../utils/colorUtils";
 import { FS } from "../utils/displayUtils";
-import { IconReset, DateRangeFilter } from "./DateRangeFilter";
+import { DateRangeFilter, IconReset } from "./DateRangeFilter";
 
 type Counts = {
   openIssues: number;

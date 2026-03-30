@@ -1,7 +1,7 @@
 import type { Region } from "../api/bankHolidayApi";
 import type { Settings } from "../types/SettingsTypes";
-import { DEFAULT_SETTINGS } from "../types/SettingsTypes";
 import { useCallback, useState } from "react";
+import { DEFAULT_SETTINGS } from "../types/SettingsTypes";
 
 const VALID_REGIONS: Region[] = ["england-and-wales", "scotland", "northern-ireland", "US"];
 

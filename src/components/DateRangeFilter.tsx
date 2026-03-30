@@ -112,4 +112,4 @@ const DateRangeFilter: FunctionComponent<DateRangeFilterProps> = ({
   </Stack>
 );
 
-export { IconReset, DateRangeFilter };
+export { DateRangeFilter, IconReset };

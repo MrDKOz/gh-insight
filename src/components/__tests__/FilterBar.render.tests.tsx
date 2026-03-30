@@ -1,5 +1,5 @@
-import type { TimelineItem } from "../../types/GitHubTypes";
 import type { Filters } from "../../types/FilterTypes";
+import type { TimelineItem } from "../../types/GitHubTypes";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { fireEvent, render } from "@testing-library/react";
 import { useState } from "react";
