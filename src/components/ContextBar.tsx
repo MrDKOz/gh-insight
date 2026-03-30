@@ -1,6 +1,6 @@
 import type { View } from "../types/AppTypes";
 import type { Milestone, Repo } from "../types/GitHubTypes";
-import type { FunctionComponent } from "react";
+import type { FunctionComponent, HTMLAttributes } from "react";
 import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -12,6 +12,7 @@ import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { memo } from "react";
+
 import { VIEWS } from "../types/AppTypes";
 import { MilestonePicker } from "./MilestonePicker";
 
@@ -70,7 +71,7 @@ const ContextBar: FunctionComponent<Props> = memo(({
         getOptionLabel={(r) => r.fullName}
         isOptionEqualToValue={(a, b) => a.fullName === b.fullName}
         renderOption={(props, option) => (
-          <Box component="li" {...props} sx={{ ...(props as React.HTMLAttributes<HTMLLIElement>).style, width: "100%" }}>
+          <Box component="li" {...props} sx={{ ...(props as HTMLAttributes<HTMLLIElement>).style, width: "100%" }}>
             <Box sx={{ display: "flex", flexDirection: "column", minWidth: 0, width: "100%" }}>
               <Stack direction="row" alignItems="center" gap={0.75}>
                 {option.private && <LockIcon />}

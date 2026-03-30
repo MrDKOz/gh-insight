@@ -128,9 +128,13 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
     async (fmt: ExportFormat) => {
       setExportAnchor(null);
       setExporting(fmt);
+      const container = wrapperRef.current;
+      if (!container) {
+        setExportError("Export container not mounted");
+        setExporting(null);
+        return;
+      }
       try {
-        const container = wrapperRef.current;
-        if (!container) { throw new Error("Export container not mounted"); }
         if (view === "Review Wait") {
           if      (fmt === "CSV")                {exportReviewWaitCSV(filteredItems, title, milestones);}
           else if (fmt === "Markdown")           {exportReviewWaitMarkdown(filteredItems, title, milestones);}

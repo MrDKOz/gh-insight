@@ -1,10 +1,11 @@
 import type { BankHoliday } from "../api/bankHolidayApi";
 import type { TimelineItem } from "../types/GitHubTypes";
-import type { FunctionComponent } from "react";
+import type { FunctionComponent, MouseEvent } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
+
 import { calcBankHolidayBands, calcWeekendBands, calcXAxisIndices, calcYAxisStep } from "../utils/chartUtils";
 import { makeChartColors } from "../utils/colorUtils";
 import { DAY_NAMES, MS_PER_DAY, buildBankHolidayMap, fmtDate } from "../utils/dateUtils";
@@ -119,7 +120,7 @@ const CumulativeFlowInner: FunctionComponent<Props> = ({ items, highlightWeekend
     return calcBankHolidayBands(bankHolidays, chartData.minTime, chartData.totalDays, PADDING_LEFT, CHART_WIDTH);
   }, [chartData, bankHolidays]);
 
-  const onMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+  const onMouseMove = useCallback((e: MouseEvent<HTMLDivElement>) => {
     if (!chartData) { return; }
     const { minTime, totalDays } = chartData;
     const rect = e.currentTarget.getBoundingClientRect();

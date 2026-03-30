@@ -1,10 +1,11 @@
 import type { BankHoliday } from "../api/bankHolidayApi";
 import type { MilestoneMeta, TimelineItem } from "../types/GitHubTypes";
-import type { FunctionComponent } from "react";
+import type { FunctionComponent, MouseEvent } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useMemo, useRef, useState } from "react";
+
 import { calcBankHolidayBands, calcWeekendBands } from "../utils/chartUtils";
 import { makeChartColors } from "../utils/colorUtils";
 import { DAY_NAMES, MS_PER_DAY, buildBankHolidayMap, fmtDate } from "../utils/dateUtils";
@@ -170,7 +171,7 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
   }
 
   // ── Hover handler ─────────────────────────────────────────────────────────────
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const wrapX = e.clientX - rect.left;
     const svgX  = (wrapX / rect.width) * SVG_WIDTH;

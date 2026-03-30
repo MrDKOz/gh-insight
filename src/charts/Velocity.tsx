@@ -1,9 +1,10 @@
 import type { MilestoneMeta, TimelineItem } from "../types/GitHubTypes";
-import type { FunctionComponent } from "react";
+import type { FunctionComponent, MouseEvent } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
+
 import { AuthorTag } from "../components/AuthorTag";
 import { calcXAxisIndices, calcYAxisStep } from "../utils/chartUtils";
 import { makeChartColors } from "../utils/colorUtils";
@@ -123,13 +124,13 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
     return { allWeekStarts: [...weekSet].sort((a, b) => a - b), msWeekMap };
   }, [filteredItems, milestones, isMulti]);
 
-  const onEnter = useCallback((e: React.MouseEvent, week: Week) => {
+  const onEnter = useCallback((e: MouseEvent, week: Week) => {
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) { return; }
     setHover({ x: e.clientX - rect.left, y: e.clientY - rect.top, week });
   }, []);
 
-  const onMsEnter = useCallback((e: React.MouseEvent, milestone: MilestoneMeta, week: MilestoneWeek) => {
+  const onMsEnter = useCallback((e: MouseEvent, milestone: MilestoneMeta, week: MilestoneWeek) => {
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) {return;}
     setMsHover({ x: e.clientX - rect.left, y: e.clientY - rect.top, msNum: milestone.number, msTitle: milestone.title, msColor: milestone.color, week });

@@ -1,5 +1,5 @@
 import type { UserProfile } from "../types/GitHubTypes";
-import type { FunctionComponent } from "react";
+import type { FunctionComponent, MouseEvent } from "react";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
@@ -12,7 +12,7 @@ type Props = {
   userProfile: UserProfile;
   dark: boolean;
   onToggleDark: () => void;
-  onSettingsClick: (e: React.MouseEvent<HTMLElement>) => void;
+  onSettingsClick: (e: MouseEvent<HTMLElement>) => void;
 };
 
 const BrandIcon: FunctionComponent = () => (

@@ -392,10 +392,6 @@ body.colorblind .tl-resize-handle:hover {
   fill: var(--text-secondary);
 }
 
-.chart-label--strong {
-  fill: var(--text-primary);
-}
-
 .chart-axis {
   stroke: var(--text-secondary);
 }
@@ -423,8 +419,3 @@ body.colorblind .tl-resize-handle:hover {
   cursor: crosshair;
 }
 
-/* Callout text: CSS var overrides the hardcoded light-mode SVG
-   presentation attribute so it stays readable in dark mode */
-.bd-callout-text {
-  fill: var(--text-primary);
-}

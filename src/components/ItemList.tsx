@@ -1,5 +1,5 @@
 import type { MilestoneMeta, TimelineItem } from "../types/GitHubTypes";
-import type { FunctionComponent } from "react";
+import type { FunctionComponent, MouseEvent } from "react";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Link from "@mui/material/Link";
@@ -12,6 +12,7 @@ import TableRow from "@mui/material/TableRow";
 import TableSortLabel from "@mui/material/TableSortLabel";
 import Typography from "@mui/material/Typography";
 import { memo, useMemo, useState } from "react";
+
 import { useColumnResize } from "../hooks/useColumnResize";
 import { COLORS, COLORS_CB, makeStatusChipSx } from "../utils/colorUtils";
 import { MS_PER_DAY, fmtDate } from "../utils/dateUtils";
@@ -40,7 +41,7 @@ type ThProps = {
   sortCol: SortCol;
   sortDir: SortDir;
   onSort: (col: SortCol) => void;
-  onResize: (e: React.MouseEvent) => void;
+  onResize: (e: MouseEvent) => void;
 };
 
 // Defined outside ItemListInner so React doesn't see a new component type on
@@ -159,7 +160,7 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
   const statusChipSx = makeStatusChipSx(colorblindMode);
 
   // Helper to build the onResize handler for a given column index.
-  const resize = (i: number) => (e: React.MouseEvent) => startResize(i, e, widths[i] ?? 0);
+  const resize = (i: number) => (e: MouseEvent) => startResize(i, e, widths[i] ?? 0);
 
   // Column indices shift when milestone is visible.
   const columnIndices = isMulti

@@ -1,3 +1,4 @@
+import type {MouseEvent} from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
@@ -18,10 +19,10 @@ const useColumnResize = (defaultWidths: number[]) => {
   useEffect(() => () => { cleanupRef.current?.(); }, []);
 
   const startResize = useCallback(
-    (columnIndex: number, e: React.MouseEvent, currentWidth: number) => {
+    (columnIndex: number, e: MouseEvent, currentWidth: number) => {
       e.preventDefault();
       const startX = e.clientX;
-      const onMove = (ev: MouseEvent) => {
+      const onMove = (ev: globalThis.MouseEvent) => {
         const newW = Math.max(40, currentWidth + (ev.clientX - startX));
         setWidths((prev) => prev.map((w, i) => (i === columnIndex ? newW : w)));
       };

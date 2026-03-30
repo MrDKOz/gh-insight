@@ -1,9 +1,10 @@
 import type { BankHoliday } from "../api/bankHolidayApi";
 import type { MilestoneMeta, TimelineItem } from "../types/GitHubTypes";
-import type { FunctionComponent } from "react";
+import type { FunctionComponent, MouseEvent } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
+
 import { ItemHoverCard } from "../components/ItemHoverCard";
 import { makeChartColors } from "../utils/colorUtils";
 import { DAY_NAMES, MS_PER_DAY, fmtDate, fmtDateTime } from "../utils/dateUtils";
@@ -81,7 +82,7 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
     return [{ item, endDate, endMs: new Date(endDate).getTime(), days, color, typeLabel, firstReviewAt }];
   }), [filteredItems, isMulti, milestoneColorMap, chartColors.issue, chartColors.prMerged, chartColors.prClosed]);
 
-  const onEnter = useCallback((e: React.MouseEvent, p: Pt, pointIndex: number) => {
+  const onEnter = useCallback((e: MouseEvent, p: Pt, pointIndex: number) => {
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) {return;}
     setHover({ x: e.clientX - rect.left, y: e.clientY - rect.top, pt: p, url: p.item.url });

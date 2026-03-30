@@ -1,6 +1,6 @@
 import type { Repo } from "../types/GitHubTypes";
 import type { Settings } from "../types/SettingsTypes";
-import type { ChangeEvent } from "react";
+import type { ChangeEvent, RefObject } from "react";
 import { useCallback, useRef, useState } from "react";
 import { parseImportConfig } from "../utils/configImport";
 
@@ -18,7 +18,7 @@ type UseConfigImportExportOptions = {
 type UseConfigImportExportReturn = {
   configError:        string | null;
   clearConfigError:   () => void;
-  fileInputRef:       React.RefObject<HTMLInputElement | null>;
+  fileInputRef:       RefObject<HTMLInputElement | null>;
   handleExportConfig: () => void;
   handleImportConfig: (e: ChangeEvent<HTMLInputElement>) => void;
 };

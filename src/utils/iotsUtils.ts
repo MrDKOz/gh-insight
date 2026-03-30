@@ -26,13 +26,6 @@ const decodeOrThrow = <I, A>(value: I, codec: t.Decoder<I, A>): A => {
 };
 
 /**
- * Parses a JSON string and decodes it with the given codec.
- * Throws a descriptive Error if parsing or decoding fails.
- */
-const fromJsonString = <A>(jsonString: string, codec: t.Decoder<unknown, A>): A =>
-  decodeOrThrow(JSON.parse(jsonString) as unknown, codec);
-
-/**
  * Decodes a value with the given codec, returning the decoded value or null on failure.
  * Use when failure is expected and should be handled gracefully rather than thrown.
  */
@@ -41,4 +34,4 @@ const decodeSafe = <I, A>(value: I, codec: t.Decoder<I, A>): A | null => {
   return isRight(result) ? result.right : null;
 };
 
-export { decodeOrThrow, decodeSafe, fromJsonString, getDecodeErrorMessage };
+export { decodeOrThrow, decodeSafe, getDecodeErrorMessage };

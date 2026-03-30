@@ -1,6 +1,6 @@
 import type { Region } from "../api/bankHolidayApi";
 import type { Settings } from "../types/SettingsTypes";
-import type { FunctionComponent } from "react";
+import type { ChangeEvent, FunctionComponent, RefObject } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import ButtonGroup from "@mui/material/ButtonGroup";
@@ -30,8 +30,8 @@ type Props = {
   settings: Settings;
   updateSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
   onExportConfig: () => void;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
-  onImportConfig: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  fileInputRef: RefObject<HTMLInputElement | null>;
+  onImportConfig: (e: ChangeEvent<HTMLInputElement>) => void;
   onDisconnect: () => void;
 };
 

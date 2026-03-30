@@ -161,6 +161,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
       return { ...state, includePRs: { ...state.includePRs, [action.chart]: action.value } };
 
     default: {
+      // noinspection JSUnusedLocalSymbols — intentional: causes a compile error if a new Action type is added without a case
       const _exhaustiveCheck: never = action;
       return _exhaustiveCheck;
     }

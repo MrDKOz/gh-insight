@@ -1,9 +1,10 @@
 import type { TimelineItem } from "../types/GitHubTypes";
-import type { FunctionComponent } from "react";
+import type { FunctionComponent, MouseEvent } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { memo, useCallback, useId, useMemo, useRef, useState } from "react";
+
 import { AuthorTag } from "../components/AuthorTag";
 import { makeChartColors } from "../utils/colorUtils";
 import { fmtDate } from "../utils/dateUtils";
@@ -104,7 +105,7 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
   }, [items]);
 
   const onEnter = useCallback(
-    (e: React.MouseEvent, row: ContribRow, segment: "issues" | "merged" | "closed" | "open", count: number) => {
+    (e: MouseEvent, row: ContribRow, segment: "issues" | "merged" | "closed" | "open", count: number) => {
       const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) {return;}
       const dates = dateIndex.get(`${row.login}:${segment}`);

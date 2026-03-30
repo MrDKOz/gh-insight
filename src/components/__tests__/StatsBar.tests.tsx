@@ -1,10 +1,11 @@
 import type { TimelineItem } from "../../types/GitHubTypes";
+import type { ReactElement } from "react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { render } from "@testing-library/react";
 import { StatsBar } from "../StatsBar";
 
 const theme = createTheme();
-const wrap = (ui: React.ReactElement) =>
+const wrap = (ui: ReactElement) =>
   render(<ThemeProvider theme={theme}>{ui}</ThemeProvider>);
 
 const openIssue: TimelineItem = {
