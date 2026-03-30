@@ -9,7 +9,7 @@ React 19 + TypeScript + Vite single-page app that fetches GitHub milestone data 
 **Lint:** `npm run lint`
 **Build:** `npm run build`
 
-> After making code changes, always run both `npm run lint` and `npm test` before committing. Lint runs ESLint with `--max-warnings 0` (zero tolerance). Fix errors first, then run `npm run lint:fix` for auto-fixable warnings (import order etc.), then re-run lint to confirm clean.
+> After making code changes, always run `npm run lint`, `npx tsc --noEmit`, and `npm test` before committing. Lint runs ESLint with `--max-warnings 0` (zero tolerance). Fix errors first, then run `npm run lint:fix` for auto-fixable warnings (import order etc.), then re-run lint to confirm clean. Also watch for IDE-level inspection warnings — avoid `React.X` UMD global references (import named types directly) and avoid throw-inside-catch patterns (use guard clauses or a local error helper instead).
 
 ---
 
