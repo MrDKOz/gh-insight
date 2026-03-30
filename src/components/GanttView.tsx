@@ -1,5 +1,6 @@
 import type { BankHoliday } from "../api/bankHolidayApi";
 import type { MilestoneMeta, TimelineItem } from "../types/GitHubTypes";
+import type { GanttHandle } from "../types/AppTypes";
 import type { FunctionComponent, MouseEvent } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -21,8 +22,6 @@ type Props = {
   bankHolidays: BankHoliday[];
   colorblindMode: boolean;
 };
-
-type GanttHandle = { trackColEl: HTMLDivElement | null };
 
 const ROW_HEIGHT = 31;
 const DAY_NAMES  = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -726,4 +725,3 @@ const GanttView = forwardRef<GanttHandle, Props>(({
 GanttView.displayName = "GanttView";
 
 export { GanttView };
-export type { GanttHandle };

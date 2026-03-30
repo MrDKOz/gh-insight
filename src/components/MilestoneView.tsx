@@ -1,7 +1,8 @@
 import type { BankHoliday } from "../api/bankHolidayApi";
 import type { MilestoneMeta, TimelineItem } from "../types/GitHubTypes";
+import type { ExportFormat, View } from "../types/AppTypes";
 import type { Filters } from "./FilterBar";
-import type { GanttHandle } from "./GanttView";
+import type { GanttHandle } from "../types/AppTypes";
 import type { FunctionComponent } from "react";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
@@ -23,6 +24,7 @@ import { CycleTime } from "../charts/CycleTime";
 import { Velocity } from "../charts/Velocity";
 import { exportCSV, exportChartPDF, exportGanttPDF, exportMarkdown, exportPDF, exportPNG, exportReviewWaitCSV, exportReviewWaitMarkdown, exportReviewWaitPDF, exportReviewWaitXLSX, exportSVG, exportXLSX } from "../utils/export";
 
+import { DEFAULT_VIEW, VIEWS } from "../types/AppTypes";
 import { FilterBar, applyFilters } from "./FilterBar";
 import { GanttView } from "./GanttView";
 import { ItemList } from "./ItemList";
@@ -37,8 +39,6 @@ type Props = {
   colorblindMode: boolean;
   view: View;
 };
-
-type ExportFormat = "CSV" | "XLSX" | "Markdown" | "PNG — Current view" | "PNG — Full timeline" | "PDF" | "SVG";
 
 // Only show export formats whose output visually matches what is on screen:
 //   Gantt       — PNG (current + full) + PDF (full Gantt embedded as image in PDF)
@@ -55,10 +55,6 @@ const formatsForView = (v: View): ExportFormat[] => {
   // Chart views (Burndown, Cycle Time, Velocity, Cumulative Flow, Contributors)
   return ["PNG — Current view", "PDF", "SVG"];
 };
-
-type View = "Gantt" | "Burndown" | "Cycle Time" | "Velocity" | "Cumulative Flow" | "Contributors" | "Review Wait" | "List";
-const VIEWS: View[] = ["Gantt", "Burndown", "Cycle Time", "Velocity", "Cumulative Flow", "Contributors", "Review Wait", "List"];
-const DEFAULT_VIEW: View = "Gantt";
 
 // ---------------------------------------------------------------------------
 // URL state — view is managed by App; filters are managed here.
@@ -364,5 +360,4 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
   );
 };
 
-export { DEFAULT_VIEW, MilestoneView, VIEWS, readViewFiltersFromUrl };
-export type { View };
+export { MilestoneView, readViewFiltersFromUrl };

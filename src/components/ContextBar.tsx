@@ -1,5 +1,5 @@
 import type { Milestone, Repo } from "../types/GitHubTypes";
-import type { View } from "./MilestoneView";
+import type { View } from "../types/AppTypes";
 import type { FunctionComponent } from "react";
 import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
@@ -13,7 +13,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { memo } from "react";
 import { MilestonePicker } from "./MilestonePicker";
-import { VIEWS } from "./MilestoneView";
+import { VIEWS } from "../types/AppTypes";
 
 type Props = {
   repos: Repo[];

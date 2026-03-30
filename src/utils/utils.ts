@@ -1,3 +1,4 @@
+import type { ForecastResult } from "../types/AppTypes";
 import type { TimelineItem } from "../types/GitHubTypes";
 
 const MS        = 86_400_000;
@@ -292,15 +293,6 @@ const makeStatusChipSx = (colorblindMode: boolean): Record<string, object> => {
  * Returns null when there are no open issues, no history to extrapolate from,
  * or the projection would be in the past / more than 365 days out.
  */
-type ForecastResult = {
-  projectedDate: Date;
-  /** "regression" = recent trend; "velocity" = overall average close rate */
-  method: "regression" | "velocity";
-  openCount: number;
-  closedCount: number;
-  totalDays: number;
-};
-
 const forecastCompletion = (
   allItems: TimelineItem[],
   milestoneNumber?: number,

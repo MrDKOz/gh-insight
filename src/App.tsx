@@ -1,5 +1,5 @@
 import type { BankHoliday, Region } from "./api/bankHolidayApi";
-import type { View } from "./components/MilestoneView";
+import type { AppPhase, View } from "./types/AppTypes";
 import type { Milestone, Repo, UserProfile } from "./types/GitHubTypes";
 import type { FunctionComponent } from "react";
 import Alert from "@mui/material/Alert";
@@ -14,7 +14,8 @@ import { AppHeader } from "./components/AppHeader";
 import { ContextBar } from "./components/ContextBar";
 import { EmptyState } from "./components/EmptyState";
 import { KeyboardShortcuts } from "./components/KeyboardShortcuts";
-import { DEFAULT_VIEW, MilestoneView, readViewFiltersFromUrl } from "./components/MilestoneView";
+import { DEFAULT_VIEW } from "./types/AppTypes";
+import { MilestoneView, readViewFiltersFromUrl } from "./components/MilestoneView";
 import { SettingsPopover } from "./components/SettingsPopover";
 import { SplashScreen } from "./components/SplashScreen";
 import { DEMO_DATA_BY_REPO, DEMO_REPOS, DEMO_USER } from "./data/demo";
@@ -24,8 +25,6 @@ import { initialState, milestoneReducer } from "./state/milestoneReducer";
 import { muiDarkTheme, muiLightTheme } from "./theme";
 import { EncryptionUnavailableError, decryptToken, encryptToken } from "./utils/tokenCrypto";
 import { COLORS } from "./utils/utils";
-
-type AppPhase = "splash" | "authenticating" | "dashboard";
 
 const LS_TOKEN = "gmt_token";
 const LS_DARK  = "gmt_dark";
