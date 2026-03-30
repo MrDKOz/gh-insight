@@ -23,6 +23,7 @@ import { useMilestones } from "./hooks/useMilestones";
 import { useNewVersionAvailable } from "./hooks/useNewVersionAvailable";
 import { useSettings } from "./hooks/useSettings";
 import { muiDarkTheme, muiLightTheme } from "./theme";
+import { parseImportConfig } from "./utils/configImport";
 import { decryptToken } from "./utils/tokenCrypto";
 import { readUrlParams, setViewParam, syncUrlParams } from "./utils/urlUtils";
 
@@ -172,28 +173,19 @@ const App: FunctionComponent = () => {
     if (!file) { return; }
     const reader = new FileReader();
     reader.onload = (ev) => {
-      const fail = (msg: string) => setConfigError(`Config import failed: ${msg}`);
-      if (typeof ev.target?.result !== "string") { fail("File could not be read as text"); return; }
+      if (typeof ev.target?.result !== "string") { setConfigError("Config import failed: file could not be read as text"); return; }
       let raw: unknown;
-      try { raw = JSON.parse(ev.target.result); } catch { fail("invalid file"); return; }
-      if (typeof raw !== "object" || raw === null) { fail("Not a valid config object"); return; }
-      const c = raw as Record<string, unknown>;
-      if (typeof c.version !== "number" || c.version !== 1) { fail("Unsupported config version"); return; }
-      if (typeof c.dark === "boolean") { applyDark(c.dark); }
-      if (typeof c.token === "string" && c.token) {
-        auth.setToken(c.token);
-        auth.saveToken(c.token);
-      }
-      if (typeof c.settings === "object" && c.settings !== null) {
-        const s = c.settings as Record<string, unknown>;
-        if (typeof s.highlightWeekends     === "boolean") { updateSetting("highlightWeekends",     s.highlightWeekends); }
-        if (typeof s.colorblindMode        === "boolean") { updateSetting("colorblindMode",        s.colorblindMode); }
-        if (typeof s.highlightBankHolidays === "boolean") { updateSetting("highlightBankHolidays", s.highlightBankHolidays); }
-        if (Array.isArray(s.bankHolidayRegions)) {
-          const isRegion = (v: unknown): v is "england-and-wales" | "scotland" | "northern-ireland" | "US" =>
-            ["england-and-wales", "scotland", "northern-ireland", "US"].includes(v as string);
-          updateSetting("bankHolidayRegions", (s.bankHolidayRegions as unknown[]).filter(isRegion));
-        }
+      try { raw = JSON.parse(ev.target.result); } catch { setConfigError("Config import failed: invalid file"); return; }
+      const config = parseImportConfig(raw);
+      if (typeof config === "string") { setConfigError(`Config import failed: ${config}`); return; }
+      if (config.dark !== undefined)  { applyDark(config.dark); }
+      if (config.token)               { auth.setToken(config.token); auth.saveToken(config.token); }
+      if (config.settings) {
+        const { highlightWeekends, colorblindMode, highlightBankHolidays, bankHolidayRegions } = config.settings;
+        if (highlightWeekends     !== undefined) { updateSetting("highlightWeekends",     highlightWeekends); }
+        if (colorblindMode        !== undefined) { updateSetting("colorblindMode",        colorblindMode); }
+        if (highlightBankHolidays !== undefined) { updateSetting("highlightBankHolidays", highlightBankHolidays); }
+        if (bankHolidayRegions    !== undefined) { updateSetting("bankHolidayRegions",    bankHolidayRegions); }
       }
       setSettingsAnchor(null);
     };
