@@ -93,6 +93,25 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
     [rows],
   );
 
+  // Pre-compute all per-row display values so the render loop stays thin
+  const displayRows = useMemo(() => sorted.map((row) => {
+    const waitPct =
+      row.reviewWaitDays !== null && row.totalDays !== null && row.totalDays > 0
+        ? Math.min(100, (row.reviewWaitDays / row.totalDays) * 100)
+        : row.reviewWaitDays !== null
+          ? Math.min(100, (row.reviewWaitDays / maxWait) * 100)
+          : 0;
+    return {
+      row,
+      ms:         isMulti ? milestoneMap.get(row.milestoneNumber) : undefined,
+      waitPct,
+      donePct:    row.totalDays !== null && row.totalDays > 0 ? Math.max(0, 100 - waitPct) : 0,
+      isOpen:     row.status === "Open",
+      waitLabel:  row.reviewWaitDays === null ? "—" : row.reviewWaitDays === 0 ? "same day" : `${row.reviewWaitDays}d`,
+      totalLabel: row.totalDays === null ? "open" : row.totalDays === 0 ? "same day" : `${row.totalDays}d`,
+    };
+  }), [sorted, maxWait, isMulti, milestoneMap]);
+
   // Helper to build the onResize handler for a given column index.
   const resize = (i: number) => (e: React.MouseEvent) => startResize(i, e, widths[i] ?? 0);
 
@@ -136,36 +155,7 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
           </TableRow>
         </TableHead>
         <TableBody>
-          {sorted.map((row) => {
-            const ms = isMulti ? milestoneMap.get(row.milestoneNumber) : null;
-
-            // Bar proportions
-            const waitPct =
-              row.reviewWaitDays !== null && row.totalDays !== null && row.totalDays > 0
-                ? Math.min(100, (row.reviewWaitDays / row.totalDays) * 100)
-                : row.reviewWaitDays !== null
-                  ? Math.min(100, (row.reviewWaitDays / maxWait) * 100) // open PR: scale to max wait
-                  : 0;
-            const donePct = row.totalDays !== null && row.totalDays > 0
-              ? Math.max(0, 100 - waitPct)
-              : 0;
-            const isOpen = row.status === "Open";
-
-            const waitLabel =
-              row.reviewWaitDays === null
-                ? "—"
-                : row.reviewWaitDays === 0
-                  ? "same day"
-                  : `${row.reviewWaitDays}d`;
-
-            const totalLabel =
-              row.totalDays === null
-                ? "open"
-                : row.totalDays === 0
-                  ? "same day"
-                  : `${row.totalDays}d`;
-
-            return (
+          {displayRows.map(({ row, ms, waitPct, donePct, isOpen, waitLabel, totalLabel }) => (
               <TableRow
                 key={row.number}
                 sx={{ opacity: isOpen ? 0.65 : 1, "&:hover": { opacity: 1, bgcolor: "action.hover" }, "&:last-child td": { borderBottom: 0 } }}
@@ -284,8 +274,7 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
                   </TableCell>
                 )}
               </TableRow>
-            );
-          })}
+            ))}
         </TableBody>
       </Table>
     </TableContainer>

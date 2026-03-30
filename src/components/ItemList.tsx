@@ -83,7 +83,9 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
     }
   };
 
-  const sorted = useMemo(() => [...items].sort((a, b) => {
+  const sorted = useMemo(() => {
+    const now = Date.now();
+    return [...items].sort((a, b) => {
       let cmp = 0;
       switch (sortCol) {
         case "type":
@@ -131,13 +133,28 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
         }
       }
       return sortDir === "asc" ? cmp : -cmp;
-    }), [items, sortCol, sortDir, milestoneMap]);
+    }).map((item) => {
+      const end        = itemEndDate(item);
+      const status     = itemStatus(item);
+      const isOpen     = status === "Open";
+      const isClosedPR = item.type === "pr" && !item.mergedAt && !!item.closedAt;
+      const days       = end ? Math.round((new Date(end).getTime() - new Date(item.createdAt).getTime()) / MS) : null;
+      const age        = Math.floor((now - new Date(item.createdAt).getTime()) / MS);
+      const staleDays  = Math.floor((now - new Date(item.updatedAt).getTime()) / MS);
+      return {
+        item, end, status, isOpen, days, age, staleDays,
+        badgeKey: item.type === "issue" ? "issue" : isClosedPR ? "pr-closed" : "pr",
+        ms:       milestoneMap.get(item.milestoneNumber),
+        isStale:  isOpen && staleDays > 7,
+      } as const;
+    });
+  }, [items, sortCol, sortDir, milestoneMap]);
 
-  const typeBadgeSx: Record<string, object> = {
-    issue: { bgcolor: palette.issue, color: "#fff" },
-    pr: { bgcolor: palette.prMerged, color: "#fff" },
+  const typeBadgeSx = useMemo((): Record<string, object> => ({
+    issue:       { bgcolor: palette.issue,    color: "#fff" },
+    pr:          { bgcolor: palette.prMerged, color: "#fff" },
     "pr-closed": { bgcolor: palette.prClosed, color: colorblindMode ? "#000" : "#fff" },
-  };
+  }), [palette, colorblindMode]);
 
   const statusChipSx = makeStatusChipSx(colorblindMode);
 
@@ -170,21 +187,7 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
           </TableRow>
         </TableHead>
         <TableBody>
-          {sorted.map((item) => {
-            const end = itemEndDate(item);
-            const status = itemStatus(item);
-            const days = end
-              ? Math.round((new Date(end).getTime() - new Date(item.createdAt).getTime()) / MS)
-              : null;
-            const isOpen = status === "Open";
-            const isClosedPR = item.type === "pr" && !item.mergedAt && !!item.closedAt;
-            const badgeKey = item.type === "issue" ? "issue" : isClosedPR ? "pr-closed" : "pr";
-            const ms = milestoneMap.get(item.milestoneNumber);
-            const age = Math.floor((Date.now() - new Date(item.createdAt).getTime()) / MS);
-            const staleDays = Math.floor((Date.now() - new Date(item.updatedAt).getTime()) / MS);
-            const isStale = isOpen && staleDays > 7;
-
-            return (
+          {sorted.map(({ item, end, status, isOpen, days, age, staleDays, badgeKey, ms, isStale }) => (
               <TableRow
                 key={`${item.type}-${item.number}`}
                 sx={{ opacity: isOpen ? 0.65 : 1, "&:hover": { opacity: 1, bgcolor: "action.hover" } }}
@@ -346,8 +349,7 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                   {days !== null ? days : <Typography component="span" color="divider">—</Typography>}
                 </TableCell>
               </TableRow>
-            );
-          })}
+            ))}
         </TableBody>
       </Table>
     </TableContainer>

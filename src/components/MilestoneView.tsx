@@ -123,10 +123,9 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
 
   const [toolbarSlot, setToolbarSlot] = useState<Element | null>(null);
   const [filterSlot, setFilterSlot] = useState<Element | null>(null);
-  const [burndownIncludePRs, setBurndownIncludePRs] = useState(false);
-  const [cumulativeFlowIncludePRs, setCumulativeFlowIncludePRs] = useState(false);
-  const [cycleTimeIncludePRs, setCycleTimeIncludePRs] = useState(false);
-  const [velocityIncludePRs, setVelocityIncludePRs] = useState(false);
+  const [includePRs, setIncludePRs] = useState({ burndown: false, cumulativeFlow: false, cycleTime: false, velocity: false });
+  const toggleIncludePRs = (chart: keyof typeof includePRs) =>
+    setIncludePRs((prev) => ({ ...prev, [chart]: !prev[chart] }));
 
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -292,42 +291,26 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
       )}
       {!noFilteredItems && view === "Burndown" && (
         <>
-          <FormControlLabel
-            control={<Checkbox size="small" checked={burndownIncludePRs} onChange={(e) => setBurndownIncludePRs(e.target.checked)} />}
-            label="Include PRs"
-            sx={{ alignSelf: "flex-start", ml: 0 }}
-          />
-          <Burndown items={filteredItems} milestones={milestones} highlightWeekends={highlightWeekends} bankHolidays={bankHolidays} colorblindMode={colorblindMode} includePRs={burndownIncludePRs} />
+          <FormControlLabel control={<Checkbox size="small" checked={includePRs.burndown} onChange={() => toggleIncludePRs("burndown")} />} label="Include PRs" sx={{ alignSelf: "flex-start", ml: 0 }} />
+          <Burndown items={filteredItems} milestones={milestones} highlightWeekends={highlightWeekends} bankHolidays={bankHolidays} colorblindMode={colorblindMode} includePRs={includePRs.burndown} />
         </>
       )}
       {!noFilteredItems && view === "Cycle Time" && (
         <>
-          <FormControlLabel
-            control={<Checkbox size="small" checked={cycleTimeIncludePRs} onChange={(e) => setCycleTimeIncludePRs(e.target.checked)} />}
-            label="Include PRs"
-            sx={{ alignSelf: "flex-start", ml: 0 }}
-          />
-          <CycleTime items={filteredItems} milestones={milestones} highlightWeekends={highlightWeekends} bankHolidays={bankHolidays} colorblindMode={colorblindMode} includePRs={cycleTimeIncludePRs} />
+          <FormControlLabel control={<Checkbox size="small" checked={includePRs.cycleTime} onChange={() => toggleIncludePRs("cycleTime")} />} label="Include PRs" sx={{ alignSelf: "flex-start", ml: 0 }} />
+          <CycleTime items={filteredItems} milestones={milestones} highlightWeekends={highlightWeekends} bankHolidays={bankHolidays} colorblindMode={colorblindMode} includePRs={includePRs.cycleTime} />
         </>
       )}
       {!noFilteredItems && view === "Velocity" && (
         <>
-          <FormControlLabel
-            control={<Checkbox size="small" checked={velocityIncludePRs} onChange={(e) => setVelocityIncludePRs(e.target.checked)} />}
-            label="Include PRs"
-            sx={{ alignSelf: "flex-start", ml: 0 }}
-          />
-          <Velocity items={filteredItems} milestones={milestones} colorblindMode={colorblindMode} includePRs={velocityIncludePRs} />
+          <FormControlLabel control={<Checkbox size="small" checked={includePRs.velocity} onChange={() => toggleIncludePRs("velocity")} />} label="Include PRs" sx={{ alignSelf: "flex-start", ml: 0 }} />
+          <Velocity items={filteredItems} milestones={milestones} colorblindMode={colorblindMode} includePRs={includePRs.velocity} />
         </>
       )}
       {!noFilteredItems && view === "Cumulative Flow" && (
         <>
-          <FormControlLabel
-            control={<Checkbox size="small" checked={cumulativeFlowIncludePRs} onChange={(e) => setCumulativeFlowIncludePRs(e.target.checked)} />}
-            label="Include PRs"
-            sx={{ alignSelf: "flex-start", ml: 0 }}
-          />
-          <CumulativeFlow items={filteredItems} highlightWeekends={highlightWeekends} bankHolidays={bankHolidays} colorblindMode={colorblindMode} includePRs={cumulativeFlowIncludePRs} />
+          <FormControlLabel control={<Checkbox size="small" checked={includePRs.cumulativeFlow} onChange={() => toggleIncludePRs("cumulativeFlow")} />} label="Include PRs" sx={{ alignSelf: "flex-start", ml: 0 }} />
+          <CumulativeFlow items={filteredItems} highlightWeekends={highlightWeekends} bankHolidays={bankHolidays} colorblindMode={colorblindMode} includePRs={includePRs.cumulativeFlow} />
         </>
       )}
       {!noFilteredItems && view === "Contributors" && <Contributors items={filteredItems} colorblindMode={colorblindMode} />}

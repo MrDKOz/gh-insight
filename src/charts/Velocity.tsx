@@ -117,11 +117,49 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
     return { allWeekStarts: [...weekSet].sort((a, b) => a - b), msWeekMap };
   }, [filteredItems, milestones, isMulti]);
 
+  const onEnter = useCallback((e: React.MouseEvent, week: Week) => {
+    const rect = wrapRef.current?.getBoundingClientRect();
+    if (!rect) { return; }
+    setHover({ x: e.clientX - rect.left, y: e.clientY - rect.top, week });
+  }, []);
+
   const onMsEnter = useCallback((e: React.MouseEvent, ms: MilestoneMeta, week: MilestoneWeek) => {
     const rect = wrapRef.current?.getBoundingClientRect();
     if (!rect) {return;}
     setMsHover({ x: e.clientX - rect.left, y: e.clientY - rect.top, msNum: ms.number, msTitle: ms.title, msColor: ms.color, week });
   }, []);
+
+  // Pre-compute axis scales for each mode (two memos so TypeScript can infer distinct field shapes)
+  const singleAxis = useMemo(() => {
+    if (isMulti || weeks.length === 0) { return null; }
+    const maxTotal = Math.max(...weeks.map((w) => w.issues + w.merged + w.closed), 1);
+    const slotW  = CW / weeks.length;
+    const barW   = Math.min(Math.max(slotW * 0.72, 6), 80);
+    const barX   = (i: number) => L + i * slotW + (slotW - barW) / 2;
+    const yStep   = maxTotal <= 12 ? 1 : maxTotal <= 30 ? 2 : Math.ceil(maxTotal / 8);
+    const yLabels = Array.from({ length: Math.floor(maxTotal / yStep) + 1 }, (_, i) => i * yStep);
+    const numX    = Math.min(8, weeks.length);
+    const xIndices = Array.from({ length: numX }, (_, i) => Math.round((i / Math.max(numX - 1, 1)) * (weeks.length - 1)));
+    const pyFn = (count: number) => T + (1 - count / maxTotal) * CH;
+    return { maxTotal, slotW, barW, barX, yLabels, numX, xIndices, pyFn };
+  }, [isMulti, weeks]);
+
+  const multiAxis = useMemo(() => {
+    if (!isMulti || allWeekStarts.length === 0) { return null; }
+    const maxTotal = Math.max(
+      ...milestones.flatMap((ms) => [...(msWeekMap.get(ms.number)?.values() ?? [])].map((w) => w.total)),
+      1,
+    );
+    const slotW  = CW / allWeekStarts.length;
+    const msBarW = Math.max(Math.min((slotW * 0.8) / milestones.length, 40), 4);
+    const msBarX = (wi: number, mi: number) => L + wi * slotW + (slotW - msBarW * milestones.length) / 2 + mi * msBarW;
+    const yStep   = maxTotal <= 12 ? 1 : maxTotal <= 30 ? 2 : Math.ceil(maxTotal / 8);
+    const yLabels = Array.from({ length: Math.floor(maxTotal / yStep) + 1 }, (_, i) => i * yStep);
+    const numX    = Math.min(8, allWeekStarts.length);
+    const xIndices = Array.from({ length: numX }, (_, i) => Math.round((i / Math.max(numX - 1, 1)) * (allWeekStarts.length - 1)));
+    const pyFn = (count: number) => T + (1 - count / maxTotal) * CH;
+    return { maxTotal, slotW, msBarW, msBarX, yLabels, numX, xIndices, pyFn };
+  }, [isMulti, allWeekStarts, milestones, msWeekMap]);
 
   if ((isMulti ? allWeekStarts.length : weeks.length) === 0) {
     return <Typography sx={CHART_EMPTY_STATE_SX}>No completed {includePRs ? "items" : "issues"} to plot velocity for.</Typography>;
@@ -129,23 +167,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
 
   // ── Single-milestone rendering ───────────────────────────────────────────────
   if (!isMulti) {
-    const maxTotal = Math.max(...weeks.map((w) => w.issues + w.merged + w.closed), 1);
-    const pyFn = (count: number) => T + (1 - count / maxTotal) * CH;
-    const slotW  = CW / weeks.length;
-    const barW   = Math.min(Math.max(slotW * 0.72, 6), 80);
-    const barX   = (i: number) => L + i * slotW + (slotW - barW) / 2;
-    const yStep   = maxTotal <= 12 ? 1 : maxTotal <= 30 ? 2 : Math.ceil(maxTotal / 8);
-    const yLabels = Array.from({ length: Math.floor(maxTotal / yStep) + 1 }, (_, i) => i * yStep);
-    const numX     = Math.min(8, weeks.length);
-    const xIndices = Array.from({ length: numX }, (_, i) =>
-      Math.round((i / Math.max(numX - 1, 1)) * (weeks.length - 1)),
-    );
-
-    const onEnter = (e: React.MouseEvent, week: Week) => {
-      const rect = wrapRef.current?.getBoundingClientRect();
-      if (!rect) {return;}
-      setHover({ x: e.clientX - rect.left, y: e.clientY - rect.top, week });
-    };
+    const { maxTotal, barW, barX, pyFn, yLabels, numX, xIndices } = singleAxis!;
 
     const cardStyle = hover
       ? hoverCardPos(hover.x, hover.y, wrapRef.current?.offsetWidth ?? 800, 200, 94)
@@ -270,25 +292,7 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
   }
 
   // ── Multi-milestone rendering (one bar per milestone per week) ───────────────
-  const maxTotal = Math.max(
-    ...milestones.flatMap((ms) =>
-      [...(msWeekMap.get(ms.number)?.values() ?? [])].map((w) => w.total),
-    ),
-    1,
-  );
-
-  const pyFn = (count: number) => T + (1 - count / maxTotal) * CH;
-  const slotW  = CW / allWeekStarts.length;
-  const msBarW = Math.max(Math.min((slotW * 0.8) / milestones.length, 40), 4);
-  const msBarX = (weekIdx: number, msIdx: number) =>
-    L + weekIdx * slotW + (slotW - msBarW * milestones.length) / 2 + msIdx * msBarW;
-
-  const yStep   = maxTotal <= 12 ? 1 : maxTotal <= 30 ? 2 : Math.ceil(maxTotal / 8);
-  const yLabels = Array.from({ length: Math.floor(maxTotal / yStep) + 1 }, (_, i) => i * yStep);
-  const numX    = Math.min(8, allWeekStarts.length);
-  const xIndices = Array.from({ length: numX }, (_, i) =>
-    Math.round((i / Math.max(numX - 1, 1)) * (allWeekStarts.length - 1)),
-  );
+  const { maxTotal, slotW, msBarW, msBarX, pyFn, yLabels, numX, xIndices } = multiAxis!;
 
   const msCardStyle = msHover
     ? hoverCardPos(msHover.x, msHover.y, wrapRef.current?.offsetWidth ?? 800, 210, 80)

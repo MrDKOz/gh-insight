@@ -107,6 +107,33 @@ const CumulativeFlowInner: FunctionComponent<Props> = ({ items, highlightWeekend
     return { minTime, totalDays, pts, maxOpened, pxFn, pyFn, closedLinePts, closedAreaPath, openedLinePts, openBandPath, yStep, yLabels, numX, xIndices };
   }, [filteredItems]);
 
+  const weekendBands = useMemo(() => {
+    if (!highlightWeekends || !chartData) { return []; }
+    const { minTime, totalDays } = chartData;
+    const bands: { x: string; w: string }[] = [];
+    for (let i = 0; i <= totalDays; i++) {
+      const day = new Date(minTime + i * MS);
+      if (day.getUTCDay() !== 6) { continue; }
+      const x = L + (i / totalDays) * CW;
+      const w = Math.min((2 / totalDays) * CW, CW - (x - L));
+      bands.push({ x: x.toFixed(1), w: w.toFixed(1) });
+    }
+    return bands;
+  }, [highlightWeekends, chartData]);
+
+  const bankHolidayBands = useMemo(() => {
+    if (!chartData || bankHolidays.length === 0) { return []; }
+    const { minTime, totalDays } = chartData;
+    const dayWidth = (1 / totalDays) * CW;
+    return bankHolidays.flatMap(({ date }) => {
+      const t = new Date(date).getTime();
+      if (t < minTime || t > minTime + totalDays * MS) { return []; }
+      const idx = (t - minTime) / MS;
+      const x   = L + (idx / totalDays) * CW;
+      return [{ x: x.toFixed(1), w: Math.min(dayWidth, CW - (x - L)).toFixed(1) }];
+    });
+  }, [chartData, bankHolidays]);
+
   const onMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!chartData) { return; }
     const { minTime, totalDays } = chartData;
@@ -130,7 +157,7 @@ const CumulativeFlowInner: FunctionComponent<Props> = ({ items, highlightWeekend
     return <Typography sx={CHART_EMPTY_STATE_SX}>No items to plot cumulative flow for.</Typography>;
   }
 
-  const { minTime, totalDays, pts, pxFn, pyFn, closedLinePts, closedAreaPath, openedLinePts, openBandPath, yLabels, numX, xIndices } = chartData;
+  const { totalDays, pts, pxFn, pyFn, closedLinePts, closedAreaPath, openedLinePts, openBandPath, yLabels, numX, xIndices } = chartData;
 
   // hover.dayIdx is clamped to [0, pts.length-1] in onMouseMove
   const hovered = hover !== null ? pts[hover.dayIdx]! : null;
@@ -194,21 +221,12 @@ const CumulativeFlowInner: FunctionComponent<Props> = ({ items, highlightWeekend
         style={{ width: "100%", height: "auto", display: "block", cursor: "crosshair" }}
         aria-hidden="true"
       >
-        {highlightWeekends && Array.from({ length: totalDays + 1 }, (_, i) => {
-          const day = new Date(minTime + i * MS);
-          if (day.getUTCDay() !== 6) {return null;}
-          const x = L + (i / totalDays) * CW;
-          const w = Math.min((2 / totalDays) * CW, CW - (x - L));
-          return <rect key={i} x={x.toFixed(1)} y={T} width={w.toFixed(1)} height={CH} fill={COL.weekendBand} className="chart-weekend" />;
-        })}
-        {bankHolidays.flatMap(({ date }, i) => {
-          const t = new Date(date).getTime();
-          if (t < minTime || t > minTime + totalDays * MS) {return [];}
-          const idx = (t - minTime) / MS;
-          const x = L + (idx / totalDays) * CW;
-          const w = Math.min((1 / totalDays) * CW, CW - (x - L));
-          return [<rect key={i} x={x.toFixed(1)} y={T} width={w.toFixed(1)} height={CH} fill={COL.bankHoliday} className="chart-bank-holiday" />];
-        })}
+        {weekendBands.map((b, i) => (
+          <rect key={i} x={b.x} y={T} width={b.w} height={CH} fill={COL.weekendBand} className="chart-weekend" />
+        ))}
+        {bankHolidayBands.map((b, i) => (
+          <rect key={i} x={b.x} y={T} width={b.w} height={CH} fill={COL.bankHoliday} className="chart-bank-holiday" />
+        ))}
 
         {yLabels.map((c) => (
           <line key={c}

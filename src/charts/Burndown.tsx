@@ -49,21 +49,24 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<HoverInfo | null>(null);
 
-  const issues = includePRs ? items : items.filter((i) => i.type === "issue");
+  const issues = useMemo(
+    () => includePRs ? items : items.filter((i) => i.type === "issue"),
+    [items, includePRs],
+  );
 
   const todayMs = Date.now();
   const hasOpenIssues = issues.some((i) => !i.closedAt);
 
   // ── Time range ────────────────────────────────────────────────────────────────
-  const allCreatedTs = issues.map((i) => new Date(i.createdAt).getTime());
-  const allClosedTs  = issues.flatMap((i) => i.closedAt ? [new Date(i.closedAt).getTime()] : []);
-  const minTime = issues.length > 0 ? Math.min(...allCreatedTs) : 0;
-  const maxTime = issues.length > 0
-    ? (hasOpenIssues
-        ? Math.max(...allCreatedTs, ...allClosedTs, todayMs)
-        : Math.max(...allCreatedTs, ...allClosedTs))
-    : 0;
-  const totalDays = Math.max(Math.ceil((maxTime - minTime) / MS), 1);
+  const { minTime, maxTime, totalDays } = useMemo(() => {
+    const allCreatedTs = issues.map((i) => new Date(i.createdAt).getTime());
+    const allClosedTs  = issues.flatMap((i) => i.closedAt ? [new Date(i.closedAt).getTime()] : []);
+    const min = issues.length > 0 ? Math.min(...allCreatedTs) : 0;
+    const max = issues.length > 0
+      ? (hasOpenIssues ? Math.max(...allCreatedTs, ...allClosedTs, todayMs) : Math.max(...allCreatedTs, ...allClosedTs))
+      : 0;
+    return { minTime: min, maxTime: max, totalDays: Math.max(Math.ceil((max - min) / MS), 1) };
+  }, [issues, hasOpenIssues, todayMs]);
 
   // ── Per-milestone series (for both single and multi mode) ─────────────────────
   const msSeries = useMemo(() => {
@@ -127,18 +130,21 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
   }, [issues.length, milestones, minTime, maxTime]);
 
   // Assign vertical label rows and horizontal line offsets so markers don't overlap
-  const placedMarkers: DueMarkerPlaced[] = [];
-  for (const dm of [...dueMarkers].sort((a, b) => a.xNum - b.xNum)) {
-    const usedRows = new Set<number>();
-    if (showToday && Math.abs(dm.xNum - todayXNum) < 60) {usedRows.add(0);}
-    for (const p of placedMarkers) {
-      if (Math.abs(dm.xNum - p.xNum) < 60) {usedRows.add(Math.round((p.labelY - (T + 11)) / 11));}
+  const placedMarkers = useMemo((): DueMarkerPlaced[] => {
+    const placed: DueMarkerPlaced[] = [];
+    for (const dm of [...dueMarkers].sort((a, b) => a.xNum - b.xNum)) {
+      const usedRows = new Set<number>();
+      if (showToday && Math.abs(dm.xNum - todayXNum) < 60) {usedRows.add(0);}
+      for (const p of placed) {
+        if (Math.abs(dm.xNum - p.xNum) < 60) {usedRows.add(Math.round((p.labelY - (T + 11)) / 11));}
+      }
+      let row = 0;
+      while (usedRows.has(row)) {row++;}
+      const sameX = placed.filter((p) => Math.abs(p.xNum - dm.xNum) < 2).length;
+      placed.push({ ...dm, labelY: T + 11 + row * 11, lineX: dm.xNum + sameX * 3 });
     }
-    let row = 0;
-    while (usedRows.has(row)) {row++;}
-    const sameX = placedMarkers.filter((p) => Math.abs(p.xNum - dm.xNum) < 2).length;
-    placedMarkers.push({ ...dm, labelY: T + 11 + row * 11, lineX: dm.xNum + sameX * 3 });
-  }
+    return placed;
+  }, [dueMarkers, showToday, todayXNum]);
 
   // X-axis labels (from full time range, not per-series)
   const numXLabels  = Math.min(8, totalDays + 1);

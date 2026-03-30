@@ -35,6 +35,13 @@ type Hover = {
   latestDate: string | null;
 };
 
+const SEG_LABELS: Record<"issues" | "merged" | "closed" | "open", string> = {
+  issues: "issues closed",
+  merged: "PRs merged",
+  closed: "PRs closed",
+  open:   "open",
+};
+
 // L is the left margin reserved for avatar + username label.
 const L = 170, R = 48, T = 20, B = 36, W = 1200;
 const ROW_H = 36;
@@ -49,58 +56,47 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
   const [hover, setHover] = useState<Hover | null>(null);
   const clipId = `contrib-avatar-clip-${useId().replace(/:/g, "")}`;
 
-  // Map login → contribution counts; fall back to author when no assignees
-  const rows: ContribRow[] = useMemo(() => {
-    const map = new Map<string, ContribRow>();
+  // Single pass over items builds both contribution rows and the date-range index
+  // used by hover cards — avoids iterating items twice.
+  const { rows, dateIndex } = useMemo(() => {
+    const rowMap = new Map<string, ContribRow>();
     const ensure = (login: string): ContribRow => {
-      let entry = map.get(login);
+      let entry = rowMap.get(login);
       if (!entry) {
         entry = { login, issues: 0, merged: 0, closed: 0, open: 0, total: 0 };
-        map.set(login, entry);
+        rowMap.set(login, entry);
       }
       return entry;
     };
-    for (const item of items) {
-      const logins = item.assignees.length > 0 ? item.assignees : [item.author];
-      const endDate = itemEndDate(item);
-      for (const login of logins) {
-        const r = ensure(login);
-        if (!endDate) {
-          r.open++;
-        } else if (item.type === "issue") {
-          r.issues++;
-        } else if (item.mergedAt) {
-          r.merged++;
-        } else {
-          r.closed++;
-        }
-        r.total++;
-      }
-    }
-    return [...map.values()].sort((a, b) => b.total - a.total);
-  }, [items]);
-
-  // For hover card: earliest/latest completion date per (login, segment)
-  const dateIndex = useMemo(() => {
     const idx = new Map<string, { earliest: string; latest: string }>();
+
     for (const item of items) {
+      const logins  = item.assignees.length > 0 ? item.assignees : [item.author];
       const endDate = itemEndDate(item);
-      if (!endDate) {continue;}
-      const logins = item.assignees.length > 0 ? item.assignees : [item.author];
       const seg: "issues" | "merged" | "closed" | "open" =
         !endDate ? "open" : item.type === "issue" ? "issues" : item.mergedAt ? "merged" : "closed";
+
       for (const login of logins) {
-        const key = `${login}:${seg}`;
-        const existing = idx.get(key);
-        if (!existing) {
-          idx.set(key, { earliest: endDate, latest: endDate });
-        } else {
-          if (endDate < existing.earliest) {existing.earliest = endDate;}
-          if (endDate > existing.latest)   {existing.latest   = endDate;}
+        const r = ensure(login);
+        if (!endDate)               { r.open++;   }
+        else if (item.type === "issue") { r.issues++; }
+        else if (item.mergedAt)     { r.merged++; }
+        else                        { r.closed++; }
+        r.total++;
+
+        if (endDate) {
+          const key = `${login}:${seg}`;
+          const existing = idx.get(key);
+          if (!existing) {
+            idx.set(key, { earliest: endDate, latest: endDate });
+          } else {
+            if (endDate < existing.earliest) { existing.earliest = endDate; }
+            if (endDate > existing.latest)   { existing.latest   = endDate; }
+          }
         }
       }
     }
-    return idx;
+    return { rows: [...rowMap.values()].sort((a, b) => b.total - a.total), dateIndex: idx };
   }, [items]);
 
   const onEnter = useCallback(
@@ -129,22 +125,18 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
     );
   }
 
+  const segColors = { issues: COL.issue, merged: COL.prMerged, closed: COL.prClosed, open: COL.grid };
+
   const maxTotal = Math.max(...rows.map((r) => r.total), 1);
   const CW = W - L - R;
   const H  = T + rows.length * ROW_H + B;
 
   const barX = (offset: number) => L + (offset / maxTotal) * CW;
-  const barW = (count: number)   => (count / maxTotal) * CW;
+  const barW = (count: number)  => (count / maxTotal) * CW;
 
   const cardStyle = hover
     ? hoverCardPos(hover.x, hover.y, wrapRef.current?.offsetWidth ?? 800, 210, 110)
     : {};
-
-  const segLabel = (s: "issues" | "merged" | "closed" | "open") =>
-    s === "issues" ? "issues closed" : s === "merged" ? "PRs merged" : s === "closed" ? "PRs closed" : "open";
-
-  const segColor = (s: "issues" | "merged" | "closed" | "open") =>
-    s === "issues" ? COL.issue : s === "merged" ? COL.prMerged : s === "closed" ? COL.prClosed : COL.grid;
 
   // Tick marks on x-axis
   const xStep  = maxTotal <= 10 ? 1 : maxTotal <= 30 ? 5 : Math.ceil(maxTotal / 6);
@@ -170,8 +162,8 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
         >
           <AuthorTag login={hover.row.login} />
           <Box sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: FS.md, fontWeight: 600 }}>
-            <Box sx={{ ...DOT_SX, bgcolor: segColor(hover.segment) }} />
-            {hover.count} {segLabel(hover.segment)}
+            <Box sx={{ ...DOT_SX, bgcolor: segColors[hover.segment] }} />
+            {hover.count} {SEG_LABELS[hover.segment]}
           </Box>
           {hover.earliestDate && hover.latestDate && hover.earliestDate !== hover.latestDate && (
             <Box sx={{ fontSize: FS.sm, color: "text.secondary", fontWeight: 500 }}>
@@ -283,7 +275,7 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
                     y={cy.toFixed(1)}
                     width={w.toFixed(1)}
                     height={BAR_H}
-                    fill={segColor(seg)}
+                    fill={segColors[seg]}
                     opacity={0.88}
                     rx={2}
                     style={{ cursor: "pointer" }}
@@ -327,7 +319,7 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
         ))}
 
         <ChartLegend
-          items={LEGEND_ITEMS.map(({ seg, label }) => ({ color: segColor(seg), label }))}
+          items={LEGEND_ITEMS.map(({ seg, label }) => ({ color: segColors[seg], label }))}
           cx={L + CW / 2}
           y={T - 4}
           fill={COL.label}

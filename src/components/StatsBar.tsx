@@ -23,6 +23,14 @@ type Props = {
   colorblindMode: boolean;
 };
 
+const isOpen = (i: TimelineItem): boolean =>
+  i.type === "issue" ? i.closedAt === null : (i.mergedAt === null && i.closedAt === null);
+
+const forecastTooltip = (f: NonNullable<ReturnType<typeof forecastCompletion>>): string =>
+  f.method === "regression"
+    ? `Estimated by linear regression over recent issue close rate (${f.closedCount} closed over ${f.totalDays} days). The trend line projects when open issues reach zero.`
+    : `Estimated by average close rate: ${f.closedCount} issue${f.closedCount !== 1 ? "s" : ""} closed over ${f.totalDays} day${f.totalDays !== 1 ? "s" : ""} → ~${(f.totalDays / f.closedCount).toFixed(1)} days per issue. ${f.openCount} issue${f.openCount !== 1 ? "s" : ""} remaining.`;
+
 const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblindMode }) => {
   const palette = colorblindMode ? COLORS_CB : COLORS;
 
@@ -35,8 +43,6 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
     const mergedPRs    = prItems.filter((i) => i.mergedAt);
     const closedPRs    = prItems.filter((i) => !i.mergedAt && i.closedAt);
 
-    const isOpen = (i: TimelineItem): boolean =>
-      i.type === "issue" ? i.closedAt === null : (i.mergedAt === null && i.closedAt === null);
     const staleCount = items.filter(
       (i) => isOpen(i) && (now - new Date(i.updatedAt).getTime()) > STALE_MS,
     ).length;
@@ -73,20 +79,13 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
 
   const { closedIssues, openIssues, mergedPRs, closedPRs, cycleStats, staleCount } = general;
 
-  const forecastTooltip = (f: NonNullable<ReturnType<typeof forecastCompletion>>) =>
-    f.method === "regression"
-      ? `Estimated by linear regression over recent issue close rate (${f.closedCount} closed over ${f.totalDays} days). The trend line projects when open issues reach zero.`
-      : `Estimated by average close rate: ${f.closedCount} issue${f.closedCount !== 1 ? "s" : ""} closed over ${f.totalDays} day${f.totalDays !== 1 ? "s" : ""} → ~${(f.totalDays / f.closedCount).toFixed(1)} days per issue. ${f.openCount} issue${f.openCount !== 1 ? "s" : ""} remaining.`;
-
   const milestoneComparison = useMemo(() => {
     if (milestones.length === 0) { return null; }
     const now = Date.now();
     return milestones.map((ms) => {
       const msItems = items.filter((i) => i.milestoneNumber === ms.number);
       const msIssues = msItems.filter((i) => i.type === "issue");
-      const openCount = msItems.filter((i) =>
-        i.type === "issue" ? i.closedAt === null : (i.mergedAt === null && i.closedAt === null),
-      ).length;
+      const openCount = msItems.filter(isOpen).length;
       const closedMergedCount = msItems.length - openCount;
       const closedIssuesCycle = msIssues
         .filter((i): i is Extract<TimelineItem, { type: "issue" }> & { closedAt: string } =>
@@ -96,10 +95,9 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
       const avgCycle = closedIssuesCycle.length > 0
         ? Math.round(closedIssuesCycle.reduce((a, b) => a + b, 0) / closedIssuesCycle.length)
         : null;
-      const msStale = msItems.filter((i) => {
-        const isOpen = i.type === "issue" ? i.closedAt === null : (i.mergedAt === null && i.closedAt === null);
-        return isOpen && (now - new Date(i.updatedAt).getTime()) > STALE_MS;
-      }).length;
+      const msStale = msItems.filter((i) =>
+        isOpen(i) && (now - new Date(i.updatedAt).getTime()) > STALE_MS,
+      ).length;
       const forecast = forecastCompletion(items, ms.number);
       return { ms, openCount, closedMergedCount, avgCycle, stale: msStale, forecast };
     });
