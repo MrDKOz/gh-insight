@@ -4,6 +4,10 @@
   "license": "UNLICENSED",
   "type": "module",
   "main": "dist-electron/main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MrDKOz/GitHubWorkVisualiser"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -20,6 +24,7 @@
     "@mui/material": "^7.3.9",
     "@redgate/honeycomb-fonts": "^0.1.0",
     "@redgate/honeycomb-mui-theme": "^2.3.0",
+    "electron-updater": "^6.8.3",
     "fp-ts": "^2.16.11",
     "html-to-image": "^1.11.11",
     "io-ts": "^2.2.22",
@@ -44,7 +49,9 @@
       "dist-electron/**"
     ],
     "publish": {
-      "provider": "github"
+      "provider": "github",
+      "owner": "MrDKOz",
+      "repo": "GitHubWorkVisualiser"
     },
     "linux": {
       "target": "AppImage"
@@ -57,10 +64,10 @@
     }
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^22.0.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "^8.57.2",
@@ -69,6 +76,8 @@
     "@vitest/coverage-v8": "^4.1.0",
     "@vitest/eslint-plugin": "^1.6.13",
     "babel-plugin-react-compiler": "^1.0.0",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8",
     "eslint": "^9.39.4",
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-import": "^2.32.0",
@@ -81,8 +90,6 @@
     "jsdom": "^29.0.1",
     "typescript": "^5.9.3",
     "vite": "^8.0.3",
-    "electron": "^33.0.0",
-    "electron-builder": "^25.1.8",
     "vite-plugin-electron": "^0.28.8",
     "vitest": "^4.1.0"
   }

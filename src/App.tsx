@@ -23,6 +23,7 @@ import { useDarkMode } from "./hooks/useDarkMode";
 import { useMilestones } from "./hooks/useMilestones";
 import { useNewVersionAvailable } from "./hooks/useNewVersionAvailable";
 import { useSettings } from "./hooks/useSettings";
+import { useUpdater } from "./hooks/useUpdater";
 import { muiDarkTheme, muiLightTheme } from "./theme";
 import { isElectron } from "./utils/platform";
 import { decryptToken } from "./utils/tokenCrypto";
@@ -34,13 +35,14 @@ const INITIAL_URL_PARAMS = readUrlParams();
 const App: FunctionComponent = () => {
   const { dark, toggleDark, applyDark } = useDarkMode();
   const { settings, updateSetting }     = useSettings();
-  const newVersionAvailable             = useNewVersionAvailable();
+  const newVersionAvailable = useNewVersionAvailable();
 
   const initialPhase: AppPhase = localStorage.getItem(LS_TOKEN) || INITIAL_URL_PARAMS.demo
     ? "authenticating"
     : "splash";
 
   const auth = useAuth(initialPhase);
+  const { updateStatus, downloadUpdate, installUpdate } = useUpdater(auth.token);
 
   const [settingsAnchor, setSettingsAnchor] = useState<HTMLElement | null>(null);
   // Ensures the auto-login effect runs exactly once on mount. Without this,
@@ -215,6 +217,38 @@ const App: FunctionComponent = () => {
               }
             >
               A new version is available.
+            </Alert>
+          )}
+
+          {updateStatus?.status === "available" && (
+            <Alert
+              severity="info"
+              sx={{ borderRadius: 0 }}
+              action={
+                <Button size="small" color="inherit" onClick={downloadUpdate}>
+                  Download v{updateStatus.version}
+                </Button>
+              }
+            >
+              Version {updateStatus.version} is available.
+            </Alert>
+          )}
+          {updateStatus?.status === "downloading" && (
+            <Alert severity="info" sx={{ borderRadius: 0 }}>
+              Downloading update… {updateStatus.percent}%
+            </Alert>
+          )}
+          {updateStatus?.status === "ready" && (
+            <Alert
+              severity="success"
+              sx={{ borderRadius: 0 }}
+              action={
+                <Button size="small" color="inherit" onClick={installUpdate}>
+                  Restart now
+                </Button>
+              }
+            >
+              v{updateStatus.version} downloaded — restart to apply the update.
             </Alert>
           )}
 

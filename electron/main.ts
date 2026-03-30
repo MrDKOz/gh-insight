@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, session } from "electron";
+import { autoUpdater } from "electron-updater";
 import { execFile } from "child_process";
 import { promisify } from "util";
 import { fileURLToPath } from "url";
@@ -102,6 +103,8 @@ function createWindow(): void {
             "img-src 'self' https://github.com https://avatars.githubusercontent.com data:; " +
             "connect-src https://api.github.com https://github.com " +
               "https://avatars.githubusercontent.com " +
+              "https://objects.githubusercontent.com " +
+              "https://github-releases.githubusercontent.com " +
               "https://www.gov.uk https://date.nager.at; " +
             "worker-src blob:; " +
             "object-src 'none'; " +
@@ -118,6 +121,47 @@ function createWindow(): void {
     void win.loadFile(join(__dirname, "../dist/index.html"));
   }
 }
+
+// ---------------------------------------------------------------------------
+// Auto-updater — manual trigger only; uses the user's existing GitHub token
+// so the app works with private repositories without bundling credentials.
+// ---------------------------------------------------------------------------
+
+autoUpdater.autoDownload    = false;
+autoUpdater.autoInstallOnAppQuit = false;
+autoUpdater.logger          = null; // silence internal logs in production
+
+type UpdateStatus =
+  | { status: "available";    version: string }
+  | { status: "up-to-date" }
+  | { status: "downloading";  percent: number }
+  | { status: "ready";        version: string }
+  | { status: "error";        message: string };
+
+function sendUpdateStatus(payload: UpdateStatus): void {
+  BrowserWindow.getAllWindows()[0]?.webContents.send("updater:status", payload);
+}
+
+autoUpdater.on("update-available",     (info)     => sendUpdateStatus({ status: "available",   version: info.version }));
+autoUpdater.on("update-not-available", ()         => sendUpdateStatus({ status: "up-to-date" }));
+autoUpdater.on("update-downloaded",    (info)     => sendUpdateStatus({ status: "ready",       version: info.version }));
+autoUpdater.on("download-progress",    (progress) => sendUpdateStatus({ status: "downloading", percent: Math.round(progress.percent) }));
+autoUpdater.on("error",                (err)      => sendUpdateStatus({ status: "error",       message: err.message }));
+
+ipcMain.handle("updater:check", async (_event, token: string): Promise<void> => {
+  autoUpdater.requestHeaders = { Authorization: `Bearer ${token}` };
+  await autoUpdater.checkForUpdates();
+});
+
+ipcMain.handle("updater:download", async (): Promise<void> => {
+  await autoUpdater.downloadUpdate();
+});
+
+ipcMain.handle("updater:install", (): void => {
+  autoUpdater.quitAndInstall();
+});
+
+// ---------------------------------------------------------------------------
 
 ipcMain.handle("gh:get-token", async (): Promise<string> => {
   return getGhToken();
