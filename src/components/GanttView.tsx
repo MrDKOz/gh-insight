@@ -1,20 +1,19 @@
 import type { BankHoliday } from "../api/bankHolidayApi";
 import type { MilestoneMeta, TimelineItem } from "../types/GitHubTypes";
 import type { GanttHandle } from "../types/AppTypes";
-import type { FunctionComponent, MouseEvent } from "react";
+import type { MouseEvent } from "react";
+import type { BarHover } from "./BarHoverCard";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
-import ToggleButton from "@mui/material/ToggleButton";
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { useGanttLayout } from "../hooks/useGanttLayout";
 import { COLORS, COLORS_CB } from "../utils/colorUtils";
-import { MS, MS_HOUR, STALE_MS, durationDays, fmtDate, fmtDateTime, snapToHour } from "../utils/dateUtils";
-import { FS, itemEndDate, pluralize, safeUrl } from "../utils/displayUtils";
-import { AuthorCard, AuthorTag } from "./AuthorTag";
-import { LabelBadge } from "./LabelBadge";
+import { MS, MS_HOUR, STALE_MS, durationDays, fmtDate, snapToHour } from "../utils/dateUtils";
+import { FS, itemEndDate, safeUrl } from "../utils/displayUtils";
+import { AuthorCard } from "./AuthorTag";
+import { BarHoverCard } from "./BarHoverCard";
+import { GanttLegend } from "./GanttLegend";
 
 type Props = {
   items: TimelineItem[];
@@ -29,150 +28,6 @@ const ROW_HEIGHT = 31;
 const DAY_NAMES  = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 type CursorInfo = { snappedMs: number; clientX: number; clientY: number };
-
-type BarHover = {
-  clientX: number;
-  clientY: number;
-  item: TimelineItem;
-  endDate: string | null;
-  isOpen: boolean;
-  durationText: string;
-  dotColor: string;
-  statusWord: string;
-};
-
-const barCardStyle = (clientX: number, clientY: number) => {
-  const cardW = 300; // slightly over maxWidth:280 so flip triggers before clipping
-  const cardH = 380; // generous upper bound — author + assignees + labels + review + dates
-  const rawLeft = clientX + 14 + cardW > window.innerWidth ? clientX - cardW - 14 : clientX + 14;
-  const left = Math.max(8, Math.min(rawLeft, window.innerWidth - cardW - 8));
-  const top  = Math.max(8, Math.min(clientY - cardH / 2, window.innerHeight - cardH - 8));
-  return { position: "fixed" as const, left, top, zIndex: 200 };
-};
-
-type GanttLegendProps = {
-  hasOpenIssues: boolean;
-  colorblindMode: boolean;
-  snapMode: "day" | "hour";
-  onSnapModeChange: (mode: "day" | "hour") => void;
-  onFitToScreen: () => void;
-};
-
-const GanttLegend: FunctionComponent<GanttLegendProps> = ({ hasOpenIssues, colorblindMode, snapMode, onSnapModeChange, onFitToScreen }) => {
-  const p = colorblindMode ? COLORS_CB : COLORS;
-  // 0x73 hex ≈ 0.45 alpha — used for the open-issue dashed bar fill
-  const issueClosed = `linear-gradient(135deg, ${p.issue} 0%, ${p.issueDark} 100%)`;
-  const issueOpen   = `linear-gradient(135deg, ${p.issue}73 0%, ${p.issueDark}73 100%)`;
-  const prMergedBg  = `linear-gradient(135deg, ${p.prMerged} 0%, ${p.prMergedDark} 100%)`;
-  const prClosedBg  = `linear-gradient(135deg, ${p.prClosed} 0%, ${p.prClosedDark} 100%)`;
-  return (
-  <Box sx={{ display: "flex", alignItems: "center", gap: 2.5, flexWrap: "wrap" }}>
-      <Box sx={{ display: "flex", gap: 2.5, flexWrap: "wrap", flex: 1 }}>
-        {[
-          { bg: issueClosed, label: "Issues (closed)" },
-          ...(hasOpenIssues
-            ? [{ bg: issueOpen, label: "Issues (open)", dashed: true, borderColor: p.issue }]
-            : []),
-          { bg: prMergedBg, label: "PRs (merged)" },
-          { bg: prClosedBg, label: "PRs (closed)" },
-        ].map(({ bg, label, dashed, borderColor }) => (
-          <Box key={label} sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: FS.md }}>
-            <Box sx={{ width: 20, height: 14, borderRadius: "3px", flexShrink: 0, background: bg, ...(dashed ? { border: `1.5px dashed ${borderColor ?? COLORS.issue}` } : {}) }} />
-            {label}
-          </Box>
-        ))}
-      </Box>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>
-        <Button size="small" variant="outlined" onClick={onFitToScreen} aria-label="Fit timeline to screen width">
-          Fit to screen
-        </Button>
-        <ToggleButtonGroup
-          value={snapMode}
-          exclusive
-          size="small"
-          onChange={(_, val: "day" | "hour" | null) => { if (val) { onSnapModeChange(val); } }}
-          aria-label="Bar snap granularity"
-        >
-          <ToggleButton value="day"  aria-label="Snap bars to day boundaries">Day</ToggleButton>
-          <ToggleButton value="hour" aria-label="Snap bars to hour boundaries">Hour</ToggleButton>
-        </ToggleButtonGroup>
-      </Box>
-    </Box>
-  );
-};
-
-const BarHoverCard: FunctionComponent<{ barHover: BarHover; snapMode: "day" | "hour" }> = ({ barHover, snapMode }) => {
-  const fmt = snapMode === "hour" ? fmtDateTime : fmtDate;
-  const { item } = barHover;
-  return (
-    <Paper elevation={2} sx={{ display: "flex", flexDirection: "column", gap: "6px", minWidth: 200, maxWidth: 280, px: 1.5, py: 1.25, pointerEvents: "none", ...barCardStyle(barHover.clientX, barHover.clientY) }}>
-      <Box sx={{ display: "flex", alignItems: "center", gap: "6px", fontSize: FS.sm, fontWeight: 600, color: "text.secondary" }}>
-        <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: barHover.dotColor, flexShrink: 0, opacity: barHover.isOpen ? 0.55 : 1 }} />
-        {item.type === "pr" ? "PR" : "Issue"} #{item.number}
-        {item.type === "issue" && item.reopenedCount > 0 && (
-          <Box component="span" title={`Reopened ${pluralize(item.reopenedCount, "time")}`} sx={{ color: COLORS.warning, ml: "2px" }}>
-            ↺{item.reopenedCount}
-          </Box>
-        )}
-        <Box component="span" sx={{ ml: "auto", fontWeight: 500 }}>{barHover.statusWord}</Box>
-      </Box>
-      <Typography sx={{ fontSize: FS.md, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-        {item.title}
-      </Typography>
-      <Box>
-        <Typography sx={{ fontSize: FS.tiny, color: "text.disabled", fontWeight: 600, lineHeight: 1, mb: "3px", textTransform: "uppercase", letterSpacing: "0.04em" }}>Author</Typography>
-        <AuthorTag login={item.author} prefix="@" />
-      </Box>
-      {item.assignees.length > 0 && (
-        <Box>
-          <Typography sx={{ fontSize: FS.tiny, color: "text.disabled", fontWeight: 600, lineHeight: 1, mb: "3px", textTransform: "uppercase", letterSpacing: "0.04em" }}>Assignees</Typography>
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-            {item.assignees.map((a) => (
-              <AuthorTag key={a} login={a} prefix="@" />
-            ))}
-          </Box>
-        </Box>
-      )}
-      {item.labels.length > 0 && (
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: "3px" }}>
-          {item.labels.map((l) => (
-            <LabelBadge key={l.name} name={l.name} color={l.color} />
-          ))}
-        </Box>
-      )}
-      {item.type === "pr" && item.linkedIssue != null && (
-        <Box sx={{ fontSize: FS.sm, color: "text.secondary" }}>Closes #{item.linkedIssue}</Box>
-      )}
-      {item.type === "pr" && (item.reviewDecision || item.additions + item.deletions > 0) && (
-        <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "center" }}>
-          {item.reviewDecision && (
-            <Box component="span" sx={{
-              fontSize: FS.sm, fontWeight: 600,
-              color: item.reviewDecision === "APPROVED" ? "success.main"
-                : item.reviewDecision === "CHANGES_REQUESTED" ? "error.main"
-                : "warning.main",
-            }}>
-              {item.reviewDecision === "APPROVED" ? "✓ Approved"
-                : item.reviewDecision === "CHANGES_REQUESTED" ? "Changes requested"
-                : "Review required"}
-            </Box>
-          )}
-          {item.additions + item.deletions > 0 && (
-            <Box component="span" sx={{ fontSize: FS.sm, color: "text.secondary" }}>
-              <Box component="span" sx={{ color: "success.main" }}>+{item.additions}</Box>
-              {" / "}
-              <Box component="span" sx={{ color: "error.main" }}>-{item.deletions}</Box>
-            </Box>
-          )}
-        </Box>
-      )}
-      <Box sx={{ fontSize: FS.sm, color: "text.secondary" }}>
-        {fmt(item.createdAt)} → {barHover.isOpen ? "ongoing" : fmt(barHover.endDate)}
-      </Box>
-      <Box sx={{ fontSize: FS.md, fontWeight: 600 }}>{barHover.durationText}</Box>
-    </Paper>
-  );
-};
 
 const GanttView = forwardRef<GanttHandle, Props>(({
   items,
