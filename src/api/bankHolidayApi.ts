@@ -1,11 +1,32 @@
-/** Fetches public holiday dates for a specific region, returning name + date pairs. */
+import * as t from "io-ts";
+import { decodeOrThrow } from "../utils/iotsUtils";
 
 // UK divisions match the keys used by the gov.uk API exactly
 type Region = "england-and-wales" | "scotland" | "northern-ireland" | "US";
 type BankHoliday = { date: string; name: string };
 
-// Cache per (region, year)
+// ── Codecs ────────────────────────────────────────────────────────────────────
+
+const UkEventCodec = t.type({ date: t.string, title: t.string });
+
+const UkResponseCodec = t.record(
+  t.string,
+  t.type({ events: t.array(UkEventCodec) }),
+);
+
+const UsHolidayCodec = t.type({
+  date:      t.string,
+  localName: t.string,
+  types:     t.array(t.string),
+});
+
+const UsResponseCodec = t.array(UsHolidayCodec);
+
+// ── Cache ─────────────────────────────────────────────────────────────────────
+
 const cache = new Map<string, BankHoliday[]>();
+
+// ── Fetch helpers ─────────────────────────────────────────────────────────────
 
 const fetchHolidaysForYear = async (region: Region, year: number): Promise<BankHoliday[]> => {
   const key = `${region}-${year}`;
@@ -13,14 +34,11 @@ const fetchHolidaysForYear = async (region: Region, year: number): Promise<BankH
   if (cached !== undefined) { return cached; }
 
   let holidays: BankHoliday[];
+
   if (region !== "US") {
     const res = await fetch("https://www.gov.uk/bank-holidays.json");
     if (!res.ok) { throw new Error(`UK bank-holiday API returned ${res.status}`); }
-    const raw: unknown = await res.json();
-    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
-      throw new Error("Unexpected UK bank-holiday API response shape");
-    }
-    const data = raw as Record<string, { events: Array<{ date: string; title: string }> }>;
+    const data = decodeOrThrow(await res.json() as unknown, UkResponseCodec);
     const division = data[region];
     holidays = (division?.events ?? [])
       .filter((ev) => ev.date.startsWith(String(year)))
@@ -29,9 +47,7 @@ const fetchHolidaysForYear = async (region: Region, year: number): Promise<BankH
   } else {
     const res = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/US`);
     if (!res.ok) { throw new Error(`US holiday API returned ${res.status}`); }
-    const raw: unknown = await res.json();
-    if (!Array.isArray(raw)) { throw new Error("Unexpected US holiday API response shape"); }
-    const data = raw as Array<{ date: string; localName: string; types: string[] }>;
+    const data = decodeOrThrow(await res.json() as unknown, UsResponseCodec);
     holidays = data
       .filter((d) => d.date.startsWith(String(year)) && !d.types.includes("Observance"))
       .map((d) => ({ date: d.date, name: d.localName }))
@@ -40,7 +56,7 @@ const fetchHolidaysForYear = async (region: Region, year: number): Promise<BankH
 
   cache.set(key, holidays);
   return holidays;
-}
+};
 
 const fetchForRegion = async (region: Region, minTime: number, maxTime: number): Promise<BankHoliday[]> => {
   const minYear = new Date(minTime).getFullYear();
@@ -51,10 +67,10 @@ const fetchForRegion = async (region: Region, minTime: number, maxTime: number):
   }
   const perYear = await Promise.all(yearPromises);
   return perYear.flat().filter((h) => {
-    const t = new Date(h.date).getTime();
-    return t >= minTime && t <= maxTime;
+    const ms = new Date(h.date).getTime();
+    return ms >= minTime && ms <= maxTime;
   });
-}
+};
 
 /**
  * Returns all bank/public holidays across the given regions within [minTime, maxTime].
@@ -64,7 +80,6 @@ const fetchForRegion = async (region: Region, minTime: number, maxTime: number):
 const fetchBankHolidays = async (regions: Region[], minTime: number, maxTime: number): Promise<BankHoliday[]> => {
   if (regions.length === 0) { return []; }
   const perRegion = await Promise.all(regions.map((r) => fetchForRegion(r, minTime, maxTime)));
-  // Merge and deduplicate by date; first region wins on name conflicts
   const seen = new Set<string>();
   const merged: BankHoliday[] = [];
   for (const list of perRegion) {
@@ -76,7 +91,7 @@ const fetchBankHolidays = async (regions: Region[], minTime: number, maxTime: nu
     }
   }
   return merged.sort((a, b) => a.date.localeCompare(b.date));
-}
+};
 
 export { fetchBankHolidays };
 export type { BankHoliday, Region };
