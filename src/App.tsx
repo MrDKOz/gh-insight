@@ -50,7 +50,8 @@ const App: FunctionComponent = () => {
   const autoLoginRan = useRef(false);
 
   const milestones = useMilestones({
-    token: auth.token,
+    token:          auth.token,
+    colorblindMode: settings.colorblindMode,
   });
 
   const bankHolidays = useBankHolidays({

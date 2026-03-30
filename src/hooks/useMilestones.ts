@@ -8,15 +8,14 @@ import { appReducer, initialState } from "../state/appReducer";
 import { readViewFiltersFromUrl } from "../utils/urlUtils";
 
 // Blues / greens — cool hues reserved for milestones
-const MILESTONE_COLORS = [
-  "#0969da", "#1a7f37", "#0891b2", "#0d9488", "#059669", "#0550ae",
-];
+const MILESTONE_COLORS    = ["#0969da", "#1a7f37", "#0891b2", "#0d9488", "#059669", "#0550ae"];
+// Okabe-Ito blues/greens/cyans — distinguishable for all common colour-vision deficiencies
+const MILESTONE_COLORS_CB = ["#0072B2", "#009E73", "#56B4E9", "#005a8e", "#007a58", "#44a0c8"];
 
-// Purples / pinks — warm/vivid hues reserved for epics so they are
-// immediately distinguishable from any milestone colour
-const EPIC_COLORS = [
-  "#8250df", "#db2777", "#c026d3", "#9333ea", "#be185d", "#7c3aed",
-];
+// Purples / pinks — warm/vivid hues reserved for epics
+const EPIC_COLORS    = ["#8250df", "#db2777", "#c026d3", "#9333ea", "#be185d", "#7c3aed"];
+// Okabe-Ito oranges/pinks — clearly distinct from the milestone CB palette above
+const EPIC_COLORS_CB = ["#E69F00", "#D55E00", "#CC79A7", "#b87e00", "#a44b00", "#a85b88"];
 
 type LoadMilestonesOpts = {
   autoSelectNums?: number[];
@@ -25,6 +24,7 @@ type LoadMilestonesOpts = {
 
 type UseMilestonesOptions = {
   token: string;
+  colorblindMode?: boolean;
 };
 
 type UseMilestonesReturn = {
@@ -44,7 +44,7 @@ type UseMilestonesReturn = {
   removeEpic: (epicNumber: number) => void;
 };
 
-const useMilestones = ({ token }: UseMilestonesOptions): UseMilestonesReturn => {
+const useMilestones = ({ token, colorblindMode = false }: UseMilestonesOptions): UseMilestonesReturn => {
   const urlState = readViewFiltersFromUrl();
   const [state, dispatch] = useReducer(appReducer, {
     ...initialState,
@@ -70,13 +70,19 @@ const useMilestones = ({ token }: UseMilestonesOptions): UseMilestonesReturn => 
   }, []);
 
   const milestoneColorFor = useCallback(
-    (num: number) => MILESTONE_COLORS[num % MILESTONE_COLORS.length] ?? "#0969da",
-    [],
+    (num: number) => {
+      const palette = colorblindMode ? MILESTONE_COLORS_CB : MILESTONE_COLORS;
+      return palette[num % palette.length] ?? "#0072B2";
+    },
+    [colorblindMode],
   );
 
   const epicColorFor = useCallback(
-    (num: number) => EPIC_COLORS[num % EPIC_COLORS.length] ?? "#8250df",
-    [],
+    (num: number) => {
+      const palette = colorblindMode ? EPIC_COLORS_CB : EPIC_COLORS;
+      return palette[num % palette.length] ?? "#E69F00";
+    },
+    [colorblindMode],
   );
 
   const loadDemoForRepo = useCallback((repo: Repo, urlMilestoneNums: number[]) => {
