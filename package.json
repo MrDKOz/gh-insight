@@ -51,7 +51,8 @@
     "publish": {
       "provider": "github",
       "owner": "MrDKOz",
-      "repo": "GitHubWorkVisualiser"
+      "repo": "GitHubWorkVisualiser",
+      "draft": false
     },
     "icon": "build/icon",
     "linux": {
