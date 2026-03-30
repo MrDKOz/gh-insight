@@ -46,6 +46,7 @@ jobs:
       - name: Build renderer (Electron mode)
         env:
           ELECTRON: "true"
+        run: npx vite build
 
       - name: Package and publish
         env:
