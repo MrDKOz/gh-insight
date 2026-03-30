@@ -160,6 +160,7 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
           metric={`${pluralize(hover.pt.days, "day")} cycle time`}
           reviewWaitDays={reviewWaitDays}
           href={hover.url}
+          colorblindMode={colorblindMode}
           positionSx={{ position: "absolute", ...hoverCardPos(hover.x, hover.y, containerRef.current?.offsetWidth ?? 800, 280, 320) }}
         />
       )}

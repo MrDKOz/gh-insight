@@ -117,7 +117,7 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
             <Stat value={String(reviewWait.total)}    label="PRs total"    title="Total pull requests shown" />
             <Stat value={String(reviewWait.reviewed)} label="Reviewed"     title="PRs that received at least one review" lightColor={palette.prMerged} />
             {reviewWait.unreviewed > 0 && (
-              <Stat value={String(reviewWait.unreviewed)} label="Not reviewed" title="PRs with no review recorded" lightColor={COLORS.warning} darkColor={COLORS.warningDark} />
+              <Stat value={String(reviewWait.unreviewed)} label="Not reviewed" title="PRs with no review recorded" lightColor={palette.warning} darkColor={palette.warningDark} />
             )}
             {reviewWait.waitDetails !== null && (
               <>
@@ -129,15 +129,15 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
                 />
                 <Stat
                   value={reviewWait.waitDetails.fastest === 0 ? "same day" : `${reviewWait.waitDetails.fastest}d`}
-                  lightColor={COLORS.success}
-                  darkColor={COLORS.successDark}
+                  lightColor={palette.success}
+                  darkColor={palette.successDark}
                   label="Fastest"
                   title={`Shortest review wait: ${pluralize(reviewWait.waitDetails.fastest, "day")}`}
                 />
                 <Stat
                   value={`${reviewWait.waitDetails.slowest}d`}
-                  lightColor={COLORS.warning}
-                  darkColor={COLORS.warningDark}
+                  lightColor={palette.warning}
+                  darkColor={palette.warningDark}
                   label="Slowest"
                   title={`Longest review wait: ${pluralize(reviewWait.waitDetails.slowest, "day")}`}
                 />
@@ -148,7 +148,7 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
           <>
             <Stat value={String(closedIssues.length)} label="Issues closed" title="Number of issues that have been closed" />
             {openIssues.length > 0 && (
-              <Stat value={String(openIssues.length)} lightColor={COLORS.warning} darkColor={COLORS.warningDark} label="Issues open" title="Number of issues still open" />
+              <Stat value={String(openIssues.length)} lightColor={palette.warning} darkColor={palette.warningDark} label="Issues open" title="Number of issues still open" />
             )}
             <Stat value={String(mergedPRs.length)} lightColor={palette.prMerged} label="PRs merged" title="Number of pull requests that have been merged" />
             {closedPRs.length > 0 && (
@@ -158,8 +158,8 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
               <>
                 <Divider orientation="vertical" flexItem />
                 <Stat value={`${cycleStats.avg}d`}     label="Avg cycle" title="Average days from issue creation to close, across all closed issues" />
-                <Stat value={`${cycleStats.fastest}d`} lightColor={COLORS.success} darkColor={COLORS.successDark} label="Fastest" title={`Fastest issue closed in ${pluralize(cycleStats.fastest, "day")} (creation to close)`} />
-                <Stat value={`${cycleStats.slowest}d`} lightColor={COLORS.warning} darkColor={COLORS.warningDark} label="Slowest" title={`Slowest issue took ${pluralize(cycleStats.slowest, "day")} to close (creation to close)`} />
+                <Stat value={`${cycleStats.fastest}d`} lightColor={palette.success} darkColor={palette.successDark} label="Fastest" title={`Fastest issue closed in ${pluralize(cycleStats.fastest, "day")} (creation to close)`} />
+                <Stat value={`${cycleStats.slowest}d`} lightColor={palette.warning} darkColor={palette.warningDark} label="Slowest" title={`Slowest issue took ${pluralize(cycleStats.slowest, "day")} to close (creation to close)`} />
               </>
             )}
             {staleCount > 0 && (
@@ -168,8 +168,8 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
                 <Stat
                   value={String(staleCount)}
                   label="Stale"
-                  lightColor={COLORS.warning}
-                  darkColor={COLORS.warningDark}
+                  lightColor={palette.warning}
+                  darkColor={palette.warningDark}
                   title={`${pluralize(staleCount, "open item")} with no activity for more than 7 days`}
                 />
               </>
@@ -204,7 +204,7 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
                     <Typography
                       variant="caption"
                       fontWeight={600}
-                      sx={(theme) => ({ color: openCount > 0 ? (theme.palette.mode === "dark" ? COLORS.warningDark : COLORS.warning) : "text.secondary" })}
+                      sx={(theme) => ({ color: openCount > 0 ? (theme.palette.mode === "dark" ? palette.warningDark : palette.warning) : "text.secondary" })}
                     >
                       {openCount}
                     </Typography>
@@ -221,7 +221,7 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
                         <Typography
                           variant="caption"
                           fontWeight={600}
-                          sx={(theme) => ({ color: theme.palette.mode === "dark" ? COLORS.successDark : COLORS.success, cursor: "help" })}
+                          sx={(theme) => ({ color: theme.palette.mode === "dark" ? palette.successDark : palette.success, cursor: "help" })}
                         >
                           ~{fmtDate(forecast.projectedDate.toISOString())}
                         </Typography>
@@ -234,7 +234,7 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
                     <Typography
                       variant="caption"
                       fontWeight={stale > 0 ? 600 : 400}
-                      sx={(theme) => ({ color: stale > 0 ? (theme.palette.mode === "dark" ? COLORS.warningDark : COLORS.warning) : "text.secondary" })}
+                      sx={(theme) => ({ color: stale > 0 ? (theme.palette.mode === "dark" ? palette.warningDark : palette.warning) : "text.secondary" })}
                     >
                       {stale > 0 ? stale : "—"}
                     </Typography>

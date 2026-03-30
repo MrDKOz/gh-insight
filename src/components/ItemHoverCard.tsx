@@ -4,7 +4,7 @@ import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
-import { COLORS } from "../utils/colorUtils";
+import { COLORS, COLORS_CB } from "../utils/colorUtils";
 import { FS, pluralize } from "../utils/displayUtils";
 import { AuthorTag } from "./AuthorTag";
 import { LabelBadge } from "./LabelBadge";
@@ -28,6 +28,7 @@ type ItemHoverCardProps = {
   reviewWaitDays?: number | null;
   /** When provided the card renders as a clickable anchor */
   href?:           string;
+  colorblindMode?: boolean;
 };
 
 /**
@@ -45,8 +46,9 @@ const fixedItemCardPos = (clientX: number, clientY: number): SxProps => {
 
 const ItemHoverCard: FunctionComponent<ItemHoverCardProps> = ({
   item, dotColor, dateRange, positionSx,
-  typeLabel, statusWord, isOpen, metric, reviewWaitDays, href,
+  typeLabel, statusWord, isOpen, metric, reviewWaitDays, href, colorblindMode = false,
 }) => {
+  const palette = colorblindMode ? COLORS_CB : COLORS;
   const label = typeLabel ?? (item.type === "pr" ? "PR" : "Issue");
   const isClickable = href !== undefined;
 
@@ -67,7 +69,7 @@ const ItemHoverCard: FunctionComponent<ItemHoverCardProps> = ({
         <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: dotColor, flexShrink: 0, opacity: isOpen ? 0.55 : 1 }} />
         {label} #{item.number}
         {item.type === "issue" && item.reopenedCount > 0 && (
-          <Box component="span" title={`Reopened ${pluralize(item.reopenedCount, "time")}`} sx={{ color: COLORS.warning, ml: "2px" }}>
+          <Box component="span" title={`Reopened ${pluralize(item.reopenedCount, "time")}`} sx={{ color: palette.warning, ml: "2px" }}>
             ↺{item.reopenedCount}
           </Box>
         )}

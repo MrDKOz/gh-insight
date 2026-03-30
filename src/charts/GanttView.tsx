@@ -280,9 +280,10 @@ const GanttView = forwardRef<GanttHandle, Props>(({
 
   const fmt = snapMode === "hour" ? fmtDateTime : fmtDate;
 
+  const palette = colorblindMode ? COLORS_CB : COLORS;
+
   // Pre-compute all per-item render data so both label and track columns share one pass.
   const barItems = useMemo<BarItemData[]>(() => {
-    const palette = colorblindMode ? COLORS_CB : COLORS;
     const fmtFn   = snapMode === "hour" ? fmtDateTime : fmtDate;
 
     return sortedItems.map((item) => {
@@ -353,7 +354,7 @@ const GanttView = forwardRef<GanttHandle, Props>(({
 
       return { item, isOpen, badgeClass, isStale, staleDays, isDraft, endDate, leftPct, widthPct, barWidthPx, durationText, barClass, barLabel, statusWord, dotColor, reviewBadge };
     });
-  }, [sortedItems, minTime, totalMs, trackWidth, snapMode, colorblindMode, todayMs]);
+  }, [sortedItems, minTime, totalMs, trackWidth, snapMode, palette, todayMs]);
 
   const weekendBands = useMemo(() => {
     if (!highlightWeekends) { return []; }
@@ -461,9 +462,9 @@ const GanttView = forwardRef<GanttHandle, Props>(({
       const leftPct = ((dueMs - minTime) / totalMs) * 100;
       if (leftPct < -2 || leftPct > 102) { return []; }
       const coincidesToday = milestone.dueOn.slice(0, 10) === todayDateStr;
-      return [{ key: milestone.number, leftPct, label: `Due ${fmtDate(milestone.dueOn)}`, color: milestones.length > 1 ? milestone.color : "#8250df", coincidesToday }];
+      return [{ key: milestone.number, leftPct, label: `Due ${fmtDate(milestone.dueOn)}`, color: milestones.length > 1 ? milestone.color : palette.prMerged, coincidesToday }];
     }),
-  [milestones, minTime, totalMs, todayDateStr]);
+  [milestones, minTime, totalMs, todayDateStr, palette]);
 
   // Pre-compute day separator props (null when grid lines would be too dense to be useful)
   const daySepProps = useMemo(() => {
@@ -502,7 +503,7 @@ const GanttView = forwardRef<GanttHandle, Props>(({
                 height: ROW_HEIGHT,
                 opacity: bi.isOpen ? 0.75 : 1,
                 boxShadow: isMultiMilestone
-                  ? `inset 3px 0 0 ${milestoneColorMap.get(bi.item.milestoneNumber) ?? COLORS.chartAxis}`
+                  ? `inset 3px 0 0 ${milestoneColorMap.get(bi.item.milestoneNumber) ?? palette.chartAxis}`
                   : undefined,
               }}
             >
@@ -521,7 +522,7 @@ const GanttView = forwardRef<GanttHandle, Props>(({
               </a>
               <Box component="span" className="tl-title" title={bi.item.title}>
                 {bi.isStale && (
-                  <Box component="span" title={`No activity for ${bi.staleDays} days`} sx={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", bgcolor: COLORS.warning, mr: "4px", verticalAlign: "middle", flexShrink: 0 }} />
+                  <Box component="span" title={`No activity for ${bi.staleDays} days`} sx={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", bgcolor: palette.warning, mr: "4px", verticalAlign: "middle", flexShrink: 0 }} />
                 )}
                 {bi.item.title}
               </Box>
@@ -688,6 +689,7 @@ const GanttView = forwardRef<GanttHandle, Props>(({
           statusWord={barHover.statusWord}
           dateRange={`${fmt(barHover.item.createdAt)} → ${barHover.isOpen ? "ongoing" : fmt(barHover.endDate)}`}
           metric={barHover.durationText}
+          colorblindMode={colorblindMode}
           positionSx={fixedItemCardPos(barHover.clientX, barHover.clientY)}
         />
       )}

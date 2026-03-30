@@ -265,13 +265,13 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                           width: 8,
                           height: 8,
                           borderRadius: "50%",
-                          bgcolor: COLORS.warning,
+                          bgcolor: palette.warning,
                           mr: "5px",
                         }}
                       />
                     )}
                     {item.type === "issue" && item.reopenedCount > 0 && (
-                      <Box component="span" title={`Reopened ${pluralize(item.reopenedCount, "time")}`} sx={{ color: COLORS.warning, mr: "4px", fontSize: FS.base, flexShrink: 0 }}>↺</Box>
+                      <Box component="span" title={`Reopened ${pluralize(item.reopenedCount, "time")}`} sx={{ color: palette.warning, mr: "4px", fontSize: FS.base, flexShrink: 0 }}>↺</Box>
                     )}
                     <Box component="span" sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {item.title}
@@ -286,9 +286,9 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                   )}
                   {item.type === "pr" && (
                     <Box sx={{ mt: "2px", fontSize: FS.xs }}>
-                      <Box component="span" sx={{ color: COLORS.success, fontVariantNumeric: "tabular-nums" }}>+{item.additions}</Box>
+                      <Box component="span" sx={{ color: palette.success, fontVariantNumeric: "tabular-nums" }}>+{item.additions}</Box>
                       <Box component="span" sx={{ color: "text.disabled" }}> / </Box>
-                      <Box component="span" sx={{ color: COLORS.prClosed, fontVariantNumeric: "tabular-nums" }}>-{item.deletions}</Box>
+                      <Box component="span" sx={{ color: palette.prClosed, fontVariantNumeric: "tabular-nums" }}>-{item.deletions}</Box>
                     </Box>
                   )}
                 </TableCell>
@@ -306,21 +306,21 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                       <Chip
                         label="Approved"
                         size="small"
-                        sx={{ bgcolor: `${COLORS.success}22`, color: COLORS.success, border: `1px solid ${COLORS.success}66`, fontSize: FS.sm, fontWeight: 700, height: 20, borderRadius: 0.5, ml: 0.5 }}
+                        sx={{ bgcolor: `${palette.success}22`, color: palette.success, border: `1px solid ${palette.success}66`, fontSize: FS.sm, fontWeight: 700, height: 20, borderRadius: 0.5, ml: 0.5 }}
                       />
                     )}
                     {item.type === "pr" && item.reviewDecision === "CHANGES_REQUESTED" && (
                       <Chip
                         label="Changes requested"
                         size="small"
-                        sx={{ bgcolor: `${COLORS.prClosed}22`, color: COLORS.prClosed, border: `1px solid ${COLORS.prClosed}66`, fontSize: FS.sm, fontWeight: 700, height: 20, borderRadius: 0.5, ml: 0.5 }}
+                        sx={{ bgcolor: `${palette.prClosed}22`, color: palette.prClosed, border: `1px solid ${palette.prClosed}66`, fontSize: FS.sm, fontWeight: 700, height: 20, borderRadius: 0.5, ml: 0.5 }}
                       />
                     )}
                     {item.type === "pr" && item.reviewDecision === "REVIEW_REQUIRED" && (
                       <Chip
                         label="Awaiting review"
                         size="small"
-                        sx={{ bgcolor: `${COLORS.warning}22`, color: COLORS.warning, border: `1px solid ${COLORS.warning}66`, fontSize: FS.sm, fontWeight: 700, height: 20, borderRadius: 0.5, ml: 0.5 }}
+                        sx={{ bgcolor: `${palette.warning}22`, color: palette.warning, border: `1px solid ${palette.warning}66`, fontSize: FS.sm, fontWeight: 700, height: 20, borderRadius: 0.5, ml: 0.5 }}
                       />
                     )}
                   </Box>
