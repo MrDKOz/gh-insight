@@ -21,6 +21,7 @@ type UseAuthReturn = {
   setRepos: (repos: Repo[]) => void;
   saveToken: (raw: string) => void;
   handleConnect: (inputToken: string) => Promise<void>;
+  connectWithGhCli: () => Promise<void>;
   disconnect: () => void;
 };
 
@@ -70,6 +71,28 @@ const useAuth = (initialPhase: AppPhase): UseAuthReturn => {
     }
   }, [saveToken]);
 
+  // Authenticate using the token managed by the locally-installed gh CLI.
+  // The token is held in React state only — gh handles its own persistence so
+  // we do not store it in localStorage or IndexedDB.
+  const connectWithGhCli = useCallback(async () => {
+    setAuthError(null);
+    setPhase("authenticating");
+    try {
+      const cliToken = await window.electronAPI!.getGhToken();
+      const [profile, repoList] = await Promise.all([
+        fetchUserProfile(cliToken),
+        fetchUserRepos(cliToken),
+      ]);
+      setToken(cliToken);
+      setUserProfile(profile);
+      setRepos(repoList);
+      setPhase("dashboard");
+    } catch (e) {
+      setAuthError(e instanceof Error ? e.message : String(e));
+      setPhase("splash");
+    }
+  }, []);
+
   const disconnect = useCallback(() => {
     localStorage.removeItem(LS_TOKEN);
     void deleteKey();
@@ -88,6 +111,7 @@ const useAuth = (initialPhase: AppPhase): UseAuthReturn => {
     repos, setRepos,
     saveToken,
     handleConnect,
+    connectWithGhCli,
     disconnect,
   };
 };

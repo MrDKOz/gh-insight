@@ -7,10 +7,14 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+type GhCliStatus = "checking" | "available" | "unavailable";
 
 type Props = {
   onConnect: (token: string) => void;
+  onConnectWithGhCli?: () => void;
+  onCheckGhCli?: () => Promise<boolean>;
   onDemo: () => void;
   loading: boolean;
   error: string | null;
@@ -24,8 +28,28 @@ const GanttIcon: FunctionComponent = () => (
   </svg>
 );
 
-const SplashScreen: FunctionComponent<Props> = ({ onConnect, onDemo, loading, error }) => {
+const GH_CLI_LABELS: Record<GhCliStatus, string> = {
+  checking:    "Checking…",
+  available:   "Available",
+  unavailable: "Unavailable",
+};
+
+const GH_CLI_COLORS: Record<GhCliStatus, string> = {
+  checking:    "text.disabled",
+  available:   "success.main",
+  unavailable: "error.main",
+};
+
+const SplashScreen: FunctionComponent<Props> = ({ onConnect, onConnectWithGhCli, onCheckGhCli, onDemo, loading, error }) => {
   const [token, setToken] = useState("");
+  const [ghCliStatus, setGhCliStatus] = useState<GhCliStatus>("checking");
+
+  useEffect(() => {
+    if (!onCheckGhCli) { return; }
+    onCheckGhCli()
+      .then((ok) => setGhCliStatus(ok ? "available" : "unavailable"))
+      .catch(() => setGhCliStatus("unavailable"));
+  }, [onCheckGhCli]);
 
   const submit = () => {
     const trimmed = token.trim();
@@ -56,6 +80,29 @@ const SplashScreen: FunctionComponent<Props> = ({ onConnect, onDemo, loading, er
             </Alert>
           )}
 
+          {onConnectWithGhCli && (
+            <>
+              <Button
+                variant="contained"
+                onClick={onConnectWithGhCli}
+                disabled={loading}
+                fullWidth
+                disableElevation
+              >
+                {loading ? "Connecting…" : "Sign in with GitHub CLI"}
+              </Button>
+              <Stack direction="row" alignItems="center" gap={0.75} sx={{ mt: 1, mb: 0.5 }}>
+                <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: GH_CLI_COLORS[ghCliStatus], flexShrink: 0 }} />
+                <Typography variant="caption" color={GH_CLI_COLORS[ghCliStatus]}>
+                  GitHub CLI {GH_CLI_LABELS[ghCliStatus]}
+                </Typography>
+              </Stack>
+              <Divider sx={{ my: 2 }}>
+                <Typography variant="caption" color="text.secondary">or use a token</Typography>
+              </Divider>
+            </>
+          )}
+
           <Stack gap={1.5}>
             <TextField
               type="password"
@@ -67,7 +114,7 @@ const SplashScreen: FunctionComponent<Props> = ({ onConnect, onDemo, loading, er
               size="small"
               fullWidth
               disabled={loading}
-              autoFocus
+              autoFocus={!onConnectWithGhCli}
             />
             <Button
               variant="contained"
