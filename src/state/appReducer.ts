@@ -1,18 +1,27 @@
 import type { View } from "../types/AppTypes";
 import type { Filters } from "../types/FilterTypes";
-import type { Milestone, Repo, TimelineItem } from "../types/GitHubTypes";
+import type { Epic, Milestone, Repo, TimelineItem } from "../types/GitHubTypes";
 import { DEFAULT_VIEW } from "../types/AppTypes";
 import { DEFAULT_FILTERS } from "../types/FilterTypes";
 
 type AppState = {
+  // ── Milestone slice ───────────────────────────────────────────────────────
   milestones: Milestone[];
   selected: Milestone[];
   itemsCache: Record<number, TimelineItem[]>;
   loadingNums: number[];
   loadingList: boolean;
+  emptyMilestoneNums: number[];
+  // ── Epic slice ────────────────────────────────────────────────────────────
+  epics: Epic[];
+  selectedEpics: Epic[];
+  epicItemsCache: Record<number, TimelineItem[]>;
+  loadingEpicNums: number[];
+  loadingEpicList: boolean;
+  emptyEpicNums: number[];
+  // ── Shared ────────────────────────────────────────────────────────────────
   isDemo: boolean;
   error: string | null;
-  emptyMilestoneNums: number[];
   activeRepo: Repo | null;
   view: View;
   filters: Filters;
@@ -20,6 +29,7 @@ type AppState = {
 };
 
 type Action =
+  // Milestone actions
   | { type: "FETCH_LIST_START" }
   | { type: "FETCH_LIST_SUCCESS"; milestones: Milestone[] }
   | { type: "FETCH_LIST_ERROR"; error: string }
@@ -29,7 +39,18 @@ type Action =
   | { type: "FETCH_ITEMS_ERROR"; milestoneNumber: number; error: string }
   | { type: "REMOVE_MILESTONE"; milestoneNumber: number }
   | { type: "REFRESH_ITEMS_ERROR"; milestoneNumber: number; error: string }
-  | { type: "LOAD_DEMO"; milestones: Milestone[]; selected: Milestone[]; itemsCache: Record<number, TimelineItem[]> }
+  // Epic actions
+  | { type: "FETCH_EPIC_LIST_START" }
+  | { type: "FETCH_EPIC_LIST_SUCCESS"; epics: Epic[] }
+  | { type: "FETCH_EPIC_LIST_ERROR"; error: string }
+  | { type: "SELECT_EPIC"; epic: Epic }
+  | { type: "FETCH_EPIC_ITEMS_START"; epicNumber: number }
+  | { type: "FETCH_EPIC_ITEMS_SUCCESS"; epicNumber: number; items: TimelineItem[] }
+  | { type: "FETCH_EPIC_ITEMS_ERROR"; epicNumber: number; error: string }
+  | { type: "REMOVE_EPIC"; epicNumber: number }
+  | { type: "REFRESH_EPIC_ITEMS_ERROR"; epicNumber: number; error: string }
+  // Shared actions
+  | { type: "LOAD_DEMO"; milestones: Milestone[]; selected: Milestone[]; itemsCache: Record<number, TimelineItem[]>; epics: Epic[]; selectedEpics: Epic[]; epicItemsCache: Record<number, TimelineItem[]> }
   | { type: "RESET" }
   | { type: "SET_REPO"; repo: Repo | null }
   | { type: "SET_VIEW"; view: View }
@@ -43,9 +64,15 @@ const initialState: AppState = {
   itemsCache: {},
   loadingNums: [],
   loadingList: false,
+  emptyMilestoneNums: [],
+  epics: [],
+  selectedEpics: [],
+  epicItemsCache: {},
+  loadingEpicNums: [],
+  loadingEpicList: false,
+  emptyEpicNums: [],
   isDemo: false,
   error: null,
-  emptyMilestoneNums: [],
   activeRepo: null,
   view: DEFAULT_VIEW,
   filters: DEFAULT_FILTERS,
@@ -111,6 +138,58 @@ const appReducer = (state: AppState, action: Action): AppState => {
         error: action.error,
       };
 
+    case "FETCH_EPIC_LIST_START":
+      return { ...state, epics: [], loadingEpicList: true };
+
+    case "FETCH_EPIC_LIST_SUCCESS":
+      return { ...state, epics: action.epics, loadingEpicList: false };
+
+    case "FETCH_EPIC_LIST_ERROR":
+      return { ...state, loadingEpicList: false, error: action.error };
+
+    case "SELECT_EPIC":
+      if (state.selectedEpics.some((e) => e.number === action.epic.number)) {
+        return state;
+      }
+      return { ...state, selectedEpics: [...state.selectedEpics, action.epic], error: null };
+
+    case "FETCH_EPIC_ITEMS_START":
+      return { ...state, loadingEpicNums: [...state.loadingEpicNums, action.epicNumber] };
+
+    case "FETCH_EPIC_ITEMS_SUCCESS": {
+      const isEmpty = action.items.length === 0;
+      return {
+        ...state,
+        epicItemsCache: { ...state.epicItemsCache, [action.epicNumber]: action.items },
+        loadingEpicNums: state.loadingEpicNums.filter((n) => n !== action.epicNumber),
+        emptyEpicNums: isEmpty
+          ? [...state.emptyEpicNums.filter((n) => n !== action.epicNumber), action.epicNumber]
+          : state.emptyEpicNums.filter((n) => n !== action.epicNumber),
+      };
+    }
+
+    case "FETCH_EPIC_ITEMS_ERROR":
+      return {
+        ...state,
+        selectedEpics: state.selectedEpics.filter((e) => e.number !== action.epicNumber),
+        loadingEpicNums: state.loadingEpicNums.filter((n) => n !== action.epicNumber),
+        error: action.error,
+      };
+
+    case "REMOVE_EPIC":
+      return {
+        ...state,
+        selectedEpics: state.selectedEpics.filter((e) => e.number !== action.epicNumber),
+        emptyEpicNums: state.emptyEpicNums.filter((n) => n !== action.epicNumber),
+      };
+
+    case "REFRESH_EPIC_ITEMS_ERROR":
+      return {
+        ...state,
+        loadingEpicNums: state.loadingEpicNums.filter((n) => n !== action.epicNumber),
+        error: action.error,
+      };
+
     case "LOAD_DEMO":
       return {
         milestones: action.milestones,
@@ -118,9 +197,15 @@ const appReducer = (state: AppState, action: Action): AppState => {
         itemsCache: action.itemsCache,
         loadingNums: [],
         loadingList: false,
+        emptyMilestoneNums: [],
+        epics: action.epics,
+        selectedEpics: action.selectedEpics,
+        epicItemsCache: action.epicItemsCache,
+        loadingEpicNums: [],
+        loadingEpicList: false,
+        emptyEpicNums: [],
         isDemo: true,
         error: null,
-        emptyMilestoneNums: [],
         activeRepo: state.activeRepo,
         view: state.view,
         filters: state.filters,
@@ -139,9 +224,17 @@ const appReducer = (state: AppState, action: Action): AppState => {
         itemsCache:         {},
         loadingNums:        [],
         loadingList:        false,
+        emptyMilestoneNums: [],
+        // epic slice — reset
+        epics:              [],
+        selectedEpics:      [],
+        epicItemsCache:     {},
+        loadingEpicNums:    [],
+        loadingEpicList:    false,
+        emptyEpicNums:      [],
+        // shared
         isDemo:             false,
         error:              null,
-        emptyMilestoneNums: [],
         // display state — preserved across repo change
         view:               state.view,
         filters:            state.filters,

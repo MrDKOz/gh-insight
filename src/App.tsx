@@ -24,6 +24,7 @@ import { useMilestones } from "./hooks/useMilestones";
 import { useNewVersionAvailable } from "./hooks/useNewVersionAvailable";
 import { useSettings } from "./hooks/useSettings";
 import { muiDarkTheme, muiLightTheme } from "./theme";
+import { isElectron } from "./utils/platform";
 import { decryptToken } from "./utils/tokenCrypto";
 import { readUrlParams, setViewParam, syncFiltersToUrl, syncUrlParams } from "./utils/urlUtils";
 
@@ -180,6 +181,10 @@ const App: FunctionComponent = () => {
       {auth.phase !== "dashboard" ? (
         <SplashScreen
           onConnect={auth.handleConnect}
+          {...(isElectron() ? {
+            onConnectWithGhCli: auth.connectWithGhCli,
+            onCheckGhCli: () => window.electronAPI!.checkGhCli(),
+          } : {})}
           onDemo={handleDemo}
           loading={auth.phase === "authenticating"}
           error={auth.authError}
@@ -232,6 +237,13 @@ const App: FunctionComponent = () => {
             onAdd={milestones.addMilestone}
             onRemove={milestones.removeMilestone}
             onRefresh={milestones.refreshMilestones}
+            epics={milestones.state.epics}
+            selectedEpics={milestones.state.selectedEpics}
+            loadingEpicList={milestones.state.loadingEpicList}
+            loadingEpicNums={milestones.state.loadingEpicNums}
+            epicColorFor={milestones.epicColorFor}
+            onAddEpic={milestones.addEpic}
+            onRemoveEpic={milestones.removeEpic}
             view={milestones.state.view}
             onViewChange={handleViewChange}
             hasItems={milestones.allItems.length > 0}
@@ -239,7 +251,7 @@ const App: FunctionComponent = () => {
 
           <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
-            {(auth.tokenError || configError || milestones.state.error || milestones.state.emptyMilestoneNums.length > 0 || milestones.state.loadingNums.length > 0) && (
+            {(auth.tokenError || configError || milestones.state.error || milestones.state.emptyMilestoneNums.length > 0 || milestones.state.loadingNums.length > 0 || milestones.state.emptyEpicNums.length > 0 || milestones.state.loadingEpicNums.length > 0) && (
               <Box sx={{ px: 3, pt: 2, display: "flex", flexDirection: "column", gap: 1 }}>
                 {auth.tokenError && (
                   <Alert severity="warning" onClose={auth.clearTokenError}>{auth.tokenError}</Alert>
@@ -257,6 +269,16 @@ const App: FunctionComponent = () => {
                 )}
                 {milestones.state.loadingNums.length > 0 && (
                   <Alert severity="info" role="status" aria-live="polite">Loading milestone data…</Alert>
+                )}
+                {milestones.state.emptyEpicNums.length > 0 && (
+                  <Alert severity="warning">
+                    {milestones.state.emptyEpicNums.length === 1
+                      ? `Epic #${milestones.state.emptyEpicNums[0] ?? "?"} has no sub-issues.`
+                      : `${milestones.state.emptyEpicNums.length} epics have no sub-issues.`}
+                  </Alert>
+                )}
+                {milestones.state.loadingEpicNums.length > 0 && (
+                  <Alert severity="info" role="status" aria-live="polite">Loading epic data…</Alert>
                 )}
               </Box>
             )}

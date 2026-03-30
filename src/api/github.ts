@@ -1,4 +1,4 @@
-import type { Label, Milestone, Repo, TimelineItem, UserProfile } from "../types/GitHubTypes";
+import type { Epic, Label, Milestone, Repo, TimelineItem, UserProfile } from "../types/GitHubTypes";
 import * as t from "io-ts";
 import { decodeOrThrow, decodeSafe } from "../utils/iotsUtils";
 
@@ -400,6 +400,216 @@ const fetchMilestoneItems = async (
   return items;
 };
 
+// ── Epic (issue-with-sub-issues) API ─────────────────────────────────────────
+
+const EPIC_LIST_QUERY = `
+  query EpicList($owner: String!, $repo: String!, $after: String) {
+    repository(owner: $owner, name: $repo) {
+      issues(first: 100, after: $after, states: [OPEN, CLOSED]) {
+        pageInfo { hasNextPage endCursor }
+        nodes {
+          number
+          title
+          state
+          url
+          subIssues { totalCount }
+        }
+      }
+    }
+  }
+`;
+
+const EPIC_ITEMS_QUERY = `
+  query EpicItems($owner: String!, $repo: String!, $epicNumber: Int!, $after: String) {
+    repository(owner: $owner, name: $repo) {
+      issue(number: $epicNumber) {
+        subIssues(first: 100, after: $after) {
+          pageInfo { hasNextPage endCursor }
+          nodes {
+            number
+            title
+            url
+            author { login }
+            createdAt
+            updatedAt
+            closedAt
+            ${LABEL_ASSIGNEE_FIELDS}
+            timelineItems(first: 1, itemTypes: [REOPENED_EVENT]) {
+              totalCount
+            }
+            closedByPullRequestsReferences(first: 20, includeClosedPrs: true) {
+              nodes {
+                number
+                title
+                url
+                author { login }
+                createdAt
+                updatedAt
+                mergedAt
+                closedAt
+                isDraft
+                reviewDecision
+                additions
+                deletions
+                ${LABEL_ASSIGNEE_FIELDS}
+                reviews(first: 1, states: [APPROVED, CHANGES_REQUESTED, COMMENTED]) {
+                  nodes { submittedAt }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+type EpicListPageData = {
+  repository?: {
+    issues: {
+      pageInfo: { hasNextPage: boolean; endCursor: string | null };
+      nodes: Array<{
+        number: number;
+        title: string;
+        state: "OPEN" | "CLOSED";
+        url: string;
+        subIssues: { totalCount: number };
+      }>;
+    };
+  } | null;
+};
+
+type EpicItemsPageData = {
+  repository?: {
+    issue?: {
+      subIssues: {
+        pageInfo: { hasNextPage: boolean; endCursor: string | null };
+        nodes: GQLIssueNode[];
+      };
+    } | null;
+  } | null;
+};
+
+/** Returns all issues in the repo that have at least one sub-issue, sorted newest first. */
+const fetchEpics = async (
+  owner: string,
+  repo: string,
+  token: string,
+  signal?: AbortSignal,
+): Promise<Epic[]> => {
+  const epics: Epic[] = [];
+  let after: string | null = null;
+
+  while (true) {
+    const data: EpicListPageData = await gqlFetch<EpicListPageData>(
+      EPIC_LIST_QUERY,
+      { owner, repo, after },
+      token,
+      signal,
+    );
+
+    const issues = data?.repository?.issues;
+    if (!issues) { break; }
+
+    for (const node of issues.nodes) {
+      if (node.subIssues.totalCount > 0) {
+        epics.push({
+          number: node.number,
+          title: node.title,
+          state: node.state.toLowerCase() as "open" | "closed",
+          subIssueCount: node.subIssues.totalCount,
+          url: node.url,
+        });
+      }
+    }
+
+    if (!issues.pageInfo.hasNextPage) { break; }
+    after = issues.pageInfo.endCursor;
+  }
+
+  return epics.sort((a, b) => b.number - a.number);
+};
+
+/** Returns the sub-issues of a given epic as TimelineItems, with milestoneNumber set to epicNumber. */
+const fetchEpicItems = async (
+  owner: string,
+  repo: string,
+  token: string,
+  epicNumber: number,
+  signal?: AbortSignal,
+): Promise<TimelineItem[]> => {
+  const allSubIssues: GQLIssueNode[] = [];
+  let after: string | null = null;
+
+  while (true) {
+    const data: EpicItemsPageData = await gqlFetch<EpicItemsPageData>(
+      EPIC_ITEMS_QUERY,
+      { owner, repo, epicNumber, after },
+      token,
+      signal,
+    );
+
+    const subIssues = data?.repository?.issue?.subIssues;
+    if (!subIssues) { break; }
+
+    allSubIssues.push(...subIssues.nodes);
+    if (!subIssues.pageInfo.hasNextPage) { break; }
+    after = subIssues.pageInfo.endCursor;
+  }
+
+  const items: TimelineItem[] = [];
+  const seenPRs = new Set<number>();
+
+  for (const issue of allSubIssues) {
+    const linkedPRNums: number[] = [];
+
+    for (const pr of issue.closedByPullRequestsReferences.nodes) {
+      linkedPRNums.push(pr.number);
+      if (!seenPRs.has(pr.number)) {
+        seenPRs.add(pr.number);
+        items.push({
+          type: "pr",
+          number: pr.number,
+          title: pr.title,
+          url: pr.url,
+          author: pr.author?.login ?? "ghost",
+          createdAt: pr.createdAt,
+          updatedAt: pr.updatedAt,
+          mergedAt: pr.mergedAt,
+          closedAt: pr.closedAt,
+          isDraft: pr.isDraft,
+          reviewDecision: pr.reviewDecision ?? null,
+          additions: pr.additions,
+          deletions: pr.deletions,
+          linkedIssue: issue.number,
+          milestoneNumber: epicNumber,
+          labels: mapLabels(pr.labels.nodes),
+          assignees: pr.assignees.nodes.map((n) => n.login),
+          firstReviewAt: pr.reviews.nodes[0]?.submittedAt ?? null,
+        });
+      }
+    }
+
+    items.push({
+      type: "issue",
+      number: issue.number,
+      title: issue.title,
+      url: issue.url,
+      author: issue.author?.login ?? "ghost",
+      createdAt: issue.createdAt,
+      updatedAt: issue.updatedAt,
+      closedAt: issue.closedAt,
+      linkedPRs: linkedPRNums,
+      milestoneNumber: epicNumber,
+      labels: mapLabels(issue.labels.nodes),
+      assignees: issue.assignees.nodes.map((n) => n.login),
+      reopenedCount: issue.timelineItems.totalCount,
+    });
+  }
+
+  return items;
+};
+
 const UserProfileResponseCodec = t.type({
   login:      t.string,
   name:       t.union([t.string, t.null]),
@@ -446,4 +656,4 @@ const fetchUserRepos = async (token: string, signal?: AbortSignal): Promise<Repo
   return results;
 };
 
-export { fetchMilestoneItems, fetchMilestones, fetchUserProfile, fetchUserRepos };
+export { fetchEpicItems, fetchEpics, fetchMilestoneItems, fetchMilestones, fetchUserProfile, fetchUserRepos };

@@ -1,4 +1,4 @@
-import type { Milestone } from "../types/GitHubTypes";
+import type { Epic } from "../types/GitHubTypes";
 import type { FunctionComponent } from "react";
 import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
@@ -11,28 +11,28 @@ import { pluralize } from "../utils/displayUtils";
 import { DOT_SX } from "../utils/sxTokens";
 
 type Props = {
-  milestones: Milestone[];
-  selected: Milestone[];
+  epics: Epic[];
+  selected: Epic[];
   loadingNums: number[];
   colorFor: (num: number) => string;
-  onAdd: (milestone: Milestone) => void;
+  onAdd: (epic: Epic) => void;
   onRemove: (num: number) => void;
 };
 
-const MilestonePicker: FunctionComponent<Props> = ({ milestones, selected, loadingNums, colorFor, onAdd, onRemove }) => {
+const EpicPicker: FunctionComponent<Props> = ({ epics, selected, loadingNums, colorFor, onAdd, onRemove }) => {
   const [inputValue, setInputValue] = useState("");
-  const unselected = milestones.filter((m) => !selected.find((s) => s.number === m.number));
+  const unselected = epics.filter((e) => !selected.find((s) => s.number === e.number));
 
   return (
     <Stack direction="row" flexWrap="wrap" alignItems="center" gap={0.75}>
-      {selected.map((milestone) => (
+      {selected.map((epic) => (
         <Chip
-          key={milestone.number}
-          label={loadingNums.includes(milestone.number) ? "…" : milestone.title}
-          onDelete={() => onRemove(milestone.number)}
+          key={epic.number}
+          label={loadingNums.includes(epic.number) ? "…" : `Epic: ${epic.title}`}
+          onDelete={() => onRemove(epic.number)}
           size="small"
           sx={{
-            bgcolor: colorFor(milestone.number),
+            bgcolor: colorFor(epic.number),
             color: "#fff",
             fontWeight: 500,
             "& .MuiChip-deleteIcon": {
@@ -44,7 +44,7 @@ const MilestonePicker: FunctionComponent<Props> = ({ milestones, selected, loadi
       ))}
 
       {unselected.length > 0 && (
-        <Autocomplete<Milestone>
+        <Autocomplete<Epic>
           options={unselected}
           value={null}
           inputValue={inputValue}
@@ -52,26 +52,26 @@ const MilestonePicker: FunctionComponent<Props> = ({ milestones, selected, loadi
             if (reason === "input") { setInputValue(v); }
             else { setInputValue(""); }
           }}
-          onChange={(_, milestone) => {
-            if (milestone) { onAdd(milestone); }
+          onChange={(_, epic) => {
+            if (epic) { onAdd(epic); }
           }}
-          getOptionLabel={(m) => m.title}
+          getOptionLabel={(e) => e.title}
           isOptionEqualToValue={(a, b) => a.number === b.number}
           filterOptions={(options, { inputValue: q }) => {
             const lower = q.toLowerCase();
-            return lower ? options.filter((m) => m.title.toLowerCase().includes(lower)) : options;
+            return lower ? options.filter((e) => e.title.toLowerCase().includes(lower)) : options;
           }}
-          renderOption={(props, milestone) => {
+          renderOption={(props, epic) => {
             const { key, ...rest } = props as typeof props & { key: React.Key };
             return (
               <Box key={key} component="li" {...rest} sx={{ alignItems: "flex-start !important" }}>
-                <Box sx={{ ...DOT_SX, width: 9, height: 9, bgcolor: colorFor(milestone.number), mr: 1.5, flexShrink: 0, mt: "5px" }} />
+                <Box sx={{ ...DOT_SX, width: 9, height: 9, bgcolor: colorFor(epic.number), mr: 1.5, flexShrink: 0, mt: "5px" }} />
                 <Box sx={{ minWidth: 0 }}>
-                  <Typography sx={{ fontSize: "0.8125rem" }}>
-                    {milestone.title}
+                  <Typography noWrap sx={{ fontSize: "0.8125rem" }}>
+                    {epic.title}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    {pluralize(milestone.openIssues + milestone.closedIssues, "issue")} · {milestone.state}
+                    {pluralize(epic.subIssueCount, "sub-issue")} · {epic.state}
                   </Typography>
                 </Box>
               </Box>
@@ -81,7 +81,7 @@ const MilestonePicker: FunctionComponent<Props> = ({ milestones, selected, loadi
             <TextField
               {...params}
               size="small"
-              placeholder={selected.length === 0 ? "Select milestone…" : "Add milestone…"}
+              placeholder={selected.length === 0 ? "Select epic…" : "Add epic…"}
             />
           )}
           sx={{ width: 220 }}
@@ -95,4 +95,4 @@ const MilestonePicker: FunctionComponent<Props> = ({ milestones, selected, loadi
   );
 };
 
-export { MilestonePicker };
+export { EpicPicker };

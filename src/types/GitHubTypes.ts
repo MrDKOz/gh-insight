@@ -51,6 +51,15 @@ type IssueItem = {
 
 type TimelineItem = IssueItem | PRItem;
 
+type Epic = {
+  /** Issue number — reused as `milestoneNumber` on sub-issue items for chart colouring. */
+  number: number;
+  title: string;
+  state: "open" | "closed";
+  subIssueCount: number;
+  url: string;
+};
+
 type MilestoneMeta = {
   number: number;
   title: string;
@@ -73,4 +82,4 @@ type UserProfile = {
   avatarUrl: string;
 };
 
-export type { IssueItem, Label, Milestone, MilestoneMeta, PRItem, Repo, TimelineItem, UserProfile };
+export type { Epic, IssueItem, Label, Milestone, MilestoneMeta, PRItem, Repo, TimelineItem, UserProfile };

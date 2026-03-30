@@ -1,10 +1,12 @@
-import type { Milestone, Repo, TimelineItem } from "../../types/GitHubTypes";
+import type { Epic, Milestone, Repo, TimelineItem } from "../../types/GitHubTypes";
 import type { AppState } from "../appReducer";
 import { DEFAULT_FILTERS } from "../../types/FilterTypes";
 import { appReducer, initialState } from "../appReducer";
 
 const ms1: Milestone = { number: 1, title: "Sprint 1", state: "open", openIssues: 2, closedIssues: 8, dueOn: null };
 const ms2: Milestone = { number: 2, title: "Sprint 2", state: "open", openIssues: 0, closedIssues: 5, dueOn: null };
+
+const epic1: Epic = { number: 100, title: "Auth epic", state: "open", subIssueCount: 3, url: "https://github.com/o/r/issues/100" };
 
 const repo: Repo = { id: 1, owner: "acme", name: "widget", fullName: "acme/widget", private: false, description: null };
 
@@ -23,6 +25,12 @@ describe("initialState", () => {
     expect(initialState.itemsCache).toEqual({});
     expect(initialState.loadingNums).toEqual([]);
     expect(initialState.loadingList).toBe(false);
+    expect(initialState.epics).toEqual([]);
+    expect(initialState.selectedEpics).toEqual([]);
+    expect(initialState.epicItemsCache).toEqual({});
+    expect(initialState.loadingEpicNums).toEqual([]);
+    expect(initialState.loadingEpicList).toBe(false);
+    expect(initialState.emptyEpicNums).toEqual([]);
     expect(initialState.isDemo).toBe(false);
     expect(initialState.error).toBeNull();
     expect(initialState.emptyMilestoneNums).toEqual([]);
@@ -249,6 +257,9 @@ describe("LOAD_DEMO", () => {
       milestones: [ms1, ms2],
       selected: [ms1],
       itemsCache: cache,
+      epics: [],
+      selectedEpics: [],
+      epicItemsCache: {},
     });
 
     expect(next.milestones).toEqual([ms1, ms2]);
@@ -273,6 +284,9 @@ describe("LOAD_DEMO — activeRepo preservation", () => {
       milestones: [],
       selected: [],
       itemsCache: {},
+      epics: [],
+      selectedEpics: [],
+      epicItemsCache: {},
     });
 
     expect(next.activeRepo).toEqual(repo);
@@ -371,5 +385,59 @@ describe("SET_INCLUDE_PRS", () => {
     expect(state.includePRs.cumulativeFlow).toBe(false);
     expect(state.includePRs.cycleTime).toBe(true);
     expect(state.includePRs.velocity).toBe(true);
+  });
+});
+
+describe("SELECT_EPIC", () => {
+  it("appends the epic to selectedEpics", () => {
+    const next = appReducer(initialState, { type: "SELECT_EPIC", epic: epic1 });
+
+    expect(next.selectedEpics).toEqual([epic1]);
+    expect(next.error).toBeNull();
+  });
+
+  it("returns the same state reference for a duplicate (already selected)", () => {
+    const s1 = appReducer(initialState, { type: "SELECT_EPIC", epic: epic1 });
+    const s2 = appReducer(s1, { type: "SELECT_EPIC", epic: epic1 });
+
+    expect(s2).toBe(s1);
+    expect(s2.selectedEpics).toHaveLength(1);
+  });
+});
+
+describe("REMOVE_EPIC", () => {
+  it("removes the specified epic from selectedEpics", () => {
+    const state = { ...initialState, selectedEpics: [epic1], emptyEpicNums: [100] };
+    const next = appReducer(state, { type: "REMOVE_EPIC", epicNumber: 100 });
+
+    expect(next.selectedEpics).toEqual([]);
+    expect(next.emptyEpicNums).toEqual([]);
+  });
+
+  it("is a no-op when the epic is not selected", () => {
+    const state = { ...initialState, selectedEpics: [] };
+    const next = appReducer(state, { type: "REMOVE_EPIC", epicNumber: 100 });
+
+    expect(next.selectedEpics).toEqual([]);
+  });
+});
+
+describe("FETCH_EPIC_ITEMS_SUCCESS", () => {
+  it("stores items in epicItemsCache and removes number from loadingEpicNums", () => {
+    const epicItem: TimelineItem = { ...item, milestoneNumber: 100 };
+    const state = { ...initialState, loadingEpicNums: [100] };
+    const next = appReducer(state, { type: "FETCH_EPIC_ITEMS_SUCCESS", epicNumber: 100, items: [epicItem] });
+
+    expect(next.epicItemsCache[100]).toEqual([epicItem]);
+    expect(next.loadingEpicNums).not.toContain(100);
+    expect(next.emptyEpicNums).not.toContain(100);
+  });
+
+  it("adds epicNumber to emptyEpicNums when items array is empty", () => {
+    const state = { ...initialState, loadingEpicNums: [100] };
+    const next = appReducer(state, { type: "FETCH_EPIC_ITEMS_SUCCESS", epicNumber: 100, items: [] });
+
+    expect(next.emptyEpicNums).toContain(100);
+    expect(next.loadingEpicNums).not.toContain(100);
   });
 });

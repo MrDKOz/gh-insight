@@ -1,5 +1,5 @@
 import type { View } from "../types/AppTypes";
-import type { Milestone, Repo } from "../types/GitHubTypes";
+import type { Epic, Milestone, Repo } from "../types/GitHubTypes";
 import type { FunctionComponent, HTMLAttributes } from "react";
 import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
@@ -14,6 +14,7 @@ import Typography from "@mui/material/Typography";
 import { memo } from "react";
 
 import { VIEWS } from "../types/AppTypes";
+import { EpicPicker } from "./EpicPicker";
 import { MilestonePicker } from "./MilestonePicker";
 
 type Props = {
@@ -29,6 +30,13 @@ type Props = {
   onAdd: (milestone: Milestone) => void;
   onRemove: (num: number) => void;
   onRefresh: () => void;
+  epics: Epic[];
+  selectedEpics: Epic[];
+  loadingEpicList: boolean;
+  loadingEpicNums: number[];
+  epicColorFor: (num: number) => string;
+  onAddEpic: (epic: Epic) => void;
+  onRemoveEpic: (num: number) => void;
   view: View;
   onViewChange: (v: View) => void;
   hasItems: boolean;
@@ -47,6 +55,8 @@ const ContextBar: FunctionComponent<Props> = memo(({
   repos, activeRepo, onRepoChange, isDemo,
   milestones, selected, loadingList, loadingNums,
   colorFor, onAdd, onRemove, onRefresh,
+  epics, selectedEpics, loadingEpicList, loadingEpicNums,
+  epicColorFor, onAddEpic, onRemoveEpic,
   view, onViewChange, hasItems,
 }) => (
   <Box sx={{ bgcolor: "background.paper" }}>
@@ -114,6 +124,25 @@ const ContextBar: FunctionComponent<Props> = memo(({
           colorFor={colorFor}
           onAdd={onAdd}
           onRemove={onRemove}
+        />
+      )}
+
+      {/* Epic area */}
+      {loadingEpicList && (
+        <Stack direction="row" alignItems="center" gap={1} sx={{ flexShrink: 0 }}>
+          <CircularProgress size={14} />
+          <Typography variant="caption" color="text.secondary">Loading epics…</Typography>
+        </Stack>
+      )}
+
+      {!loadingEpicList && epics.length > 0 && (
+        <EpicPicker
+          epics={epics}
+          selected={selectedEpics}
+          loadingNums={loadingEpicNums}
+          colorFor={epicColorFor}
+          onAdd={onAddEpic}
+          onRemove={onRemoveEpic}
         />
       )}
 
