@@ -46,7 +46,10 @@ jobs:
       - name: Build renderer (Electron mode)
         env:
           ELECTRON: "true"
-        run: npx vite build
+          # Fine-grained PAT with Contents:Read on this repo only — baked into
+          # the binary so the updater works on private repos without requiring
+          # users to have GitHub access.
+          UPDATER_TOKEN: ${{ secrets.UPDATER_TOKEN }}
 
       - name: Package and publish
         env:

@@ -148,7 +148,11 @@ autoUpdater.on("update-downloaded",    (info)     => sendUpdateStatus({ status: 
 autoUpdater.on("download-progress",    (progress) => sendUpdateStatus({ status: "downloading", percent: Math.round(progress.percent) }));
 autoUpdater.on("error",                (err)      => sendUpdateStatus({ status: "error",       message: err.message }));
 
-ipcMain.handle("updater:check", async (_event, token: string): Promise<void> => {
+ipcMain.handle("updater:check", async (_event, fallbackToken: string): Promise<void> => {
+  // Prefer the build-time token (fine-grained PAT, contents:read only).
+  // Fall back to the user's token so dev builds still work without a secret.
+  const token = __UPDATER_TOKEN__ || fallbackToken;
+  if (!token) { return; }
   autoUpdater.requestHeaders = { Authorization: `Bearer ${token}` };
   await autoUpdater.checkForUpdates();
 });

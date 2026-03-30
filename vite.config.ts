@@ -45,7 +45,18 @@ export default defineConfig(async () => {
   if (isElectronBuild) {
     const { default: electron } = await import("vite-plugin-electron/simple");
     electronPlugins.push(electron({
-      main: { entry: "electron/main.ts" },
+      main: {
+        entry: "electron/main.ts",
+        vite: {
+          build: {
+            rollupOptions: {
+              // electron-updater is a CJS package that calls require() for Node
+              // built-ins at runtime — it must not be bundled into the ESM output.
+              external: ["electron-updater"],
+            },
+          },
+        },
+      },
       // Compile the preload as CJS (.cjs).  ESM preloads hit a Node module
       // resolution issue where `import "electron"` resolves to the npm launcher
       // package instead of Electron's runtime built-ins.  CJS avoids this
@@ -70,6 +81,9 @@ export default defineConfig(async () => {
   define: {
     __APP_VERSION__:    JSON.stringify(packageJson.version),
     __APP_BUILD_TIME__: String(BUILD_TIME),
+    // Baked-in read-only token for the auto-updater (private repo support).
+    // Set via UPDATER_TOKEN env var in CI; empty string in dev/web builds.
+    __UPDATER_TOKEN__:  JSON.stringify(process.env["UPDATER_TOKEN"] ?? ""),
   },
   plugins: [
     react({ babel: { plugins: ["babel-plugin-react-compiler"] } }),
