@@ -220,6 +220,10 @@ const SplashScreen: FunctionComponent<Props> = ({
         <Typography variant="caption" color="text.disabled" sx={{ display: "block", mt: 2, textAlign: "center" }}>
           Your token is encrypted locally and never sent anywhere other than api.github.com
         </Typography>
+
+        <Typography variant="caption" color="text.disabled" sx={{ position: "fixed", bottom: 12, right: 16 }}>
+          v{__APP_VERSION__}
+        </Typography>
       </Box>
     </Box>
   );
