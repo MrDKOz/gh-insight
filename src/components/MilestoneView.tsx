@@ -24,6 +24,7 @@ import { CumulativeFlow } from "../charts/CumulativeFlow";
 import { CycleTime } from "../charts/CycleTime";
 import { GanttView } from "../charts/GanttView";
 import { Velocity } from "../charts/Velocity";
+import { useAvatarPreload } from "../hooks/useAvatarPreload";
 
 import { applyFilters } from "../types/FilterTypes";
 import { partitionItems } from "../utils/displayUtils";
@@ -62,6 +63,8 @@ const formatsForView = (v: View): ExportFormat[] => {
 };
 
 const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, bankHolidays, colorblindMode, view, filters, includePRs, dispatch }) => {
+  useAvatarPreload(items);
+
   const [exportAnchor, setExportAnchor] = useState<HTMLElement | null>(null);
   const [exporting, setExporting] = useState<ExportFormat | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
