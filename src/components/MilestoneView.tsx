@@ -14,7 +14,6 @@ import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
-import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -62,13 +61,13 @@ const formatsForView = (v: View): ExportFormat[] => {
   return ["PNG — Current view", "PDF", "SVG"];
 };
 
+
 const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, bankHolidays, colorblindMode, view, filters, includePRs, dispatch }) => {
   useAvatarPreload(items);
 
   const [exportAnchor, setExportAnchor] = useState<HTMLElement | null>(null);
   const [exporting, setExporting] = useState<ExportFormat | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
-  const [copyTooltip, setCopyTooltip] = useState<"idle" | "copied">("idle");
 
   const [toolbarSlot, setToolbarSlot] = useState<Element | null>(null);
   const [filterSlot, setFilterSlot] = useState<Element | null>(null);
@@ -194,26 +193,6 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
           </MenuItem>
         ))}
       </Menu>
-
-      <Tooltip
-        title={copyTooltip === "copied" ? "Copied!" : "Copy shareable link"}
-        placement="bottom"
-        onClose={() => setCopyTooltip("idle")}
-      >
-        <Button
-          variant="outlined"
-          size="small"
-          aria-label="Copy shareable link to clipboard"
-          onClick={() => {
-            void navigator.clipboard
-              .writeText(window.location.href)
-              .then(() => { setCopyTooltip("copied"); })
-              .catch(() => { setExportError("Could not copy link — please copy it from the address bar."); });
-          }}
-        >
-          Share
-        </Button>
-      </Tooltip>
     </Stack>
   );
 

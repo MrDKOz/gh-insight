@@ -1,6 +1,6 @@
 import type { View } from "../types/AppTypes";
 import type { Epic, Milestone, Repo } from "../types/GitHubTypes";
-import type { FunctionComponent, HTMLAttributes } from "react";
+import type { FunctionComponent, HTMLAttributes, Key } from "react";
 import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -16,6 +16,7 @@ import { memo } from "react";
 import { VIEWS } from "../types/AppTypes";
 import { EpicPicker } from "./EpicPicker";
 import { MilestonePicker } from "./MilestonePicker";
+import { ShareImportSplitButton } from "./ShareImportSplitButton";
 
 type Props = {
   repos: Repo[];
@@ -26,20 +27,27 @@ type Props = {
   selected: Milestone[];
   loadingList: boolean;
   loadingNums: number[];
+  milestonesHasMore: boolean;
+  loadingMoreMilestones: boolean;
   colorFor: (num: number) => string;
   onAdd: (milestone: Milestone) => void;
   onRemove: (num: number) => void;
   onRefresh: () => void;
+  onLoadMoreMilestones: () => void;
   epics: Epic[];
   selectedEpics: Epic[];
   loadingEpicList: boolean;
   loadingEpicNums: number[];
+  epicsHasMore: boolean;
+  loadingMoreEpics: boolean;
   epicColorFor: (num: number) => string;
   onAddEpic: (epic: Epic) => void;
   onRemoveEpic: (num: number) => void;
+  onLoadMoreEpics: () => void;
   view: View;
   onViewChange: (v: View) => void;
   hasItems: boolean;
+  onImportCode: (code: string) => Promise<void>;
 };
 
 const LockIcon: FunctionComponent = () => (
@@ -54,10 +62,12 @@ const LockIcon: FunctionComponent = () => (
 const ContextBar: FunctionComponent<Props> = memo(({
   repos, activeRepo, onRepoChange, isDemo,
   milestones, selected, loadingList, loadingNums,
-  colorFor, onAdd, onRemove, onRefresh,
+  milestonesHasMore, loadingMoreMilestones,
+  colorFor, onAdd, onRemove, onRefresh, onLoadMoreMilestones,
   epics, selectedEpics, loadingEpicList, loadingEpicNums,
-  epicColorFor, onAddEpic, onRemoveEpic,
-  view, onViewChange, hasItems,
+  epicsHasMore, loadingMoreEpics,
+  epicColorFor, onAddEpic, onRemoveEpic, onLoadMoreEpics,
+  view, onViewChange, hasItems, onImportCode,
 }) => (
   <Box sx={{ bgcolor: "background.paper" }}>
 
@@ -74,18 +84,30 @@ const ContextBar: FunctionComponent<Props> = memo(({
     }}>
 
       {/* Repo selector */}
-      <Autocomplete<Repo>
+      <Autocomplete<Repo, false, false, true>
+        freeSolo
         options={repos}
         value={activeRepo}
-        onChange={(_, v) => onRepoChange(v)}
-        getOptionLabel={(r) => r.fullName}
-        isOptionEqualToValue={(a, b) => a.fullName === b.fullName}
+        onChange={(_, v) => {
+          if (!v) { onRepoChange(null); return; }
+          if (typeof v === "string") {
+            const slash = v.indexOf("/");
+            if (slash > 0) {
+              onRepoChange({ id: -1, owner: v.slice(0, slash), name: v.slice(slash + 1), fullName: v, private: false, description: null });
+            }
+            return;
+          }
+          onRepoChange(v);
+        }}
+        getOptionLabel={(r) => (typeof r === "string" ? r : r.fullName)}
+        // noinspection SuspiciousTypeOfGuard — freeSolo passes strings at runtime even though TS types a/b as Repo
+        isOptionEqualToValue={(a, b) => (typeof a === "string" || typeof b === "string" ? false : a.fullName === b.fullName)}
         filterOptions={(options, { inputValue }) => {
           const query = inputValue.toLowerCase();
           return query ? options.filter((r) => r.fullName.toLowerCase().includes(query)) : options;
         }}
         renderOption={(props, option) => {
-          const { key, ...rest } = props as typeof props & { key: React.Key };
+          const { key, ...rest } = props as typeof props & { key: Key };
           return (
           <Box key={key} component="li" {...rest} sx={{ ...(rest as HTMLAttributes<HTMLLIElement>).style, width: "100%" }}>
             <Box sx={{ display: "flex", flexDirection: "column", minWidth: 0, width: "100%" }}>
@@ -103,7 +125,12 @@ const ContextBar: FunctionComponent<Props> = memo(({
           );
         }}
         renderInput={(params) => (
-          <TextField {...params} label="Repository" size="small" placeholder="Search repos…" />
+          <TextField
+            {...params}
+            label="Repository"
+            size="small"
+            placeholder={repos.length === 0 ? "owner/repo" : "Search repos…"}
+          />
         )}
         sx={{ width: 300, flexShrink: 0 }}
         noOptionsText={isDemo ? "No demo repos" : "No repositories found"}
@@ -124,9 +151,12 @@ const ContextBar: FunctionComponent<Props> = memo(({
           milestones={milestones}
           selected={selected}
           loadingNums={loadingNums}
+          hasMore={milestonesHasMore}
+          loadingMore={loadingMoreMilestones}
           colorFor={colorFor}
           onAdd={onAdd}
           onRemove={onRemove}
+          onLoadMore={onLoadMoreMilestones}
         />
       )}
 
@@ -143,9 +173,12 @@ const ContextBar: FunctionComponent<Props> = memo(({
           epics={epics}
           selected={selectedEpics}
           loadingNums={loadingEpicNums}
+          hasMore={epicsHasMore}
+          loadingMore={loadingMoreEpics}
           colorFor={epicColorFor}
           onAdd={onAddEpic}
           onRemove={onRemoveEpic}
+          onLoadMore={onLoadMoreEpics}
         />
       )}
 
@@ -164,8 +197,12 @@ const ContextBar: FunctionComponent<Props> = memo(({
         </Button>
       )}
 
-      {/* Portal target — Timeline renders Export + Share buttons here */}
-      <Box id="timeline-toolbar" sx={{ ml: "auto", display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }} />
+      {/* Share / Import — always visible once connected */}
+      <Box sx={{ flex: 1 }} />
+      <ShareImportSplitButton onImportCode={onImportCode} />
+
+      {/* Portal target — Timeline renders Export button here when items are loaded */}
+      <Box id="timeline-toolbar" sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }} />
     </Box>
 
     {/* Row 2: view tabs — only shown when data is loaded */}
@@ -197,4 +234,3 @@ const ContextBar: FunctionComponent<Props> = memo(({
 ));
 
 export { ContextBar };
-

@@ -5,12 +5,14 @@ import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CssBaseline from "@mui/material/CssBaseline";
+import LinearProgress from "@mui/material/LinearProgress";
 import { ThemeProvider } from "@mui/material/styles";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchUserProfile, fetchUserRepos } from "./api/github";
 import { AppHeader } from "./components/AppHeader";
 import { ContextBar } from "./components/ContextBar";
 import { EmptyState } from "./components/EmptyState";
+import { FetchingOverlay } from "./components/FetchingOverlay";
 import { KeyboardShortcuts } from "./components/KeyboardShortcuts";
 import { MilestoneView } from "./components/MilestoneView";
 import { SettingsPopover } from "./components/SettingsPopover";
@@ -26,7 +28,7 @@ import { useSettings } from "./hooks/useSettings";
 import { muiDarkTheme, muiLightTheme } from "./theme";
 import { isElectron } from "./utils/platform";
 import { decryptToken } from "./utils/tokenCrypto";
-import { readUrlParams, setViewParam, syncFiltersToUrl, syncUrlParams } from "./utils/urlUtils";
+import { decodeShareCode, readUrlParams, readViewFiltersFromUrl, setViewParam, syncFiltersToUrl, syncUrlParams } from "./utils/urlUtils";
 
 // Evaluated once at module load — stable across the lifetime of the page
 const INITIAL_URL_PARAMS = readUrlParams();
@@ -62,7 +64,7 @@ const App: FunctionComponent = () => {
 
   // ── Auth orchestration ────────────────────────────────────────────────────
 
-  const { setToken, setUserProfile, setRepos, setPhase, saveToken, disconnect } = auth;
+  const { setToken, setUserProfile, setRepos, setPhase, saveToken, disconnect, setTokenError } = auth;
   const { dispatch: milestoneDispatch, loadDemoForRepo, loadMilestonesForRepo, resetMilestones } = milestones;
 
   const transitionToDashboard = useCallback((
@@ -116,19 +118,26 @@ const App: FunctionComponent = () => {
     if (!stored) { setPhase("splash"); return; }
     decryptToken(stored)
       .then(async (decrypted) => {
-        const [profile, repoList] = await Promise.all([
+        const [profileResult, reposResult] = await Promise.allSettled([
           fetchUserProfile(decrypted),
           fetchUserRepos(decrypted),
         ]);
+        if (profileResult.status === "rejected") {
+          throw profileResult.reason;
+        }
+        const repoList = reposResult.status === "fulfilled" ? reposResult.value : [];
+        if (reposResult.status === "rejected") {
+          setTokenError("Your token couldn't list repositories — you can still type an owner/repo below to load milestones.");
+        }
         saveToken(decrypted);
-        transitionToDashboard(decrypted, profile, repoList);
+        transitionToDashboard(decrypted, profileResult.value, repoList);
       })
       .catch((err: unknown) => {
         console.error("Failed to decrypt stored token; session cleared.", err);
         localStorage.removeItem(LS_TOKEN);
         setPhase("splash");
       });
-  }, [handleDemo, saveToken, setPhase, transitionToDashboard]);
+  }, [handleDemo, saveToken, setPhase, setTokenError, transitionToDashboard]);
 
   const handleDisconnect = useCallback(() => {
     disconnect();
@@ -147,6 +156,31 @@ const App: FunctionComponent = () => {
       void milestones.loadMilestonesForRepo(repo);
     }
   }, [milestones]);
+
+  const applySharedCode = useCallback(async (code: string) => {
+    const search = decodeShareCode(code);
+    if (search === null) { throw new Error("Invalid share code"); }
+
+    // Update the URL so the read utilities reflect the shared state
+    window.history.replaceState(null, "", search || window.location.pathname);
+
+    const { owner, repo: repoName, milestoneNums, epicNums } = readUrlParams();
+    const { view, filters } = readViewFiltersFromUrl();
+
+    const foundRepo = owner && repoName
+      ? (auth.repos.find(
+          (r) => r.owner.toLowerCase() === owner.toLowerCase() && r.name.toLowerCase() === repoName.toLowerCase(),
+        ) ?? { id: -1, owner, name: repoName, fullName: `${owner}/${repoName}`, private: false, description: null })
+      : null;
+
+    if (foundRepo) { milestoneDispatch({ type: "SET_REPO", repo: foundRepo }); }
+    milestoneDispatch({ type: "SET_VIEW", view });
+    milestoneDispatch({ type: "SET_FILTERS", filters });
+
+    if (foundRepo) {
+      await loadMilestonesForRepo(foundRepo, { autoSelectNums: milestoneNums, autoSelectEpicNums: epicNums });
+    }
+  }, [auth.repos, milestoneDispatch, loadMilestonesForRepo]);
 
   // ── URL synchronisation ───────────────────────────────────────────────────
 
@@ -248,25 +282,32 @@ const App: FunctionComponent = () => {
             selected={milestones.state.selected}
             loadingList={milestones.state.loadingList}
             loadingNums={milestones.state.loadingNums}
+            milestonesHasMore={milestones.state.milestonesHasMore}
+            loadingMoreMilestones={milestones.state.loadingMoreMilestones}
             colorFor={milestones.milestoneColorFor}
             onAdd={milestones.addMilestone}
             onRemove={milestones.removeMilestone}
             onRefresh={milestones.refreshMilestones}
+            onLoadMoreMilestones={milestones.loadMoreMilestones}
             epics={milestones.state.epics}
             selectedEpics={milestones.state.selectedEpics}
             loadingEpicList={milestones.state.loadingEpicList}
             loadingEpicNums={milestones.state.loadingEpicNums}
+            epicsHasMore={milestones.state.epicsHasMore}
+            loadingMoreEpics={milestones.state.loadingMoreEpics}
             epicColorFor={milestones.epicColorFor}
             onAddEpic={milestones.addEpic}
             onRemoveEpic={milestones.removeEpic}
+            onLoadMoreEpics={milestones.loadMoreEpics}
             view={milestones.state.view}
             onViewChange={handleViewChange}
             hasItems={milestones.allItems.length > 0}
+            onImportCode={applySharedCode}
           />
 
           <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
-            {(auth.tokenError || configError || milestones.state.error || milestones.state.emptyMilestoneNums.length > 0 || milestones.state.loadingNums.length > 0 || milestones.state.emptyEpicNums.length > 0 || milestones.state.loadingEpicNums.length > 0) && (
+            {(auth.tokenError || configError || milestones.state.error || milestones.state.emptyMilestoneNums.length > 0 || milestones.state.emptyEpicNums.length > 0) && (
               <Box sx={{ px: 3, pt: 2, display: "flex", flexDirection: "column", gap: 1 }}>
                 {auth.tokenError && (
                   <Alert severity="warning" onClose={auth.clearTokenError}>{auth.tokenError}</Alert>
@@ -274,16 +315,22 @@ const App: FunctionComponent = () => {
                 {configError && (
                   <Alert severity="error" onClose={clearConfigError}>{configError}</Alert>
                 )}
-                {milestones.state.error && <Alert severity="error">{milestones.state.error}</Alert>}
+                {milestones.state.error && (
+                  <Alert
+                    severity="error"
+                    action={milestones.state.error.includes("(401)") ? (
+                      <Button size="small" color="inherit" onClick={handleDisconnect}>Reconnect</Button>
+                    ) : undefined}
+                  >
+                    {milestones.state.error}
+                  </Alert>
+                )}
                 {milestones.state.emptyMilestoneNums.length > 0 && (
                   <Alert severity="warning">
                     {milestones.state.emptyMilestoneNums.length === 1
                       ? `Milestone #${milestones.state.emptyMilestoneNums[0] ?? "?"} has no items.`
                       : `${milestones.state.emptyMilestoneNums.length} milestones have no items.`}
                   </Alert>
-                )}
-                {milestones.state.loadingNums.length > 0 && (
-                  <Alert severity="info" role="status" aria-live="polite">Loading data…</Alert>
                 )}
                 {milestones.state.emptyEpicNums.length > 0 && (
                   <Alert severity="warning">
@@ -292,11 +339,44 @@ const App: FunctionComponent = () => {
                       : `${milestones.state.emptyEpicNums.length} epics have no sub-issues.`}
                   </Alert>
                 )}
-                {milestones.state.loadingEpicNums.length > 0 && (
-                  <Alert severity="info" role="status" aria-live="polite">Loading epic items…</Alert>
-                )}
               </Box>
             )}
+
+            {(() => {
+              const isFetching =
+                milestones.state.loadingNums.length > 0 ||
+                milestones.state.loadingEpicNums.length > 0;
+              if (!isFetching) { return null; }
+
+              const fetchItems = [
+                ...milestones.state.selected.map((m) => ({
+                  name: m.title,
+                  done: milestones.state.itemsCache[m.number] !== undefined,
+                })),
+                ...milestones.state.selectedEpics.map((e) => ({
+                  name: e.title,
+                  done: milestones.state.epicItemsCache[e.number] !== undefined,
+                })),
+              ];
+              const totalSelected = fetchItems.length;
+              const loadedCount   = fetchItems.filter((i) => i.done).length;
+
+              // No data yet — show full centered overlay
+              if (milestones.allItems.length === 0) {
+                return (
+                  <FetchingOverlay items={fetchItems} />
+                );
+              }
+
+              // Already have some data — show slim progress bar at top so existing content stays visible
+              return (
+                <LinearProgress
+                  variant={totalSelected > 1 ? "determinate" : "indeterminate"}
+                  value={totalSelected > 1 ? (loadedCount / totalSelected) * 100 : undefined}
+                  sx={{ flexShrink: 0 }}
+                />
+              );
+            })()}
 
             {!milestones.state.activeRepo && (
               <EmptyState

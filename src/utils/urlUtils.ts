@@ -95,4 +95,25 @@ const syncFiltersToUrl = (filters: Filters): void => {
   window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
 };
 
-export { readUrlParams, readViewFiltersFromUrl, setViewParam, syncFiltersToUrl, syncUrlParams };
+const SHARE_CODE_PREFIX = "gmt:";
+
+/** Encodes the current URL search string into a portable share code. */
+const encodeShareCode = (): string =>
+  SHARE_CODE_PREFIX + btoa(window.location.search);
+
+/**
+ * Decodes a share code produced by {@link encodeShareCode}.
+ * Returns the URL search string (e.g. `"?owner=acme&repo=frontend&milestones=1"`)
+ * or `null` if the code is missing the prefix or contains invalid base64.
+ */
+const decodeShareCode = (code: string): string | null => {
+  const trimmed = code.trim();
+  if (!trimmed.startsWith(SHARE_CODE_PREFIX)) { return null; }
+  try {
+    return atob(trimmed.slice(SHARE_CODE_PREFIX.length));
+  } catch {
+    return null;
+  }
+};
+
+export { decodeShareCode, encodeShareCode, readUrlParams, readViewFiltersFromUrl, setViewParam, syncFiltersToUrl, syncUrlParams };
