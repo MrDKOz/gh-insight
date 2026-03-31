@@ -1,4 +1,4 @@
-import type { Epic, Label, Milestone, Repo, TimelineItem, UserProfile } from "../types/GitHubTypes";
+import type { Epic, IssueItem, Label, Milestone, PRItem, Repo, TimelineItem, UserProfile } from "../types/GitHubTypes";
 import * as t from "io-ts";
 import { decodeOrThrow, decodeSafe } from "../utils/iotsUtils";
 
@@ -57,6 +57,54 @@ const checkResponse = async (response: Response): Promise<void> => {
     }
     throw new Error(`GitHub API error ${response.status}${ghMessage ? `: ${ghMessage}` : ""}`);
   }
+};
+
+// Number of closed milestones fetched on the initial (fast) list load.
+const INITIAL_CLOSED_LIMIT = 20;
+
+/**
+ * Fast initial fetch: all open milestones + first {@link INITIAL_CLOSED_LIMIT} closed
+ * (sorted by most-recent due date) in a single parallel pair of REST calls.
+ */
+const fetchMilestonesInitial = async (
+  owner: string, repo: string, token: string, signal?: AbortSignal,
+): Promise<{ items: Milestone[]; hasMore: boolean; nextPage: number }> => {
+  const opts = { headers: authHeaders(token), ...(signal ? { signal } : {}) };
+  const base = `${GH_API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/milestones`;
+  const [openResp, closedResp] = await Promise.all([
+    fetch(`${base}?state=open&per_page=100`, opts),
+    fetch(`${base}?state=closed&per_page=${INITIAL_CLOSED_LIMIT}&page=1&sort=due_on&direction=desc`, opts),
+  ]);
+  await checkResponse(openResp);
+  await checkResponse(closedResp);
+  const openRaw   = decodeOrThrow(await openResp.json()   as unknown, t.array(RawMilestoneCodec));
+  const closedRaw = decodeOrThrow(await closedResp.json() as unknown, t.array(RawMilestoneCodec));
+  const items = [...openRaw, ...closedRaw].map(mapMilestone).sort((a, b) => a.title.localeCompare(b.title));
+  return { items, hasMore: closedRaw.length >= INITIAL_CLOSED_LIMIT, nextPage: 2 };
+};
+
+/**
+ * Fetches all remaining closed milestones beginning at `startPage`.
+ * Used by "Load more" and search-triggered full loads.
+ */
+const fetchAllRemainingMilestones = async (
+  owner: string, repo: string, token: string, startPage: number, signal?: AbortSignal,
+): Promise<Milestone[]> => {
+  const results: Milestone[] = [];
+  let page = startPage;
+  const base = `${GH_API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/milestones`;
+  while (true) {
+    const response = await fetch(
+      `${base}?state=closed&per_page=${INITIAL_CLOSED_LIMIT}&page=${page}&sort=due_on&direction=desc`,
+      { headers: authHeaders(token), ...(signal ? { signal } : {}) },
+    );
+    await checkResponse(response);
+    const data = decodeOrThrow(await response.json() as unknown, t.array(RawMilestoneCodec));
+    results.push(...data.map(mapMilestone));
+    if (data.length < INITIAL_CLOSED_LIMIT) { break; }
+    page++;
+  }
+  return results;
 };
 
 const fetchMilestones = async (owner: string, repo: string, token: string, signal?: AbortSignal): Promise<Milestone[]> => {
@@ -241,6 +289,45 @@ const mapLabels = (nodes: GQLLabelNode[]): Label[] =>
     color: HEX_COLOR_RE.test(n.color) ? `#${n.color}` : "#cccccc",
   }));
 
+/** Maps a raw GraphQL PR node to a PRItem. Used by both fetchMilestoneItems and fetchEpicItems. */
+const mapPRNode = (pr: GQLPRNode, sourceNumber: number, linkedIssue: number | null): PRItem => ({
+  type: "pr",
+  number: pr.number,
+  title: pr.title,
+  url: pr.url,
+  author: pr.author?.login ?? "ghost",
+  createdAt: pr.createdAt,
+  updatedAt: pr.updatedAt,
+  mergedAt: pr.mergedAt,
+  closedAt: pr.closedAt,
+  isDraft: pr.isDraft,
+  reviewDecision: pr.reviewDecision ?? null,
+  additions: pr.additions,
+  deletions: pr.deletions,
+  linkedIssue,
+  milestoneNumber: sourceNumber,
+  labels: mapLabels(pr.labels.nodes),
+  assignees: pr.assignees.nodes.map((n) => n.login),
+  firstReviewAt: pr.reviews.nodes[0]?.submittedAt ?? null,
+});
+
+/** Maps a raw GraphQL issue node to an IssueItem. Used by both fetchMilestoneItems and fetchEpicItems. */
+const mapIssueNode = (issue: GQLIssueNode, sourceNumber: number, linkedPRNums: number[]): IssueItem => ({
+  type: "issue",
+  number: issue.number,
+  title: issue.title,
+  url: issue.url,
+  author: issue.author?.login ?? "ghost",
+  createdAt: issue.createdAt,
+  updatedAt: issue.updatedAt,
+  closedAt: issue.closedAt,
+  linkedPRs: linkedPRNums,
+  milestoneNumber: sourceNumber,
+  labels: mapLabels(issue.labels.nodes),
+  assignees: issue.assignees.nodes.map((n) => n.login),
+  reopenedCount: issue.timelineItems.totalCount,
+});
+
 const GQLEnvelopeCodec = t.partial({
   data:   t.unknown,
   errors: t.array(t.type({ message: t.string })),
@@ -288,7 +375,7 @@ const fetchMilestoneItems = async (
     if (!milestone) {throw new Error("Milestone not found in repository");}
 
     const { nodes, pageInfo } = milestone.issues;
-    allIssues.push(...nodes);
+    allIssues.push(...nodes.filter((n): n is GQLIssueNode => n !== null));
     if (!pageInfo.hasNextPage) {break;}
     after = pageInfo.endCursor;
   }
@@ -309,7 +396,7 @@ const fetchMilestoneItems = async (
     if (!milestone) {break;} // graceful — some GH plans restrict this
 
     const { nodes, pageInfo } = milestone.pullRequests;
-    allMilestonePRs.push(...nodes);
+    allMilestonePRs.push(...nodes.filter((n): n is GQLPRNode => n !== null));
     if (!pageInfo.hasNextPage) {break;}
     prAfter = pageInfo.endCursor;
   }
@@ -324,76 +411,24 @@ const fetchMilestoneItems = async (
   for (const issue of allIssues) {
     const linkedPRNums: number[] = [];
 
-    for (const refPR of issue.closedByPullRequestsReferences.nodes) {
+    for (const refPR of issue.closedByPullRequestsReferences.nodes.filter((n): n is GQLPRNode => n !== null)) {
       linkedPRNums.push(refPR.number);
       if (!seenPRs.has(refPR.number)) {
         seenPRs.add(refPR.number);
         // Prefer milestone PR node (has full data); fall back to the reference node
         const pr = milestonePRMap.get(refPR.number) ?? refPR;
-        items.push({
-          type: "pr",
-          number: pr.number,
-          title: pr.title,
-          url: pr.url,
-          author: pr.author?.login ?? "ghost",
-          createdAt: pr.createdAt,
-          updatedAt: pr.updatedAt,
-          mergedAt: pr.mergedAt,
-          closedAt: pr.closedAt,
-          isDraft: pr.isDraft,
-          reviewDecision: pr.reviewDecision ?? null,
-          additions: pr.additions,
-          deletions: pr.deletions,
-          linkedIssue: issue.number > 0 ? issue.number : null,
-          milestoneNumber,
-          labels: mapLabels(pr.labels.nodes),
-          assignees: pr.assignees.nodes.map((n) => n.login),
-          firstReviewAt: pr.reviews.nodes[0]?.submittedAt ?? null,
-        });
+        items.push(mapPRNode(pr, milestoneNumber, issue.number > 0 ? issue.number : null));
       }
     }
 
-    items.push({
-      type: "issue",
-      number: issue.number,
-      title: issue.title,
-      url: issue.url,
-      author: issue.author?.login ?? "ghost",
-      createdAt: issue.createdAt,
-      updatedAt: issue.updatedAt,
-      closedAt: issue.closedAt,
-      linkedPRs: linkedPRNums,
-      milestoneNumber,
-      labels: mapLabels(issue.labels.nodes),
-      assignees: issue.assignees.nodes.map((n) => n.login),
-      reopenedCount: issue.timelineItems.totalCount,
-    });
+    items.push(mapIssueNode(issue, milestoneNumber, linkedPRNums));
   }
 
   // Add any milestone PRs that weren't already picked up via issue references
   for (const pr of allMilestonePRs) {
     if (!seenPRs.has(pr.number)) {
       seenPRs.add(pr.number);
-      items.push({
-        type: "pr",
-        number: pr.number,
-        title: pr.title,
-        url: pr.url,
-        author: pr.author?.login ?? "ghost",
-        createdAt: pr.createdAt,
-        updatedAt: pr.updatedAt,
-        mergedAt: pr.mergedAt,
-        closedAt: pr.closedAt,
-        isDraft: pr.isDraft,
-        reviewDecision: pr.reviewDecision ?? null,
-        additions: pr.additions,
-        deletions: pr.deletions,
-        linkedIssue: null,
-        milestoneNumber,
-        labels: mapLabels(pr.labels.nodes),
-        assignees: pr.assignees.nodes.map((n) => n.login),
-        firstReviewAt: pr.reviews.nodes[0]?.submittedAt ?? null,
-      });
+      items.push(mapPRNode(pr, milestoneNumber, null));
     }
   }
 
@@ -403,9 +438,9 @@ const fetchMilestoneItems = async (
 // ── Epic (issue-with-sub-issues) API ─────────────────────────────────────────
 
 const EPIC_LIST_QUERY = `
-  query EpicList($owner: String!, $repo: String!, $after: String) {
+  query EpicList($owner: String!, $repo: String!, $after: String, $states: [IssueState!]) {
     repository(owner: $owner, name: $repo) {
-      issues(first: 100, after: $after, states: [OPEN, CLOSED]) {
+      issues(first: 100, after: $after, states: $states) {
         pageInfo { hasNextPage endCursor }
         nodes {
           number
@@ -490,20 +525,31 @@ type EpicItemsPageData = {
   } | null;
 };
 
-/** Returns all issues in the repo that have at least one sub-issue, sorted newest first. */
+/**
+ * Returns issues with at least one sub-issue, sorted newest first.
+ *
+ * @param owner  - Repository owner login.
+ * @param repo   - Repository name.
+ * @param token  - GitHub personal access token.
+ * @param signal - Optional AbortSignal to cancel the request.
+ * @param states - GraphQL IssueState values to include. Defaults to both OPEN and CLOSED.
+ *   Pass `["OPEN"]` for the fast initial load; `["CLOSED"]` to load the rest on demand.
+ * @returns items found and whether there may be more (true when only OPEN was requested).
+ */
 const fetchEpics = async (
   owner: string,
   repo: string,
   token: string,
   signal?: AbortSignal,
-): Promise<Epic[]> => {
+  states: ("OPEN" | "CLOSED")[] = ["OPEN", "CLOSED"],
+): Promise<{ items: Epic[]; hasMore: boolean }> => {
   const epics: Epic[] = [];
   let after: string | null = null;
 
   while (true) {
     const data: EpicListPageData = await gqlFetch<EpicListPageData>(
       EPIC_LIST_QUERY,
-      { owner, repo, after },
+      { owner, repo, after, states },
       token,
       signal,
     );
@@ -511,7 +557,7 @@ const fetchEpics = async (
     const issues = data?.repository?.issues;
     if (!issues) { break; }
 
-    for (const node of issues.nodes) {
+    for (const node of issues.nodes.filter((n) => n !== null)) {
       if (node.subIssues.totalCount > 0) {
         epics.push({
           number: node.number,
@@ -527,7 +573,9 @@ const fetchEpics = async (
     after = issues.pageInfo.endCursor;
   }
 
-  return epics.sort((a, b) => b.number - a.number);
+  // hasMore = true when we only scanned open issues — closed ones may still exist
+  const hasMore = states.length === 1 && states[0] === "OPEN";
+  return { items: epics.sort((a, b) => b.number - a.number), hasMore };
 };
 
 /** Returns the sub-issues of a given epic as TimelineItems, with milestoneNumber set to epicNumber. */
@@ -552,7 +600,7 @@ const fetchEpicItems = async (
     const subIssues = data?.repository?.issue?.subIssues;
     if (!subIssues) { break; }
 
-    allSubIssues.push(...subIssues.nodes);
+    allSubIssues.push(...subIssues.nodes.filter((n): n is GQLIssueNode => n !== null));
     if (!subIssues.pageInfo.hasNextPage) { break; }
     after = subIssues.pageInfo.endCursor;
   }
@@ -563,48 +611,15 @@ const fetchEpicItems = async (
   for (const issue of allSubIssues) {
     const linkedPRNums: number[] = [];
 
-    for (const pr of issue.closedByPullRequestsReferences.nodes) {
+    for (const pr of issue.closedByPullRequestsReferences.nodes.filter((n): n is GQLPRNode => n !== null)) {
       linkedPRNums.push(pr.number);
       if (!seenPRs.has(pr.number)) {
         seenPRs.add(pr.number);
-        items.push({
-          type: "pr",
-          number: pr.number,
-          title: pr.title,
-          url: pr.url,
-          author: pr.author?.login ?? "ghost",
-          createdAt: pr.createdAt,
-          updatedAt: pr.updatedAt,
-          mergedAt: pr.mergedAt,
-          closedAt: pr.closedAt,
-          isDraft: pr.isDraft,
-          reviewDecision: pr.reviewDecision ?? null,
-          additions: pr.additions,
-          deletions: pr.deletions,
-          linkedIssue: issue.number,
-          milestoneNumber: epicNumber,
-          labels: mapLabels(pr.labels.nodes),
-          assignees: pr.assignees.nodes.map((n) => n.login),
-          firstReviewAt: pr.reviews.nodes[0]?.submittedAt ?? null,
-        });
+        items.push(mapPRNode(pr, epicNumber, issue.number));
       }
     }
 
-    items.push({
-      type: "issue",
-      number: issue.number,
-      title: issue.title,
-      url: issue.url,
-      author: issue.author?.login ?? "ghost",
-      createdAt: issue.createdAt,
-      updatedAt: issue.updatedAt,
-      closedAt: issue.closedAt,
-      linkedPRs: linkedPRNums,
-      milestoneNumber: epicNumber,
-      labels: mapLabels(issue.labels.nodes),
-      assignees: issue.assignees.nodes.map((n) => n.login),
-      reopenedCount: issue.timelineItems.totalCount,
-    });
+    items.push(mapIssueNode(issue, epicNumber, linkedPRNums));
   }
 
   return items;
@@ -637,7 +652,7 @@ const fetchUserRepos = async (token: string, signal?: AbortSignal): Promise<Repo
   let page = 1;
   while (true) {
     const response = await fetch(
-      `${GH_API}/user/repos?per_page=100&page=${page}&sort=updated&affiliation=owner,collaborator,organization_member`,
+      `${GH_API}/user/repos?per_page=100&page=${page}&sort=updated`,
       { headers: authHeaders(token), ...(signal ? { signal } : {}) },
     );
     await checkResponse(response);
@@ -656,4 +671,4 @@ const fetchUserRepos = async (token: string, signal?: AbortSignal): Promise<Repo
   return results;
 };
 
-export { fetchEpicItems, fetchEpics, fetchMilestoneItems, fetchMilestones, fetchUserProfile, fetchUserRepos };
+export { fetchAllRemainingMilestones, fetchEpicItems, fetchEpics, fetchMilestoneItems, fetchMilestones, fetchMilestonesInitial, fetchUserProfile, fetchUserRepos };

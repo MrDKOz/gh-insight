@@ -409,11 +409,18 @@ body.colorblind .tl-badge--pr-closed { background: #E69F00; color: #000; }
 body.colorblind .tl-num--issue { color: #0072B2; }
 body.colorblind .tl-num--pr    { color: #009E73; }
 
-body.colorblind .tl-resize-handle:hover {
+body.colorblind .tl-resize-handle:hover,
+body.colorblind .tl-resize-handle:focus-visible {
   background-image:
     radial-gradient(circle, #0072B2 1px, transparent 1px),
     radial-gradient(circle, #0072B2 1px, transparent 1px);
 }
+
+body.colorblind .tl-resize-handle:focus-visible {
+  outline-color: #0072B2;
+}
+
+body.colorblind .tl-today-marker { background: rgba(213,94,0,0.65); }
 
 /* Dark + colorblind combined overrides */
 body.dark.colorblind .tl-badge--issue     { background: #56B4E9; color: #000; }
@@ -443,6 +450,12 @@ body.dark.colorblind .tl-resize-handle:focus-visible {
     radial-gradient(circle, #56B4E9 1px, transparent 1px),
     radial-gradient(circle, #56B4E9 1px, transparent 1px);
 }
+
+body.dark.colorblind .tl-resize-handle:focus-visible {
+  outline-color: #56B4E9;
+}
+
+body.dark.colorblind .tl-today-marker { background: rgba(213,94,0,0.75); }
 
 /* ── SVG chart wrappers ── */
 

@@ -2,11 +2,36 @@ import type { Action, AppState } from "../state/appReducer";
 import type { Epic, Milestone, MilestoneMeta, Repo, TimelineItem } from "../types/GitHubTypes";
 import type { Dispatch } from "react";
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
-import { fetchEpicItems, fetchEpics, fetchMilestoneItems, fetchMilestones } from "../api/github";
+import { fetchAllRemainingMilestones, fetchEpicItems, fetchEpics, fetchMilestoneItems, fetchMilestonesInitial } from "../api/github";
 import { DEMO_DATA_BY_REPO } from "../data/demo";
 import { appReducer, initialState } from "../state/appReducer";
 import { EPIC_COLORS, EPIC_COLORS_CB, MILESTONE_COLORS, MILESTONE_COLORS_CB } from "../utils/colorUtils";
 import { readViewFiltersFromUrl } from "../utils/urlUtils";
+
+/**
+ * Shared helper for add-milestone and add-epic: manages the AbortController
+ * entry, dispatches lifecycle callbacks, and cleans up on any outcome.
+ */
+const runItemFetch = async (
+  number: number,
+  abortRefs: { readonly current: Map<number, AbortController> },
+  fetchFn: (signal: AbortSignal) => Promise<TimelineItem[]>,
+  onStart: () => void,
+  onSuccess: (items: TimelineItem[]) => void,
+  onError: (error: string) => void,
+): Promise<void> => {
+  const ac = new AbortController();
+  abortRefs.current.set(number, ac);
+  onStart();
+  try {
+    onSuccess(await fetchFn(ac.signal));
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") { return; }
+    onError(e instanceof Error ? e.message : String(e));
+  } finally {
+    abortRefs.current.delete(number);
+  }
+};
 
 type LoadMilestonesOpts = {
   autoSelectNums?:     number[];
@@ -34,6 +59,8 @@ type UseMilestonesReturn = {
   resetMilestones: () => void;
   addEpic: (epic: Epic) => Promise<void>;
   removeEpic: (epicNumber: number) => void;
+  loadMoreMilestones: () => Promise<void>;
+  loadMoreEpics: () => Promise<void>;
 };
 
 const useMilestones = ({ token, colorblindMode = false }: UseMilestonesOptions): UseMilestonesReturn => {
@@ -64,17 +91,19 @@ const useMilestones = ({ token, colorblindMode = false }: UseMilestonesOptions):
   const milestoneColorFor = useCallback(
     (num: number) => {
       const palette = colorblindMode ? MILESTONE_COLORS_CB : MILESTONE_COLORS;
-      return palette[num % palette.length] ?? "#0072B2";
+      const index = state.milestones.findIndex((m) => m.number === num);
+      return palette[(index >= 0 ? index : num) % palette.length] ?? "#0072B2";
     },
-    [colorblindMode],
+    [colorblindMode, state.milestones],
   );
 
   const epicColorFor = useCallback(
     (num: number) => {
       const palette = colorblindMode ? EPIC_COLORS_CB : EPIC_COLORS;
-      return palette[num % palette.length] ?? "#E69F00";
+      const index = state.epics.findIndex((e) => e.number === num);
+      return palette[(index >= 0 ? index : num) % palette.length] ?? "#E69F00";
     },
-    [colorblindMode],
+    [colorblindMode, state.epics],
   );
 
   const loadDemoForRepo = useCallback((repo: Repo, urlMilestoneNums: number[]) => {
@@ -105,27 +134,25 @@ const useMilestones = ({ token, colorblindMode = false }: UseMilestonesOptions):
     dispatch({ type: "FETCH_EPIC_LIST_START" });
 
     const [milestonesResult, epicsResult] = await Promise.allSettled([
-      fetchMilestones(repo.owner, repo.name, effectiveToken, ac.signal),
-      fetchEpics(repo.owner, repo.name, effectiveToken, ac.signal),
+      fetchMilestonesInitial(repo.owner, repo.name, effectiveToken, ac.signal),
+      fetchEpics(repo.owner, repo.name, effectiveToken, ac.signal, ["OPEN"]),
     ]);
 
     if (milestonesResult.status === "fulfilled") {
-      dispatch({ type: "FETCH_LIST_SUCCESS", milestones: milestonesResult.value });
+      const { items, hasMore, nextPage } = milestonesResult.value;
+      dispatch({ type: "FETCH_LIST_SUCCESS", milestones: items, hasMore, nextPage });
       const autoNums = opts?.autoSelectNums ?? [];
       if (autoNums.length > 0) {
-        const toSelect = milestonesResult.value.filter((m) => autoNums.includes(m.number));
+        const toSelect = items.filter((m) => autoNums.includes(m.number));
         for (const milestone of toSelect) {
           dispatch({ type: "SELECT_MILESTONE", milestone });
-          const ac2 = new AbortController();
-          itemAbortRefs.current.set(milestone.number, ac2);
-          dispatch({ type: "FETCH_ITEMS_START", milestoneNumber: milestone.number });
-          fetchMilestoneItems(repo.owner, repo.name, effectiveToken, milestone.number, ac2.signal)
-            .then((items) => { dispatch({ type: "FETCH_ITEMS_SUCCESS", milestoneNumber: milestone.number, items }); })
-            .catch((e) => {
-              if (e instanceof DOMException && e.name === "AbortError") { return; }
-              dispatch({ type: "FETCH_ITEMS_ERROR", milestoneNumber: milestone.number, error: e instanceof Error ? e.message : String(e) });
-            })
-            .finally(() => { itemAbortRefs.current.delete(milestone.number); });
+          void runItemFetch(
+            milestone.number, itemAbortRefs,
+            (signal) => fetchMilestoneItems(repo.owner, repo.name, effectiveToken, milestone.number, signal),
+            () => dispatch({ type: "FETCH_ITEMS_START", milestoneNumber: milestone.number }),
+            (fetchedItems) => dispatch({ type: "FETCH_ITEMS_SUCCESS", milestoneNumber: milestone.number, items: fetchedItems }),
+            (error) => dispatch({ type: "FETCH_ITEMS_ERROR", milestoneNumber: milestone.number, error }),
+          );
         }
       }
     } else {
@@ -134,22 +161,30 @@ const useMilestones = ({ token, colorblindMode = false }: UseMilestonesOptions):
     }
 
     if (epicsResult.status === "fulfilled") {
-      dispatch({ type: "FETCH_EPIC_LIST_SUCCESS", epics: epicsResult.value });
+      const { items: epicItems, hasMore: epicsHasMore } = epicsResult.value;
+      dispatch({ type: "FETCH_EPIC_LIST_SUCCESS", epics: epicItems, hasMore: epicsHasMore });
+      // If no open epics found but closed ones may exist, auto-fetch closed so the picker populates
+      if (epicItems.length === 0 && epicsHasMore && !ac.signal.aborted) {
+        dispatch({ type: "FETCH_MORE_EPICS_START" });
+        fetchEpics(repo.owner, repo.name, effectiveToken, ac.signal, ["CLOSED"])
+          .then(({ items }) => { dispatch({ type: "FETCH_MORE_EPICS_SUCCESS", epics: items }); })
+          .catch((e) => {
+            if (e instanceof DOMException && e.name === "AbortError") { return; }
+            dispatch({ type: "FETCH_MORE_EPICS_ERROR", error: e instanceof Error ? e.message : String(e) });
+          });
+      }
       const autoEpicNums = opts?.autoSelectEpicNums ?? [];
       if (autoEpicNums.length > 0) {
-        const toSelectEpics = epicsResult.value.filter((e) => autoEpicNums.includes(e.number));
+        const toSelectEpics = epicItems.filter((e) => autoEpicNums.includes(e.number));
         for (const epic of toSelectEpics) {
           dispatch({ type: "SELECT_EPIC", epic });
-          const ac2 = new AbortController();
-          epicAbortRefs.current.set(epic.number, ac2);
-          dispatch({ type: "FETCH_EPIC_ITEMS_START", epicNumber: epic.number });
-          fetchEpicItems(repo.owner, repo.name, effectiveToken, epic.number, ac2.signal)
-            .then((items) => { dispatch({ type: "FETCH_EPIC_ITEMS_SUCCESS", epicNumber: epic.number, items }); })
-            .catch((e) => {
-              if (e instanceof DOMException && e.name === "AbortError") { return; }
-              dispatch({ type: "FETCH_EPIC_ITEMS_ERROR", epicNumber: epic.number, error: e instanceof Error ? e.message : String(e) });
-            })
-            .finally(() => { epicAbortRefs.current.delete(epic.number); });
+          void runItemFetch(
+            epic.number, epicAbortRefs,
+            (signal) => fetchEpicItems(repo.owner, repo.name, effectiveToken, epic.number, signal),
+            () => dispatch({ type: "FETCH_EPIC_ITEMS_START", epicNumber: epic.number }),
+            (fetchedItems) => dispatch({ type: "FETCH_EPIC_ITEMS_SUCCESS", epicNumber: epic.number, items: fetchedItems }),
+            (error) => dispatch({ type: "FETCH_EPIC_ITEMS_ERROR", epicNumber: epic.number, error }),
+          );
         }
       }
     } else {
@@ -161,21 +196,15 @@ const useMilestones = ({ token, colorblindMode = false }: UseMilestonesOptions):
 
   const addMilestone = useCallback(async (milestone: Milestone) => {
     dispatch({ type: "SELECT_MILESTONE", milestone });
-    if (!(milestone.number in state.itemsCache)) {
-      if (!state.activeRepo) { return; }
-      const ac = new AbortController();
-      itemAbortRefs.current.set(milestone.number, ac);
-      dispatch({ type: "FETCH_ITEMS_START", milestoneNumber: milestone.number });
-      try {
-        const items = await fetchMilestoneItems(state.activeRepo.owner, state.activeRepo.name, token, milestone.number, ac.signal);
-        dispatch({ type: "FETCH_ITEMS_SUCCESS", milestoneNumber: milestone.number, items });
-      } catch (e) {
-        if (e instanceof DOMException && e.name === "AbortError") { return; }
-        dispatch({ type: "FETCH_ITEMS_ERROR", milestoneNumber: milestone.number, error: e instanceof Error ? e.message : String(e) });
-      } finally {
-        itemAbortRefs.current.delete(milestone.number);
-      }
-    }
+    if (milestone.number in state.itemsCache || !state.activeRepo) { return; }
+    const repo = state.activeRepo;
+    await runItemFetch(
+      milestone.number, itemAbortRefs,
+      (signal) => fetchMilestoneItems(repo.owner, repo.name, token, milestone.number, signal),
+      () => dispatch({ type: "FETCH_ITEMS_START", milestoneNumber: milestone.number }),
+      (items) => dispatch({ type: "FETCH_ITEMS_SUCCESS", milestoneNumber: milestone.number, items }),
+      (error) => dispatch({ type: "FETCH_ITEMS_ERROR", milestoneNumber: milestone.number, error }),
+    );
   }, [state.itemsCache, state.activeRepo, token]);
 
   const removeMilestone = useCallback((num: number) => {
@@ -184,26 +213,46 @@ const useMilestones = ({ token, colorblindMode = false }: UseMilestonesOptions):
 
   const addEpic = useCallback(async (epic: Epic) => {
     dispatch({ type: "SELECT_EPIC", epic });
-    if (!(epic.number in state.epicItemsCache)) {
-      if (!state.activeRepo) { return; }
-      const ac = new AbortController();
-      epicAbortRefs.current.set(epic.number, ac);
-      dispatch({ type: "FETCH_EPIC_ITEMS_START", epicNumber: epic.number });
-      try {
-        const items = await fetchEpicItems(state.activeRepo.owner, state.activeRepo.name, token, epic.number, ac.signal);
-        dispatch({ type: "FETCH_EPIC_ITEMS_SUCCESS", epicNumber: epic.number, items });
-      } catch (e) {
-        if (e instanceof DOMException && e.name === "AbortError") { return; }
-        dispatch({ type: "FETCH_EPIC_ITEMS_ERROR", epicNumber: epic.number, error: e instanceof Error ? e.message : String(e) });
-      } finally {
-        epicAbortRefs.current.delete(epic.number);
-      }
-    }
+    if (epic.number in state.epicItemsCache || !state.activeRepo) { return; }
+    const repo = state.activeRepo;
+    await runItemFetch(
+      epic.number, epicAbortRefs,
+      (signal) => fetchEpicItems(repo.owner, repo.name, token, epic.number, signal),
+      () => dispatch({ type: "FETCH_EPIC_ITEMS_START", epicNumber: epic.number }),
+      (items) => dispatch({ type: "FETCH_EPIC_ITEMS_SUCCESS", epicNumber: epic.number, items }),
+      (error) => dispatch({ type: "FETCH_EPIC_ITEMS_ERROR", epicNumber: epic.number, error }),
+    );
   }, [state.epicItemsCache, state.activeRepo, token]);
 
   const removeEpic = useCallback((epicNumber: number) => {
     dispatch({ type: "REMOVE_EPIC", epicNumber });
   }, []);
+
+  const loadMoreMilestones = useCallback(async () => {
+    if (!state.activeRepo || state.loadingMoreMilestones || !state.milestonesHasMore) { return; }
+    dispatch({ type: "FETCH_MORE_MILESTONES_START" });
+    try {
+      const remaining = await fetchAllRemainingMilestones(
+        state.activeRepo.owner, state.activeRepo.name, token, state.milestonesNextPage,
+      );
+      dispatch({ type: "FETCH_MORE_MILESTONES_SUCCESS", milestones: remaining });
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") { return; }
+      dispatch({ type: "FETCH_MORE_MILESTONES_ERROR", error: e instanceof Error ? e.message : String(e) });
+    }
+  }, [state.activeRepo, state.loadingMoreMilestones, state.milestonesHasMore, state.milestonesNextPage, token]);
+
+  const loadMoreEpics = useCallback(async () => {
+    if (!state.activeRepo || state.loadingMoreEpics || !state.epicsHasMore) { return; }
+    dispatch({ type: "FETCH_MORE_EPICS_START" });
+    try {
+      const { items } = await fetchEpics(state.activeRepo.owner, state.activeRepo.name, token, undefined, ["CLOSED"]);
+      dispatch({ type: "FETCH_MORE_EPICS_SUCCESS", epics: items });
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") { return; }
+      dispatch({ type: "FETCH_MORE_EPICS_ERROR", error: e instanceof Error ? e.message : String(e) });
+    }
+  }, [state.activeRepo, state.loadingMoreEpics, state.epicsHasMore, token]);
 
   const refreshMilestones = useCallback(async () => {
     if (state.selected.length === 0 || !state.activeRepo) { return; }
@@ -269,6 +318,8 @@ const useMilestones = ({ token, colorblindMode = false }: UseMilestonesOptions):
     resetMilestones,
     addEpic,
     removeEpic,
+    loadMoreMilestones,
+    loadMoreEpics,
   };
 };
 

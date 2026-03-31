@@ -1,98 +1,40 @@
 import type { Milestone } from "../types/GitHubTypes";
 import type { FunctionComponent } from "react";
-import Autocomplete from "@mui/material/Autocomplete";
-import Box from "@mui/material/Box";
-import Chip from "@mui/material/Chip";
-import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
-import Typography from "@mui/material/Typography";
-import { useState } from "react";
 import { pluralize } from "../utils/displayUtils";
-import { DOT_SX } from "../utils/sxTokens";
+import { ItemPicker } from "./ItemPicker";
 
 type Props = {
   milestones: Milestone[];
   selected: Milestone[];
   loadingNums: number[];
+  hasMore: boolean;
+  loadingMore: boolean;
   colorFor: (num: number) => string;
   onAdd: (milestone: Milestone) => void;
   onRemove: (num: number) => void;
+  onLoadMore: () => void;
 };
 
-const MilestonePicker: FunctionComponent<Props> = ({ milestones, selected, loadingNums, colorFor, onAdd, onRemove }) => {
-  const [inputValue, setInputValue] = useState("");
-  const unselected = milestones.filter((m) => !selected.find((s) => s.number === m.number));
-
-  return (
-    <Stack direction="row" flexWrap="wrap" alignItems="center" gap={0.75}>
-      {selected.map((milestone) => (
-        <Chip
-          key={milestone.number}
-          label={loadingNums.includes(milestone.number) ? "…" : milestone.title}
-          onDelete={() => onRemove(milestone.number)}
-          size="small"
-          sx={{
-            bgcolor: colorFor(milestone.number),
-            color: "#fff",
-            fontWeight: 500,
-            "& .MuiChip-deleteIcon": {
-              color: "rgba(255,255,255,0.7)",
-              "&:hover": { color: "#fff" },
-            },
-          }}
-        />
-      ))}
-
-      {unselected.length > 0 && (
-        <Autocomplete<Milestone>
-          options={unselected}
-          value={null}
-          inputValue={inputValue}
-          onInputChange={(_, v, reason) => {
-            if (reason === "input") { setInputValue(v); }
-            else { setInputValue(""); }
-          }}
-          onChange={(_, milestone) => {
-            if (milestone) { onAdd(milestone); }
-          }}
-          getOptionLabel={(m) => m.title}
-          isOptionEqualToValue={(a, b) => a.number === b.number}
-          filterOptions={(options, { inputValue: q }) => {
-            const lower = q.toLowerCase();
-            return lower ? options.filter((m) => m.title.toLowerCase().includes(lower)) : options;
-          }}
-          renderOption={(props, milestone) => {
-            const { key, ...rest } = props as typeof props & { key: React.Key };
-            return (
-              <Box key={key} component="li" {...rest} sx={{ alignItems: "flex-start !important" }}>
-                <Box sx={{ ...DOT_SX, width: 9, height: 9, bgcolor: colorFor(milestone.number), mr: 1.5, flexShrink: 0, mt: "5px" }} />
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography sx={{ fontSize: "0.8125rem" }}>
-                    {milestone.title}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {pluralize(milestone.openIssues + milestone.closedIssues, "issue")} · {milestone.state}
-                  </Typography>
-                </Box>
-              </Box>
-            );
-          }}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              size="small"
-              placeholder={selected.length === 0 ? "Select milestone…" : "Add milestone…"}
-            />
-          )}
-          sx={{ width: 220 }}
-          slotProps={{ paper: { sx: { minWidth: 320 } } }}
-          disabled={loadingNums.length > 0}
-          openOnFocus
-          blurOnSelect
-        />
-      )}
-    </Stack>
-  );
-};
+const MilestonePicker: FunctionComponent<Props> = ({
+  milestones, selected, loadingNums, hasMore, loadingMore, colorFor, onAdd, onRemove, onLoadMore,
+}) => (
+  <ItemPicker<Milestone>
+    items={milestones}
+    selected={selected}
+    loadingNums={loadingNums}
+    hasMore={hasMore}
+    loadingMore={loadingMore}
+    colorFor={colorFor}
+    onAdd={onAdd}
+    onRemove={onRemove}
+    onLoadMore={onLoadMore}
+    chipLabel={(m) => m.title}
+    caption={(m) => `${pluralize(m.openIssues + m.closedIssues, "issue")} · ${m.state}`}
+    emptyPlaceholder="Select milestone…"
+    addPlaceholder="Add milestone…"
+    loadMoreLabel="Load more closed milestones"
+    loadingMoreLabel="Loading closed milestones…"
+  />
+);
 
 export { MilestonePicker };

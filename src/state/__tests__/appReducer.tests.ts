@@ -57,18 +57,20 @@ describe("FETCH_LIST_START", () => {
 describe("FETCH_LIST_SUCCESS", () => {
   it("stores milestones and clears loadingList", () => {
     const state = { ...initialState, loadingList: true };
-    const next = appReducer(state, { type: "FETCH_LIST_SUCCESS", milestones: [ms1, ms2] });
+    const next = appReducer(state, { type: "FETCH_LIST_SUCCESS", milestones: [ms1, ms2], hasMore: false, nextPage: 2 });
 
     expect(next.milestones).toEqual([ms1, ms2]);
     expect(next.loadingList).toBe(false);
     expect(next.error).toBeNull();
   });
 
-  it("sets an error when the milestone list is empty", () => {
-    const state = { ...initialState, loadingList: true };
-    const next = appReducer(state, { type: "FETCH_LIST_SUCCESS", milestones: [] });
+  it("clears error and sets empty milestones list when none are returned", () => {
+    const state = { ...initialState, loadingList: true, error: "previous error" };
+    const next = appReducer(state, { type: "FETCH_LIST_SUCCESS", milestones: [], hasMore: false, nextPage: 2 });
 
-    expect(next.error).toMatch(/no milestones/i);
+    expect(next.milestones).toEqual([]);
+    expect(next.loadingList).toBe(false);
+    expect(next.error).toBeNull();
   });
 });
 
