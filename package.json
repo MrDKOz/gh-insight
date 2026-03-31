@@ -24,7 +24,6 @@
     "@mui/material": "^7.3.9",
     "@redgate/honeycomb-fonts": "^0.1.0",
     "@redgate/honeycomb-mui-theme": "^2.3.0",
-    "electron-updater": "^6.8.3",
     "fp-ts": "^2.16.11",
     "html-to-image": "^1.11.11",
     "io-ts": "^2.2.22",

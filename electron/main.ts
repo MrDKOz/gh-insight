@@ -1,7 +1,4 @@
 import { app, BrowserWindow, ipcMain, session } from "electron";
-import updaterPkg from "electron-updater";
-import type { UpdateInfo } from "electron-updater";
-const { autoUpdater } = updaterPkg;
 import { execFile } from "child_process";
 import { promisify } from "util";
 import { fileURLToPath } from "url";
@@ -126,47 +123,6 @@ function createWindow(): void {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Auto-updater — manual trigger only; uses the user's existing GitHub token
-// so the app works with private repositories without bundling credentials.
-// ---------------------------------------------------------------------------
-
-autoUpdater.autoDownload    = false;
-autoUpdater.autoInstallOnAppQuit = false;
-autoUpdater.logger          = null; // silence internal logs in production
-
-type UpdateStatus =
-  | { status: "available";    version: string }
-  | { status: "up-to-date" }
-  | { status: "downloading";  percent: number }
-  | { status: "ready";        version: string }
-  | { status: "error";        message: string };
-
-function sendUpdateStatus(payload: UpdateStatus): void {
-  BrowserWindow.getAllWindows()[0]?.webContents.send("updater:status", payload);
-}
-
-autoUpdater.on("update-available",     (info: UpdateInfo)           => sendUpdateStatus({ status: "available",   version: info.version }));
-autoUpdater.on("update-not-available", ()                           => sendUpdateStatus({ status: "up-to-date" }));
-autoUpdater.on("update-downloaded",    (info: UpdateInfo)           => sendUpdateStatus({ status: "ready",       version: info.version }));
-autoUpdater.on("download-progress",    (progress: { percent: number }) => sendUpdateStatus({ status: "downloading", percent: Math.round(progress.percent) }));
-autoUpdater.on("error",                (err: Error)                 => sendUpdateStatus({ status: "error",       message: err.message }));
-
-ipcMain.handle("updater:check", async (_event, token: string): Promise<void> => {
-  if (!token) { return; }
-  autoUpdater.requestHeaders = { Authorization: `Bearer ${token}` };
-  await autoUpdater.checkForUpdates();
-});
-
-ipcMain.handle("updater:download", async (): Promise<void> => {
-  await autoUpdater.downloadUpdate();
-});
-
-ipcMain.handle("updater:install", (): void => {
-  autoUpdater.quitAndInstall();
-});
-
-// ---------------------------------------------------------------------------
 
 ipcMain.handle("gh:get-token", async (): Promise<string> => {
   return getGhToken();
