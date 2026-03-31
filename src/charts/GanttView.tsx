@@ -1,200 +1,19 @@
 import type { BankHoliday } from "../api/bankHolidayApi";
 import type { GanttHandle } from "../types/AppTypes";
 import type { MilestoneMeta, TimelineItem } from "../types/GitHubTypes";
-import type { KeyboardEvent, MouseEvent, RefObject } from "react";
+import type { MouseEvent } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
-import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
+import Tooltip from "@mui/material/Tooltip";
+import { forwardRef, memo, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { AuthorCard, AuthorTag } from "../components/AuthorTag";
 import { ItemHoverCard, fixedItemCardPos } from "../components/ItemHoverCard";
+import { useGanttLayout } from "../hooks/useGanttLayout";
 import { COLORS, COLORS_CB } from "../utils/colorUtils";
 import { DAY_NAMES, MS_PER_DAY, MS_PER_HOUR, STALE_MS, buildBankHolidayMap, durationDays, fmtDate, fmtDateTime, snapToHour } from "../utils/dateUtils";
 import { FS, itemEndDate, safeUrl } from "../utils/displayUtils";
 import { GanttLegend } from "./GanttLegend";
 
-// ── Gantt layout hook ─────────────────────────────────────────────────────
-
-type GanttLayout = {
-  labelWidth: number;
-  pixelsPerDay: number;
-  axisHeight: number;
-  snapMode: "day" | "hour";
-  trackColRef: RefObject<HTMLDivElement | null>;
-  axisRef: RefObject<HTMLDivElement | null>;
-  todayMs: number;
-  minTime: number;
-  totalMs: number;
-  totalDays: number;
-  trackWidth: number;
-  sortedItems: TimelineItem[];
-  handleFitToScreen: () => void;
-  handleResizeStart: (e: MouseEvent) => void;
-  handleResizeKeyDown: (e: KeyboardEvent) => void;
-  handleSnapModeChange: (mode: "day" | "hour") => void;
-};
-
-const useGanttLayout = (items: TimelineItem[], filteredItems: TimelineItem[]): GanttLayout => {
-  const [labelWidth, setLabelWidth] = useState(400);
-  const [pixelsPerDay, setPixelsPerDay] = useState(30);
-  const [axisHeight, setAxisHeight] = useState(36);
-  const [snapMode, setSnapMode] = useState<"day" | "hour">(() =>
-    new URLSearchParams(window.location.search).get("snap") === "hour" ? "hour" : "day",
-  );
-
-  const trackColRef = useRef<HTMLDivElement>(null);
-  const axisRef = useRef<HTMLDivElement>(null);
-  const stateRef = useRef({ pixelsPerDay, totalDays: 0, trackWidth: 0 });
-  const pendingScrollRef = useRef<number | null>(null);
-  const dragCleanupRef = useRef<(() => void) | null>(null);
-  const labelWidthRef = useRef(labelWidth);
-
-  useLayoutEffect(() => { labelWidthRef.current = labelWidth; }, [labelWidth]);
-
-  const handleFitToScreen = useCallback(() => {
-    if (!trackColRef.current) { return; }
-    const { totalDays } = stateRef.current;
-    setPixelsPerDay(Math.max(4, Math.min(200, trackColRef.current.clientWidth / totalDays)));
-  }, []);
-
-  const handleSnapModeChange = useCallback((mode: "day" | "hour") => {
-    setSnapMode(mode);
-    const p = new URLSearchParams(window.location.search);
-    if (mode === "hour") { p.set("snap", "hour"); } else { p.delete("snap"); }
-    const qs = p.toString();
-    window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
-  }, []);
-
-  const handleResizeKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === "ArrowRight") { e.preventDefault(); setLabelWidth((w) => Math.min(800, w + 10)); }
-    else if (e.key === "ArrowLeft") { e.preventDefault(); setLabelWidth((w) => Math.max(200, w - 10)); }
-  }, []);
-
-  // Uses a ref for startWidth so this callback is stable across labelWidth changes
-  const handleResizeStart = useCallback((e: MouseEvent) => {
-    e.preventDefault();
-    const startX = e.clientX;
-    const startWidth = labelWidthRef.current;
-    const onMove = (ev: globalThis.MouseEvent) => setLabelWidth(Math.max(200, startWidth + (ev.clientX - startX)));
-    const onUp = () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-      dragCleanupRef.current = null;
-    };
-    dragCleanupRef.current = () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-  }, []);
-
-  useEffect(() => () => { dragCleanupRef.current?.(); }, []);
-
-  useEffect(() => {
-    const axisElement = axisRef.current;
-    if (!axisElement) { return; }
-    const measure = () => {
-      const { height } = axisElement.getBoundingClientRect();
-      const marginBottom = parseFloat(getComputedStyle(axisElement).marginBottom) || 0;
-      setAxisHeight(height + marginBottom);
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(axisElement);
-    return () => ro.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (!trackColRef.current || items.length === 0) { setPixelsPerDay(30); return; }
-    const allTs = items.flatMap((item) => {
-      const end = itemEndDate(item);
-      return [new Date(item.createdAt).getTime(), ...(end ? [new Date(end).getTime()] : [])];
-    });
-    const rawMin = Math.min(...allTs);
-    const min = new Date(new Date(rawMin).toISOString().slice(0, 10)).getTime();
-    const hasOpen = items.some((item) => !itemEndDate(item));
-    const max = hasOpen ? Math.max(...allTs, Date.now()) : Math.max(...allTs) + 3 * MS_PER_DAY;
-    const days = Math.max(1, (max - min) / MS_PER_DAY);
-    setPixelsPerDay(Math.max(4, Math.min(200, trackColRef.current.clientWidth / days)));
-  }, [items]);
-
-  useEffect(() => {
-    const trackColElement = trackColRef.current;
-    if (!trackColElement) { return; }
-    const onWheel = (e: WheelEvent) => {
-      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) { return; }
-      e.preventDefault();
-      const { pixelsPerDay, totalDays, trackWidth } = stateRef.current;
-      const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
-      const newPixelsPerDay = Math.min(200, Math.max(4, pixelsPerDay * factor));
-      const newTrackWidth = Math.max(500, Math.round(totalDays * newPixelsPerDay));
-      const cursorX = e.clientX - trackColElement.getBoundingClientRect().left;
-      const fraction = trackWidth > 0 ? (cursorX + trackColElement.scrollLeft) / trackWidth : 0;
-      pendingScrollRef.current = Math.max(0, fraction * newTrackWidth - cursorX);
-      setPixelsPerDay(newPixelsPerDay);
-    };
-    trackColElement.addEventListener("wheel", onWheel, { passive: false });
-    return () => trackColElement.removeEventListener("wheel", onWheel);
-  }, []);
-
-  useEffect(() => {
-    if (pendingScrollRef.current !== null && trackColRef.current) {
-      trackColRef.current.scrollLeft = pendingScrollRef.current;
-      pendingScrollRef.current = null;
-    }
-  }, [pixelsPerDay]);
-
-  const allTimestamps = useMemo(
-    () => filteredItems.flatMap((item) => {
-      const end = itemEndDate(item);
-      const timestamps = [new Date(item.createdAt).getTime()];
-      if (end) { timestamps.push(new Date(end).getTime()); }
-      return timestamps;
-    }),
-    [filteredItems],
-  );
-
-  const { todayMs, minTime, totalMs, totalDays, trackWidth } = useMemo(() => {
-    const now = Date.now();
-    if (allTimestamps.length === 0) {
-      return { todayMs: now, minTime: now, totalMs: 1, totalDays: 1, trackWidth: 500 };
-    }
-    const rawMin = Math.min(...allTimestamps);
-    const min = snapMode === "hour"
-      ? snapToHour(rawMin)
-      : new Date(new Date(rawMin).toISOString().slice(0, 10)).getTime();
-    const hasOpenItems = filteredItems.some((item) => !itemEndDate(item));
-    const max = hasOpenItems
-      ? Math.max(...allTimestamps, now)
-      : Math.max(...allTimestamps) + 3 * MS_PER_DAY;
-    const tms = max - min || 1;
-    const tdays = tms / MS_PER_DAY;
-    return {
-      todayMs: now,
-      minTime: min,
-      totalMs: tms,
-      totalDays: tdays,
-      trackWidth: Math.max(500, Math.floor(tdays * pixelsPerDay)),
-    };
-  }, [allTimestamps, filteredItems, pixelsPerDay, snapMode]);
-
-  useLayoutEffect(() => {
-    stateRef.current = { pixelsPerDay, totalDays, trackWidth };
-  }, [pixelsPerDay, totalDays, trackWidth]);
-
-  const sortedItems = useMemo(
-    () => [...filteredItems].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
-    [filteredItems],
-  );
-
-  return {
-    labelWidth, pixelsPerDay, axisHeight, snapMode,
-    trackColRef, axisRef,
-    todayMs, minTime, totalMs, totalDays, trackWidth,
-    sortedItems,
-    handleFitToScreen, handleResizeStart, handleResizeKeyDown, handleSnapModeChange,
-  };
-};
 
 // ── GanttView ─────────────────────────────────────────────────────────────
 
@@ -283,10 +102,8 @@ const GanttView = forwardRef<GanttHandle, Props>(({
   const palette = colorblindMode ? COLORS_CB : COLORS;
 
   // Pre-compute all per-item render data so both label and track columns share one pass.
-  const barItems = useMemo<BarItemData[]>(() => {
-    const fmtFn   = snapMode === "hour" ? fmtDateTime : fmtDate;
-
-    return sortedItems.map((item) => {
+  const barItems = useMemo<BarItemData[]>(() =>
+    sortedItems.map((item) => {
       const isOpen     = item.type === "issue" ? !item.closedAt : !(item.mergedAt || item.closedAt);
       const isClosedPR = item.type === "pr" && !item.mergedAt && !!item.closedAt;
       const badgeClass = item.type === "issue"
@@ -337,10 +154,10 @@ const GanttView = forwardRef<GanttHandle, Props>(({
         effectiveBarPx < 40                        ? ""
         : effectiveBarPx < 130 || isShortDuration  ? `${reopenPrefix}${durationText}`
         : isOpen
-          ? effectiveBarPx < 200 ? `${reopenPrefix}${fmtFn(item.createdAt)} → today`
-                                 : `${reopenPrefix}${fmtFn(item.createdAt)} → today (${durationText})`
-          : effectiveBarPx < 200 ? `${reopenPrefix}${fmtFn(item.createdAt)} → ${fmtFn(endDate)}`
-                                 : `${reopenPrefix}${fmtFn(item.createdAt)} → ${fmtFn(endDate)} (${durationText})`;
+          ? effectiveBarPx < 200 ? `${reopenPrefix}${fmt(item.createdAt)} → today`
+                                 : `${reopenPrefix}${fmt(item.createdAt)} → today (${durationText})`
+          : effectiveBarPx < 200 ? `${reopenPrefix}${fmt(item.createdAt)} → ${fmt(endDate)}`
+                                 : `${reopenPrefix}${fmt(item.createdAt)} → ${fmt(endDate)} (${durationText})`;
 
       const statusWord  = isOpen ? "Open" : item.type === "pr" ? (item.mergedAt ? "Merged" : "Closed") : "Closed";
       const dotColor    = isOpen
@@ -353,8 +170,8 @@ const GanttView = forwardRef<GanttHandle, Props>(({
         : null;
 
       return { item, isOpen, badgeClass, isStale, staleDays, isDraft, endDate, leftPct, widthPct, barWidthPx, durationText, barClass, barLabel, statusWord, dotColor, reviewBadge };
-    });
-  }, [sortedItems, minTime, totalMs, trackWidth, snapMode, palette, todayMs]);
+    })
+  , [sortedItems, minTime, totalMs, trackWidth, snapMode, fmt, palette, todayMs]);
 
   const weekendBands = useMemo(() => {
     if (!highlightWeekends) { return []; }
@@ -520,12 +337,16 @@ const GanttView = forwardRef<GanttHandle, Props>(({
               >
                 #{bi.item.number}
               </a>
-              <Box component="span" className="tl-title" title={bi.item.title}>
-                {bi.isStale && (
-                  <Box component="span" title={`No activity for ${bi.staleDays} days`} sx={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", bgcolor: palette.warning, mr: "4px", verticalAlign: "middle", flexShrink: 0 }} />
-                )}
-                {bi.item.title}
-              </Box>
+              <Tooltip title={bi.item.title} placement="top-start" disableInteractive>
+                <Box component="span" className="tl-title">
+                  {bi.isStale && (
+                    <Tooltip title={`No activity for ${bi.staleDays} days`} placement="top" disableInteractive>
+                      <Box component="span" sx={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", bgcolor: palette.warning, mr: "4px", verticalAlign: "middle", flexShrink: 0 }} />
+                    </Tooltip>
+                  )}
+                  {bi.item.title}
+                </Box>
+              </Tooltip>
               <AuthorTag
                 login={bi.item.author}
                 showName={false}

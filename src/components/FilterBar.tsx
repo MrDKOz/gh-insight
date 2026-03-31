@@ -10,7 +10,7 @@ import Popover from "@mui/material/Popover";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { DEFAULT_FILTERS } from "../types/FilterTypes";
 import { COLORS, COLORS_CB, labelTextColor } from "../utils/colorUtils";
 import { FS } from "../utils/displayUtils";
@@ -35,7 +35,7 @@ type Props = {
 
 const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange, colorblindMode, variant }) => {
   const palette = colorblindMode ? COLORS_CB : COLORS;
-  const patchFilters = (patch: Partial<Filters>) => onChange({ ...filters, ...patch });
+  const patchFilters = useCallback((patch: Partial<Filters>) => onChange({ ...filters, ...patch }), [onChange, filters]);
 
   const [labelsAnchor, setLabelsAnchor] = useState<HTMLElement | null>(null);
   const [labelsSearch, setLabelsSearch] = useState("");

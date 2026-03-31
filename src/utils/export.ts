@@ -1,6 +1,14 @@
 import type { MilestoneMeta, TimelineItem } from "../types/GitHubTypes";
+import { COLORS } from "./colorUtils";
 import { MS_PER_DAY, fmtDate } from "./dateUtils";
 import { itemEndDate, itemStatus } from "./displayUtils";
+
+/** Parses a 6-digit hex colour string (e.g. "#0969da") into [r, g, b] integers. */
+const hexToRgb = (hex: string): [number, number, number] => [
+  parseInt(hex.slice(1, 3), 16),
+  parseInt(hex.slice(3, 5), 16),
+  parseInt(hex.slice(5, 7), 16),
+];
 
 const safeFilename = (s: string): string =>
   s
@@ -393,7 +401,7 @@ const drawPDFTable = (
   const pageH = doc.internal.pageSize.getHeight();
 
   const drawHeader = (atY: number): void => {
-    doc.setFillColor(9, 105, 218);
+    doc.setFillColor(...hexToRgb(COLORS.issue));
     doc.rect(MARGIN, atY, tableW, ROW_H, "F");
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
@@ -492,7 +500,7 @@ const exportXLSX = async (items: TimelineItem[], title: string, milestones: Mile
 
   const HEADER = {
     fontWeight: "bold" as const,
-    backgroundColor: "#0969DA",
+    backgroundColor: COLORS.issue.toUpperCase(),
     color: "#FFFFFF",
   };
 

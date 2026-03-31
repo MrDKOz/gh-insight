@@ -75,7 +75,7 @@ const useAuth = (initialPhase: AppPhase): UseAuthReturn => {
   // Stable ref — used by SplashScreen's useEffect so it doesn't re-fire on
   // every render and race with a concurrent sign-in attempt.
   const checkGhCli = useCallback(
-    (): Promise<boolean> => window.electronAPI!.checkGhCli(),
+    (): Promise<boolean> => window.electronAPI?.checkGhCli() ?? Promise.resolve(false),
     [],
   );
 
@@ -83,10 +83,11 @@ const useAuth = (initialPhase: AppPhase): UseAuthReturn => {
   // The token is held in React state only — gh handles its own persistence so
   // we do not store it in localStorage or IndexedDB.
   const connectWithGhCli = useCallback(async () => {
+    if (!window.electronAPI) { return; }
     setAuthError(null);
     setPhase("authenticating");
     try {
-      const cliToken = await window.electronAPI!.getGhToken();
+      const cliToken = await window.electronAPI.getGhToken();
       const [profile, repoList] = await Promise.all([
         fetchUserProfile(cliToken),
         fetchUserRepos(cliToken),

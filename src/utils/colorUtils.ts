@@ -33,6 +33,8 @@ const COLORS = {
   weekendBand:     "rgba(0,0,0,0.04)",
   /** Bank holiday band — red tint (SVG fill / Gantt band background, light mode). */
   bankHoliday:     "rgba(234,67,53,0.12)",
+  /** Neutral fill for the "open" area in CumulativeFlow — same in both colour modes. */
+  chartOpenFill:   "rgba(209,213,218,0.35)",
 } as const;
 
 // Okabe-Ito palette — distinguishable for deuteranopia, protanopia and tritanopia.
@@ -57,6 +59,8 @@ const COLORS_CB = {
   weekendBand:     "rgba(0,0,0,0.04)",
   /** Bank holiday band — Okabe-Ito amber (distinguishable for red-green colorblindness). */
   bankHoliday:     "rgba(230,159,0,0.18)",
+  /** Neutral fill for the "open" area in CumulativeFlow — same in both colour modes. */
+  chartOpenFill:   "rgba(209,213,218,0.35)",
 } as const;
 
 /**
@@ -73,6 +77,7 @@ const makeChartColors = (colorblindMode: boolean) => {
     grid:        palette.chartGrid,
     label:       palette.chartAxis,
     cursor:      palette.chartCursor,
+    openFill:    palette.chartOpenFill,
     median:      palette.success,
     mean:        palette.warning,
     today:       palette.chartToday,
@@ -113,4 +118,14 @@ const labelTextColor = (hex: string): "#000000" | "#ffffff" => {
   return L > 0.179 ? "#000000" : "#ffffff";
 };
 
-export { COLORS, COLORS_CB, labelTextColor, makeChartColors, makeStatusChipSx };
+/**
+ * Ordered palettes for milestone and epic colour assignment.
+ * Blues/greens (cool) for milestones; purples/pinks (warm) for epics.
+ * _CB variants use Okabe-Ito distinguishable hues.
+ */
+const MILESTONE_COLORS    = ["#0969da", "#1a7f37", "#0891b2", "#0d9488", "#059669", "#0550ae"];
+const MILESTONE_COLORS_CB = ["#0072B2", "#009E73", "#56B4E9", "#005a8e", "#007a58", "#44a0c8"];
+const EPIC_COLORS    = ["#8250df", "#db2777", "#c026d3", "#9333ea", "#be185d", "#7c3aed"];
+const EPIC_COLORS_CB = ["#E69F00", "#D55E00", "#CC79A7", "#b87e00", "#a44b00", "#a85b88"];
+
+export { COLORS, COLORS_CB, EPIC_COLORS, EPIC_COLORS_CB, MILESTONE_COLORS, MILESTONE_COLORS_CB, labelTextColor, makeChartColors, makeStatusChipSx };

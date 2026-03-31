@@ -77,13 +77,13 @@ const AuthorCard: FunctionComponent<CardProps> = ({ login, style, onMouseEnter, 
       alt=""
       sx={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", border: 1, borderColor: "divider" }}
     />
-    <Box sx={{ fontSize: "0.8125rem", fontWeight: 600 }}>@{login}</Box>
+    <Box sx={{ fontSize: FS.md, fontWeight: 600 }}>@{login}</Box>
     <Link
       href={safeUrl(`https://github.com/${login}`)}
       target="_blank"
       rel="noreferrer"
       underline="hover"
-      sx={{ fontSize: "0.75rem", fontWeight: 500 }}
+      sx={{ fontSize: FS.base, fontWeight: 500 }}
     >
       View profile →
     </Link>

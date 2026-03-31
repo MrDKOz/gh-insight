@@ -213,7 +213,7 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
   const hoverCardStyle = hover ? hoverCardPos(hover.x, hover.y, containerRef.current?.offsetWidth ?? 800, hoverCardH + 40, hoverCardH) : {};
 
   return (
-    <Box role="presentation" className="burndown-wrap" ref={containerRef} style={{ position: "relative" }} onMouseMove={handleMouseMove} onMouseLeave={() => setHover(null)}>
+    <Box role="presentation" className="chart-wrap" ref={containerRef} style={{ position: "relative" }} onMouseMove={handleMouseMove} onMouseLeave={() => setHover(null)}>
       {hover && (
         <Paper elevation={2} sx={{ ...HOVER_CARD_BASE_SX, ...hoverCardStyle }}>
           <Box sx={CARD_LABEL_SX}>{hover.date}</Box>

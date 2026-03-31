@@ -48,7 +48,7 @@ const CumulativeFlowInner: FunctionComponent<Props> = ({ items, highlightWeekend
   const chartColors = makeChartColors(colorblindMode);
   // chart-specific derived colours not in the shared factory
   const closedFill  = colorblindMode ? "rgba(0,114,178,0.22)" : "rgba(9,105,218,0.22)";
-  const openFill    = "rgba(209,213,218,0.35)";
+  const openFill    = chartColors.openFill; // neutral grey — same in both colour modes
   const closedLine  = chartColors.issue;
   const openedLine  = chartColors.axis;
   const containerRef = useRef<HTMLDivElement>(null);

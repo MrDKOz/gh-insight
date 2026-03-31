@@ -1,6 +1,6 @@
 import type { TimelineItem } from "../../types/GitHubTypes";
-import { DEFAULT_FILTERS } from "../../types/FilterTypes";
-import { COLORS, COLORS_CB, labelTextColor, makeChartColors, makeStatusChipSx } from "../colorUtils";
+import { DEFAULT_FILTERS, applyFilters } from "../../types/FilterTypes";
+import { COLORS, COLORS_CB, EPIC_COLORS, EPIC_COLORS_CB, MILESTONE_COLORS, MILESTONE_COLORS_CB, labelTextColor, makeChartColors, makeStatusChipSx } from "../colorUtils";
 import { MS_PER_DAY, MS_PER_HOUR, durationDays, fmtDate, fmtDateTime, forecastCompletion, snapToHour } from "../dateUtils";
 import { assigneesOtherThanAuthor, hoverCardPos, itemEndDate, itemStatus, pluralize, safeUrl, upperBound } from "../displayUtils";
 import { readViewFiltersFromUrl, setViewParam, syncFiltersToUrl } from "../urlUtils";
@@ -317,7 +317,7 @@ describe("makeChartColors", () => {
 
   it("exposes all expected keys", () => {
     const c = makeChartColors(false);
-    const expectedKeys = ["issue", "prMerged", "prClosed", "axis", "grid", "label", "cursor", "median", "mean", "today", "todayLabel", "weekendBand"];
+    const expectedKeys = ["issue", "prMerged", "prClosed", "axis", "grid", "label", "cursor", "openFill", "median", "mean", "today", "todayLabel", "weekendBand"];
     for (const key of expectedKeys) {
       expect(c).toHaveProperty(key);
     }
@@ -592,5 +592,162 @@ describe("syncFiltersToUrl / readViewFiltersFromUrl", () => {
     const { filters } = readViewFiltersFromUrl();
 
     expect(filters.activeLabels).toEqual([label]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// applyFilters
+// ---------------------------------------------------------------------------
+
+describe("applyFilters", () => {
+  const closedIssue = (): TimelineItem => ({
+    type: "issue", number: 1, title: "Closed",
+    url: "https://github.com/o/r/issues/1", author: "alice",
+    createdAt: "2025-03-01T00:00:00Z", updatedAt: "2025-03-10T00:00:00Z",
+    closedAt: "2025-03-10T00:00:00Z",
+    linkedPRs: [], milestoneNumber: 1, labels: [], assignees: [], reopenedCount: 0,
+  });
+  const openIssue = (): TimelineItem => ({
+    type: "issue", number: 2, title: "Open",
+    url: "https://github.com/o/r/issues/2", author: "bob",
+    createdAt: "2025-04-01T00:00:00Z", updatedAt: "2025-04-01T00:00:00Z",
+    closedAt: null,
+    linkedPRs: [], milestoneNumber: 1, labels: [{ name: "bug", color: "#d73a4a" }], assignees: ["carol"], reopenedCount: 0,
+  });
+  const mergedPR = (): TimelineItem => ({
+    type: "pr", number: 3, title: "Merged PR",
+    url: "https://github.com/o/r/pull/3", author: "carol",
+    createdAt: "2025-03-05T00:00:00Z", updatedAt: "2025-03-08T00:00:00Z",
+    mergedAt: "2025-03-08T00:00:00Z", closedAt: "2025-03-08T00:00:00Z",
+    isDraft: false, reviewDecision: null, additions: 10, deletions: 2,
+    linkedIssue: null, milestoneNumber: 1, labels: [], assignees: [], firstReviewAt: null,
+  });
+
+  it("returns all items when no filters are active", () => {
+    const items = [closedIssue(), openIssue(), mergedPR()];
+
+    expect(applyFilters(items, DEFAULT_FILTERS)).toHaveLength(3);
+  });
+
+  it("hides open issues when showOpenIssues is false", () => {
+    const result = applyFilters([closedIssue(), openIssue()], { ...DEFAULT_FILTERS, showOpenIssues: false });
+
+    expect(result.map((i) => i.number)).toEqual([1]);
+  });
+
+  it("hides closed issues when showClosedIssues is false", () => {
+    const result = applyFilters([closedIssue(), openIssue()], { ...DEFAULT_FILTERS, showClosedIssues: false });
+
+    expect(result.map((i) => i.number)).toEqual([2]);
+  });
+
+  it("hides merged PRs when showMergedPRs is false", () => {
+    const result = applyFilters([closedIssue(), mergedPR()], { ...DEFAULT_FILTERS, showMergedPRs: false });
+
+    expect(result.map((i) => i.number)).toEqual([1]);
+  });
+
+  it("filters by createdStart — excludes items created before the start date", () => {
+    const result = applyFilters([closedIssue(), openIssue()], { ...DEFAULT_FILTERS, createdStart: "2025-04-01" });
+
+    expect(result.map((i) => i.number)).toEqual([2]);
+  });
+
+  it("filters by createdEnd — excludes items created after the end date", () => {
+    const result = applyFilters([closedIssue(), openIssue()], { ...DEFAULT_FILTERS, createdEnd: "2025-03-31" });
+
+    expect(result.map((i) => i.number)).toEqual([1]);
+  });
+
+  it("filters by closedStart — excludes open items and items closed before the start", () => {
+    // closedIssue closed on 2025-03-10, openIssue has no close date
+    const result = applyFilters([closedIssue(), openIssue()], { ...DEFAULT_FILTERS, closedStart: "2025-03-10" });
+
+    expect(result.map((i) => i.number)).toEqual([1]);
+  });
+
+  it("excludes open items when a closedEnd filter is set (open items have no end date)", () => {
+    const result = applyFilters([closedIssue(), openIssue()], { ...DEFAULT_FILTERS, closedEnd: "2025-12-31" });
+
+    expect(result.map((i) => i.number)).toEqual([1]);
+  });
+
+  it("filters by activeLabels — only items with at least one matching label pass", () => {
+    const result = applyFilters([closedIssue(), openIssue()], { ...DEFAULT_FILTERS, activeLabels: ["bug"] });
+
+    // only openIssue has the "bug" label
+    expect(result.map((i) => i.number)).toEqual([2]);
+  });
+
+  it("filters by activePeople with role 'author'", () => {
+    const result = applyFilters(
+      [closedIssue(), openIssue()],
+      { ...DEFAULT_FILTERS, activePeople: ["alice"], peopleRole: "author" },
+    );
+
+    expect(result.map((i) => i.number)).toEqual([1]);
+  });
+
+  it("filters by activePeople with role 'assignees'", () => {
+    const result = applyFilters(
+      [closedIssue(), openIssue()],
+      { ...DEFAULT_FILTERS, activePeople: ["carol"], peopleRole: "assignees" },
+    );
+
+    // closedIssue has no assignees; openIssue assigns carol
+    expect(result.map((i) => i.number)).toEqual([2]);
+  });
+
+  it("filters by activePeople with role 'either' — matches author or assignee", () => {
+    const result = applyFilters(
+      [closedIssue(), openIssue()],
+      { ...DEFAULT_FILTERS, activePeople: ["alice", "carol"], peopleRole: "either" },
+    );
+
+    expect(result.map((i) => i.number)).toEqual([1, 2]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// MILESTONE_COLORS / EPIC_COLORS palette arrays
+// ---------------------------------------------------------------------------
+
+describe("MILESTONE_COLORS", () => {
+  it("contains six hex colour strings", () => {
+    expect(MILESTONE_COLORS).toHaveLength(6);
+
+    for (const c of MILESTONE_COLORS) { expect(c).toMatch(/^#[0-9a-f]{6}$/i); }
+  });
+});
+
+describe("MILESTONE_COLORS_CB", () => {
+  it("contains six hex colour strings", () => {
+    expect(MILESTONE_COLORS_CB).toHaveLength(6);
+
+    for (const c of MILESTONE_COLORS_CB) { expect(c).toMatch(/^#[0-9a-f]{6}$/i); }
+  });
+
+  it("differs from the default palette (colorblind variants are distinct)", () => {
+    expect(MILESTONE_COLORS_CB).not.toEqual(MILESTONE_COLORS);
+  });
+});
+
+describe("EPIC_COLORS", () => {
+  it("contains six hex colour strings", () => {
+    expect(EPIC_COLORS).toHaveLength(6);
+
+    for (const c of EPIC_COLORS) { expect(c).toMatch(/^#[0-9a-f]{6}$/i); }
+  });
+
+  it("differs from MILESTONE_COLORS (warm vs cool hues)", () => {
+    expect(EPIC_COLORS[0]).not.toBe(MILESTONE_COLORS[0]);
+  });
+});
+
+describe("EPIC_COLORS_CB", () => {
+  it("contains six hex colour strings", () => {
+    expect(EPIC_COLORS_CB).toHaveLength(6);
+
+    for (const c of EPIC_COLORS_CB) { expect(c).toMatch(/^#[0-9a-f]{6}$/i); }
   });
 });

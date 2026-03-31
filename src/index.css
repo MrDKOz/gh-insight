@@ -279,6 +279,11 @@ body.dark .tl-cursor-band {
   border-color: rgba(200, 210, 220, 0.3);
 }
 
+/* SVG chart cursor band — dark mode override */
+body.dark .chart-cursor-band {
+  fill: rgba(200, 210, 220, 0.12);
+}
+
 /* ── Gantt weekend bands ── */
 
 .tl-weekend-band {
@@ -345,6 +350,42 @@ body.dark.colorblind .chart-bank-holiday {
   z-index: 5;
 }
 
+/* ── Dark mode Gantt overrides ── */
+/* Bars remain vivid against dark backgrounds; lighter colours improve contrast
+   for text links and handle highlights. Mirrors GitHub dark mode accent values. */
+
+body.dark .tl-badge--issue     { background: #388bfd; }
+body.dark .tl-badge--pr        { background: #a371f7; }
+body.dark .tl-badge--pr-closed { background: #e5534b; }
+
+body.dark .tl-num--issue { color: #388bfd; }
+body.dark .tl-num--pr    { color: #a371f7; }
+
+body.dark .tl-bar--issue     { background: linear-gradient(135deg, #388bfd 0%, #1a6fda 100%); }
+body.dark .tl-bar--pr-merged { background: linear-gradient(135deg, #a371f7 0%, #7c4dd6 100%); }
+body.dark .tl-bar--pr-closed { background: linear-gradient(135deg, #e5534b 0%, #c03830 100%); }
+
+body.dark .tl-bar--issue-open {
+  background: linear-gradient(135deg, rgba(56,139,253,0.45) 0%, rgba(26,111,218,0.45) 100%);
+  border-color: #388bfd;
+}
+
+body.dark .tl-bar--pr-open {
+  background: linear-gradient(135deg, rgba(163,113,247,0.45) 0%, rgba(124,77,214,0.45) 100%);
+  border-color: #a371f7;
+}
+
+body.dark .tl-resize-handle:hover,
+body.dark .tl-resize-handle:focus-visible {
+  background-image:
+    radial-gradient(circle, #388bfd 1px, transparent 1px),
+    radial-gradient(circle, #388bfd 1px, transparent 1px);
+}
+
+body.dark .tl-resize-handle:focus-visible {
+  outline-color: #388bfd;
+}
+
 /* ── Colorblind-friendly palette overrides (Okabe-Ito) ── */
 
 body.colorblind .tl-bar--issue     { background: linear-gradient(135deg, #0072B2 0%, #005a8e 100%); }
@@ -374,13 +415,38 @@ body.colorblind .tl-resize-handle:hover {
     radial-gradient(circle, #0072B2 1px, transparent 1px);
 }
 
+/* Dark + colorblind combined overrides */
+body.dark.colorblind .tl-badge--issue     { background: #56B4E9; color: #000; }
+body.dark.colorblind .tl-badge--pr        { background: #009E73; }
+body.dark.colorblind .tl-badge--pr-closed { background: #E69F00; color: #000; }
+
+body.dark.colorblind .tl-num--issue { color: #56B4E9; }
+body.dark.colorblind .tl-num--pr    { color: #009E73; }
+
+body.dark.colorblind .tl-bar--issue     { background: linear-gradient(135deg, #56B4E9 0%, #0072B2 100%); }
+body.dark.colorblind .tl-bar--pr-merged { background: linear-gradient(135deg, #009E73 0%, #007a58 100%); }
+body.dark.colorblind .tl-bar--pr-closed { background: linear-gradient(135deg, #E69F00 0%, #b87e00 100%); color: #000; }
+
+body.dark.colorblind .tl-bar--issue-open {
+  background: linear-gradient(135deg, rgba(86,180,233,0.45) 0%, rgba(0,114,178,0.45) 100%);
+  border-color: #56B4E9;
+}
+
+body.dark.colorblind .tl-bar--pr-open {
+  background: linear-gradient(135deg, rgba(0,158,115,0.45) 0%, rgba(0,122,88,0.45) 100%);
+  border-color: #009E73;
+}
+
+body.dark.colorblind .tl-resize-handle:hover,
+body.dark.colorblind .tl-resize-handle:focus-visible {
+  background-image:
+    radial-gradient(circle, #56B4E9 1px, transparent 1px),
+    radial-gradient(circle, #56B4E9 1px, transparent 1px);
+}
+
 /* ── SVG chart wrappers ── */
 
 .chart-wrap {
-  padding: 8px 0;
-}
-
-.burndown-wrap {
   padding: 8px 0;
 }
 

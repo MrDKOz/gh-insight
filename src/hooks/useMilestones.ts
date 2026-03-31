@@ -5,17 +5,8 @@ import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { fetchEpicItems, fetchEpics, fetchMilestoneItems, fetchMilestones } from "../api/github";
 import { DEMO_DATA_BY_REPO } from "../data/demo";
 import { appReducer, initialState } from "../state/appReducer";
+import { EPIC_COLORS, EPIC_COLORS_CB, MILESTONE_COLORS, MILESTONE_COLORS_CB } from "../utils/colorUtils";
 import { readViewFiltersFromUrl } from "../utils/urlUtils";
-
-// Blues / greens — cool hues reserved for milestones
-const MILESTONE_COLORS    = ["#0969da", "#1a7f37", "#0891b2", "#0d9488", "#059669", "#0550ae"];
-// Okabe-Ito blues/greens/cyans — distinguishable for all common colour-vision deficiencies
-const MILESTONE_COLORS_CB = ["#0072B2", "#009E73", "#56B4E9", "#005a8e", "#007a58", "#44a0c8"];
-
-// Purples / pinks — warm/vivid hues reserved for epics
-const EPIC_COLORS    = ["#8250df", "#db2777", "#c026d3", "#9333ea", "#be185d", "#7c3aed"];
-// Okabe-Ito oranges/pinks — clearly distinct from the milestone CB palette above
-const EPIC_COLORS_CB = ["#E69F00", "#D55E00", "#CC79A7", "#b87e00", "#a44b00", "#a85b88"];
 
 type LoadMilestonesOpts = {
   autoSelectNums?:     number[];

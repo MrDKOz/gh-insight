@@ -11,7 +11,7 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import TableSortLabel from "@mui/material/TableSortLabel";
 import Typography from "@mui/material/Typography";
-import { memo, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 
 import { useColumnResize } from "../hooks/useColumnResize";
 import { COLORS, COLORS_CB, makeStatusChipSx } from "../utils/colorUtils";
@@ -75,14 +75,14 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
   // Guard: if isMulti changed since mount the lengths won't match — fall back to defaults.
   const widths = colWidths.length === defaultWidths.length ? colWidths : defaultWidths;
 
-  const handleSort = (col: SortCol) => {
+  const handleSort = useCallback((col: SortCol) => {
     if (col === sortCol) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     } else {
       setSortCol(col);
       setSortDir("asc");
     }
-  };
+  }, [sortCol]);
 
   const sorted = useMemo(() => {
     const now = Date.now();
@@ -160,7 +160,7 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
   const statusChipSx = makeStatusChipSx(colorblindMode);
 
   // Helper to build the onResize handler for a given column index.
-  const resize = (i: number) => (e: MouseEvent) => startResize(i, e, widths[i] ?? 0);
+  const resize = useCallback((i: number) => (e: MouseEvent) => startResize(i, e, widths[i] ?? 0), [startResize, widths]);
 
   // Column indices shift when milestone is visible.
   const columnIndices = isMulti
