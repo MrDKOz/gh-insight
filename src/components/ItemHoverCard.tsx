@@ -69,7 +69,7 @@ const ItemHoverCard: FunctionComponent<ItemHoverCardProps> = ({
         <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: dotColor, flexShrink: 0, opacity: isOpen ? 0.55 : 1 }} />
         {label} #{item.number}
         {item.type === "issue" && item.reopenedCount > 0 && (
-          <Box component="span" title={`Reopened ${pluralize(item.reopenedCount, "time")}`} sx={{ color: palette.warning, ml: "2px" }}>
+          <Box component="span" aria-label={`Reopened ${pluralize(item.reopenedCount, "time")}`} sx={{ color: palette.warning, ml: "2px" }}>
             ↺{item.reopenedCount}
           </Box>
         )}

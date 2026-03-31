@@ -53,8 +53,9 @@ const COLORS_CB = {
   successDark:  "#3fb950",
   /** Sky blue — Okabe-Ito post-review segment in review-wait bar. */
   chartBarDone: "#56B4E9",
-  chartToday:      "rgba(248,81,73,0.7)",
-  chartTodayLabel: "rgba(248,81,73,0.9)",
+  /** Vermillion — Okabe-Ito safe alternative to red for the "today" marker. */
+  chartToday:      "rgba(213,94,0,0.7)",
+  chartTodayLabel: "rgba(213,94,0,0.9)",
   chartCursor:     "rgba(87,96,106,0.5)",
   weekendBand:     "rgba(0,0,0,0.04)",
   /** Bank holiday band — Okabe-Ito amber (distinguishable for red-green colorblindness). */

@@ -47,7 +47,7 @@ type HoverState = {
 const CumulativeFlowInner: FunctionComponent<Props> = ({ items, highlightWeekends, bankHolidays, colorblindMode, includePRs }) => {
   const chartColors = makeChartColors(colorblindMode);
   // chart-specific derived colours not in the shared factory
-  const closedFill  = colorblindMode ? "rgba(0,114,178,0.22)" : "rgba(9,105,218,0.22)";
+  const closedFill  = `${chartColors.issue}38`; // 0x38 ≈ 22% opacity — derived from palette so colorblind mode is respected
   const openFill    = chartColors.openFill; // neutral grey — same in both colour modes
   const closedLine  = chartColors.issue;
   const openedLine  = chartColors.axis;

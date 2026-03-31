@@ -103,7 +103,9 @@ describe("safeUrl", () => {
     expect(safeUrl("data:text/html,<script>alert(1)</script>")).toBe("#");
   });
 
+  // noinspection HttpUrlsUsage
   it("returns '#' for http: (not https)", () => {
+    // noinspection HttpUrlsUsage
     expect(safeUrl("http://example.com")).toBe("#");
   });
 

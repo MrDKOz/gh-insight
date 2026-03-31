@@ -5,6 +5,7 @@ import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
 import InputAdornment from "@mui/material/InputAdornment";
+import LinearProgress from "@mui/material/LinearProgress";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
@@ -121,6 +122,8 @@ const SplashScreen: FunctionComponent<Props> = ({
         </Stack>
 
         <Paper elevation={0} variant="outlined" sx={{ borderRadius: 2.5, overflow: "hidden" }}>
+
+          {busy && <LinearProgress sx={{ borderRadius: 0 }} />}
 
           {/* Error */}
           {error && (
