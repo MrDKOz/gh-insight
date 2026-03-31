@@ -13,6 +13,7 @@ type UseAuthReturn = {
   setToken: (token: string) => void;
   tokenError: string | null;
   clearTokenError: () => void;
+  setTokenError: (err: string | null) => void;
   authError: string | null;
   setAuthError: (err: string | null) => void;
   userProfile: UserProfile | null;
@@ -57,14 +58,24 @@ const useAuth = (initialPhase: AppPhase): UseAuthReturn => {
     setAuthError(null);
     setPhase("authenticating");
     try {
-      const [profile, repoList] = await Promise.all([
+      const [profileResult, reposResult] = await Promise.allSettled([
         fetchUserProfile(inputToken),
         fetchUserRepos(inputToken),
       ]);
+      if (profileResult.status === "rejected") {
+        setAuthError(profileResult.reason instanceof Error ? profileResult.reason.message : String(profileResult.reason));
+        setPhase("splash");
+        return;
+      }
       saveToken(inputToken);
       setToken(inputToken);
-      setUserProfile(profile);
-      setRepos(repoList);
+      setUserProfile(profileResult.value);
+      if (reposResult.status === "fulfilled") {
+        setRepos(reposResult.value);
+      } else {
+        setRepos([]);
+        setTokenError("Your token couldn't list repositories — you can still type an owner/repo below to load milestones.");
+      }
       setPhase("dashboard");
     } catch (e) {
       setAuthError(e instanceof Error ? e.message : String(e));
@@ -88,13 +99,22 @@ const useAuth = (initialPhase: AppPhase): UseAuthReturn => {
     setPhase("authenticating");
     try {
       const cliToken = await window.electronAPI.getGhToken();
-      const [profile, repoList] = await Promise.all([
+      const [profileResult, reposResult] = await Promise.allSettled([
         fetchUserProfile(cliToken),
         fetchUserRepos(cliToken),
       ]);
+      if (profileResult.status === "rejected") {
+        console.error("[connectWithGhCli] auth failed:", profileResult.reason);
+        setAuthError(profileResult.reason instanceof Error ? profileResult.reason.message : String(profileResult.reason));
+        setPhase("splash");
+        return;
+      }
       setToken(cliToken);
-      setUserProfile(profile);
-      setRepos(repoList);
+      setUserProfile(profileResult.value);
+      setRepos(reposResult.status === "fulfilled" ? reposResult.value : []);
+      if (reposResult.status === "rejected") {
+        setTokenError("Your token couldn't list repositories — you can still type an owner/repo below to load milestones.");
+      }
       setPhase("dashboard");
     } catch (e) {
       console.error("[connectWithGhCli] auth failed:", e);
@@ -115,7 +135,7 @@ const useAuth = (initialPhase: AppPhase): UseAuthReturn => {
   return {
     phase, setPhase,
     token, setToken,
-    tokenError, clearTokenError: () => setTokenError(null),
+    tokenError, clearTokenError: () => setTokenError(null), setTokenError,
     authError, setAuthError,
     userProfile, setUserProfile,
     repos, setRepos,
