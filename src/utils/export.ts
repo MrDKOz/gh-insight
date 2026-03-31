@@ -182,6 +182,40 @@ const captureElement = async (el: HTMLElement, overrides?: { width?: number; hei
   }
 };
 
+// Crop a full-timeline Gantt image to the currently-visible viewport:
+// label column (left, non-scrolling) + the visible slice of the track column.
+// fullDataUrl must have been captured at pixelRatio 2 (as htmlToImageOpts sets).
+const cropGanttToCurrentView = async (
+  fullDataUrl: string,
+  labelColWidth: number,
+  trackClientWidth: number,
+  scrollLeft: number,
+): Promise<string> => {
+  const pr = 2; // must match htmlToImageOpts pixelRatio
+  const img = new Image();
+  img.src = fullDataUrl;
+  await new Promise<void>((resolve) => { img.onload = () => resolve(); });
+
+  const outW = Math.round((labelColWidth + trackClientWidth) * pr);
+  const outH = img.height;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = outW;
+  canvas.height = outH;
+  const ctx = canvas.getContext("2d")!;
+
+  const labelPx = Math.round(labelColWidth * pr);
+  const trackPx = Math.round(trackClientWidth * pr);
+  const srcTrackX = Math.round((labelColWidth + scrollLeft) * pr);
+
+  // Label column — always at x=0 in the full image
+  ctx.drawImage(img, 0, 0, labelPx, outH, 0, 0, labelPx, outH);
+  // Visible portion of the track column
+  ctx.drawImage(img, srcTrackX, 0, trackPx, outH, labelPx, 0, trackPx, outH);
+
+  return canvas.toDataURL("image/png");
+};
+
 // Temporarily expands the Gantt track column to its full scroll width, calls fn with
 // the resulting capture dimensions, then restores original styles — used by both
 // PNG full-timeline and Gantt PDF exports to avoid duplicating expand/restore logic.
@@ -232,6 +266,16 @@ const exportPNG = async (
     await withExpandedGantt(wrapperEl, trackColEl, async ({ width, height }) => {
       download(await captureElement(wrapperEl, { width, height }), "full");
     });
+  } else if (trackColEl) {
+    // Gantt current view: read viewport geometry before expanding, capture the full
+    // timeline image, then crop it down to what the user currently sees.
+    const scrollLeft = trackColEl.scrollLeft;
+    const trackClientWidth = trackColEl.clientWidth;
+    const labelColWidth = wrapperEl.clientWidth - trackColEl.clientWidth;
+    const fullDataUrl = await withExpandedGantt(wrapperEl, trackColEl, async ({ width, height }) =>
+      captureElement(wrapperEl, { width, height }),
+    );
+    download(await cropGanttToCurrentView(fullDataUrl, labelColWidth, trackClientWidth, scrollLeft), "current");
   } else {
     download(await captureElement(wrapperEl), "current");
   }

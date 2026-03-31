@@ -1,6 +1,6 @@
 {
   "name": "github-work-visualiser",
-  "version": "2.0.14",
+  "version": "2.0.15",
   "license": "UNLICENSED",
   "type": "module",
   "main": "dist-electron/main.js",
@@ -15,8 +15,8 @@
     "test": "vitest --run",
     "lint": "eslint src --max-warnings 0",
     "lint:fix": "eslint src --fix",
-    "electron:dev": "ELECTRON=true vite",
-    "build:electron": "ELECTRON=true tsc -p tsconfig.electron.json --noEmit && ELECTRON=true vite build && electron-builder"
+    "electron:dev": "cross-env ELECTRON=true vite",
+    "build:electron": "cross-env ELECTRON=true tsc -p tsconfig.electron.json --noEmit && cross-env ELECTRON=true vite build && electron-builder"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -81,6 +81,7 @@
     "@vitest/coverage-v8": "^4.1.0",
     "@vitest/eslint-plugin": "^1.6.13",
     "babel-plugin-react-compiler": "^1.0.0",
+    "cross-env": "^10.1.0",
     "electron": "^33.0.0",
     "electron-builder": "^26.8.1",
     "eslint": "^9.39.4",
