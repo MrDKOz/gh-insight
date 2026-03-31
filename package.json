@@ -52,7 +52,7 @@
       "provider": "github",
       "owner": "MrDKOz",
       "repo": "GitHubWorkVisualiser",
-      "draft": false
+      "releaseType": "release"
     },
     "icon": "build/icon",
     "linux": {
