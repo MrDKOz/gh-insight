@@ -77,7 +77,7 @@ export default defineConfig(async () => {
   return {
   // Electron needs a relative base so it can load files from the filesystem.
   // GitHub Actions gets a sub-path for Pages; everything else uses root.
-  base: isElectronBuild ? "./" : (process.env["GITHUB_ACTIONS"] ? "/GitHubWorkVisualiser/" : "/"),
+  base: isElectronBuild ? "./" : (process.env["GITHUB_ACTIONS"] ? "/GHInsight/" : "/"),
   define: {
     __APP_VERSION__:    JSON.stringify(packageJson.version),
     __APP_BUILD_TIME__: String(BUILD_TIME),

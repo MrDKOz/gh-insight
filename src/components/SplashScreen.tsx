@@ -114,7 +114,7 @@ const SplashScreen: FunctionComponent<Props> = ({
             <GanttIcon />
           </Box>
           <Typography variant="h5" fontWeight={800} sx={{ letterSpacing: "-0.03em", mb: 0.5 }}>
-            GitHub Work Visualiser
+            GHInsight
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Visualise milestones &amp; epics across your repositories

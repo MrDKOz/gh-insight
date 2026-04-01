@@ -68,7 +68,7 @@ const AppHeader: FunctionComponent<Props> = ({ userProfile, dark, onToggleDark, 
         <BrandIcon />
       </Box>
       <Typography variant="subtitle1" fontWeight={700} sx={{ letterSpacing: "-0.02em" }}>
-        GitHub Work Visualiser
+        GHInsight
       </Typography>
     </Stack>
 

@@ -202,7 +202,7 @@ const App: FunctionComponent = () => {
   useEffect(() => {
     const activeRepo = milestones.state.activeRepo;
     const selected   = milestones.state.selected;
-    const base = "GitHub Work Visualiser";
+    const base = "GHInsight";
     if (!activeRepo) { document.title = base; return; }
     const repo = `${activeRepo.owner}/${activeRepo.name}`;
     if (selected.length === 0) { document.title = `${repo} — ${base}`; return; }

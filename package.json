@@ -1,12 +1,12 @@
 {
-  "name": "github-work-visualiser",
+  "name": "ghinsight",
   "version": "2.0.21",
   "license": "UNLICENSED",
   "type": "module",
   "main": "dist-electron/main.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/MrDKOz/GitHubWorkVisualiser"
+    "url": "https://github.com/MrDKOz/GHInsight"
   },
   "scripts": {
     "dev": "vite",
@@ -38,8 +38,8 @@
     }
   },
   "build": {
-    "appId": "com.redgate.github-work-visualiser",
-    "productName": "GitHub Work Visualiser",
+    "appId": "com.redgate.ghinsight",
+    "productName": "GHInsight",
     "directories": {
       "output": "dist-app"
     },
@@ -50,7 +50,7 @@
     "publish": {
       "provider": "github",
       "owner": "MrDKOz",
-      "repo": "GitHubWorkVisualiser",
+      "repo": "GHInsight",
       "releaseType": "release"
     },
     "icon": "build/icon",

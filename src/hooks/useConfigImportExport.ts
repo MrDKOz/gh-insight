@@ -42,7 +42,7 @@ const useConfigImportExport = ({
     const url = URL.createObjectURL(blob);
     try {
       const a = document.createElement("a");
-      a.href = url; a.download = "github-work-visualiser-config.json";
+      a.href = url; a.download = "ghinsight-config.json";
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
     } finally {
       URL.revokeObjectURL(url);
