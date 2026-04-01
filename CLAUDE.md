@@ -1,4 +1,4 @@
-# CLAUDE.md — GHInsight
+# CLAUDE.md — GH Insight
 
 ## Project overview
 
