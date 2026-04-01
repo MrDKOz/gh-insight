@@ -83,12 +83,20 @@ npm run build          # type-check + production web build
 npm run preview        # preview the production build locally
 ```
 
-### Electron (desktop app)
+### Desktop app (Tauri)
+
+Requires [Rust](https://rustup.rs/) and the platform's native webview:
+
+- **Linux**: `sudo apt-get install libwebkit2gtk-4.1-dev libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev`
+- **Windows**: WebView2 is pre-installed on Windows 10/11
+- **macOS**: No extra dependencies beyond Xcode Command Line Tools
 
 ```bash
-npm run electron:dev   # start Electron app in dev mode (hot-reload)
-npm run build:electron # type-check, build renderer, and package the app
+npm run tauri:dev    # start the Tauri desktop app in dev mode (hot-reload)
+npm run build:tauri  # build and package the desktop app
 ```
+
+> The first run compiles the Rust layer which takes a few minutes. Subsequent runs are fast thanks to incremental compilation.
 
 ## CI / CD
 
