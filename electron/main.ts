@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, session } from "electron";
+import { app, BrowserWindow, ipcMain, session, shell } from "electron";
 import { execFile } from "child_process";
 import { promisify } from "util";
 import { fileURLToPath } from "url";
@@ -115,6 +115,13 @@ function createWindow(): void {
       });
     });
   }
+  // Route all target="_blank" link navigations to the system browser instead
+  // of opening a new BrowserWindow.
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    void shell.openExternal(url);
+    return { action: "deny" };
+  });
+
   if (devUrl) {
     void win.loadURL(devUrl);
     win.webContents.openDevTools();

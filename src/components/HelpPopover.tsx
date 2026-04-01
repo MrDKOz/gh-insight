@@ -1,4 +1,5 @@
 import type { FunctionComponent } from "react";
+import Badge from "@mui/material/Badge";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
@@ -7,6 +8,7 @@ import Popover from "@mui/material/Popover";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useRef, useState } from "react";
+import { useGitHubReleaseCheck } from "../hooks/useGitHubReleaseCheck";
 
 const HelpCircleIcon: FunctionComponent = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
@@ -57,6 +59,7 @@ const SECTIONS: Section[] = [
 const HelpPopover: FunctionComponent = () => {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const updateRelease = useGitHubReleaseCheck();
 
   const cancelHide = () => {
     if (hideTimer.current) { clearTimeout(hideTimer.current); hideTimer.current = null; }
@@ -68,14 +71,22 @@ const HelpPopover: FunctionComponent = () => {
 
   return (
     <>
-      <IconButton
-        size="small"
-        aria-label="About this app"
-        onMouseEnter={(e) => { cancelHide(); setAnchor(e.currentTarget); }}
-        onMouseLeave={scheduleHide}
+      <Badge
+        variant="dot"
+        color="error"
+        invisible={!updateRelease}
+        overlap="circular"
+        sx={{ "& .MuiBadge-dot": { width: 7, height: 7, minWidth: "unset" } }}
       >
-        <HelpCircleIcon />
-      </IconButton>
+        <IconButton
+          size="small"
+          aria-label="About this app"
+          onMouseEnter={(e) => { cancelHide(); setAnchor(e.currentTarget); }}
+          onMouseLeave={scheduleHide}
+        >
+          <HelpCircleIcon />
+        </IconButton>
+      </Badge>
 
       <Popover
         open={Boolean(anchor)}
@@ -129,6 +140,18 @@ const HelpPopover: FunctionComponent = () => {
             @MrDKOz
           </Link>
         </Typography>
+
+        {updateRelease && (
+          <Link
+            href={updateRelease.releasesUrl}
+            target="_blank"
+            rel="noreferrer"
+            variant="caption"
+            sx={{ display: "block", mt: 0.75, fontWeight: 600, color: "error.main" }}
+          >
+            Update available (v{updateRelease.version}) →
+          </Link>
+        )}
       </Popover>
     </>
   );
