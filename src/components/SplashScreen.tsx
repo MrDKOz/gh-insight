@@ -6,6 +6,7 @@ import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
 import InputAdornment from "@mui/material/InputAdornment";
 import LinearProgress from "@mui/material/LinearProgress";
+import Link from "@mui/material/Link";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
@@ -43,6 +44,14 @@ const KeyIcon: FunctionComponent = () => (
     <circle cx="7.5" cy="15.5" r="5.5"/>
     <path d="m21 2-9.6 9.6"/>
     <path d="m15.5 7.5 3 3L22 7l-3-3"/>
+  </svg>
+);
+
+const MonitorIcon: FunctionComponent = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+    strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="2" y="3" width="20" height="14" rx="2" />
+    <path d="M8 21h8M12 17v4" />
   </svg>
 );
 
@@ -220,7 +229,27 @@ const SplashScreen: FunctionComponent<Props> = ({
 
         </Paper>
 
-        <Typography variant="caption" color="text.disabled" sx={{ display: "block", mt: 2, textAlign: "center" }}>
+        {!onConnectWithGhCli && (
+          <Stack direction="row" alignItems="center" justifyContent="center" gap={0.75} sx={{ mt: 2 }}>
+            <Box sx={{ color: "text.disabled", display: "flex", alignItems: "center" }}>
+              <MonitorIcon />
+            </Box>
+            <Typography variant="caption" color="text.disabled">
+              Desktop app available — sign in with GitHub CLI, no token needed.{" "}
+              <Link
+                href="https://github.com/MrDKOz/gh-insight/releases"
+                target="_blank"
+                rel="noreferrer"
+                variant="caption"
+                sx={{ color: "text.secondary" }}
+              >
+                Download →
+              </Link>
+            </Typography>
+          </Stack>
+        )}
+
+        <Typography variant="caption" color="text.disabled" sx={{ display: "block", mt: 1.5, textAlign: "center" }}>
           Your token is encrypted locally and never sent anywhere other than api.github.com
         </Typography>
 
