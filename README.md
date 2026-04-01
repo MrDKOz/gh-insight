@@ -45,51 +45,48 @@ You will need a GitHub Personal Access Token to load real data. A fine-grained t
 
 ```bash
 npm install
-npm run dev
-```
-
-Open [http://localhost:5173](http://localhost:5173).
-
-### Electron (desktop app)
-
-To run the Electron app in dev mode:
-
-```bash
-npm run electron:dev
-```
-
-This starts Vite in Electron mode, then launches the desktop window. Hot-reload works the same as the browser dev server.
-
-To build a distributable:
-
-```bash
-npm run build:electron
-```
-
-This type-checks the Electron main process, builds the renderer, and packages the app with `electron-builder`. Output goes to `dist/`.
-
-## Development commands
-
-```bash
-npm run dev            # start browser dev server
-npm run electron:dev   # start Electron app in dev mode
+npm run dev            # start browser dev server (http://localhost:5173)
 npm test               # run unit tests (Vitest)
+npm run lint           # lint (zero warnings)
 npm run build          # type-check + production web build
-npm run build:electron # build distributable Electron app
 npm run preview        # preview the production build locally
 ```
 
-## Releasing
-
-Releases are triggered by pushing a version tag. The CI workflow builds and publishes installers for Windows, macOS, and Linux automatically.
+### Electron (desktop app)
 
 ```bash
-# Bump the version in package.json first, then:
-git tag v1.2.3
-git push origin v1.2.3
+npm run electron:dev   # start Electron app in dev mode (hot-reload)
+npm run build:electron # type-check, build renderer, and package the app
 ```
 
-The `release.yml` workflow runs tests, builds the Electron app on all three platforms, and uploads the installers to a GitHub Release.
+## CI / CD
+
+### Continuous integration
+
+Every push and pull request runs **lint**, **type-check**, and **tests** via the CI workflow. All three must pass before a PR can be merged.
+
+### Web deployment (GitHub Pages)
+
+Every push to `main` automatically builds and deploys the web app to GitHub Pages. No version bump is involved — the live site always reflects the latest state of `main`.
+
+### Releasing (Electron builds)
+
+Releases are triggered by merging a PR that carries one of these labels:
+
+| Label | Effect |
+|---|---|
+| `release:patch` | Bumps the patch version (e.g. 2.0.21 → 2.0.22) |
+| `release:minor` | Bumps the minor version (e.g. 2.0.21 → 2.1.0) |
+| `release:major` | Bumps the major version (e.g. 2.0.21 → 3.0.0) |
+
+When a labelled PR is merged into `main`, the release workflow:
+
+1. Runs tests as a final gate
+2. Bumps the version in `package.json`, commits it, and pushes a `vX.Y.Z` tag
+3. Builds the Electron app in parallel for macOS, Windows, and Linux
+4. Publishes a GitHub release with the built artefacts attached
+
+PRs without a release label merge normally with no version bump and no Electron build.
 
 ### Project structure
 
