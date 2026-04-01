@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://dkoz.me/GHInsight/sitemap.xml
+Sitemap: https://dkoz.me/gh-insight/sitemap.xml
