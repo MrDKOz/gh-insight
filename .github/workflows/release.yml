@@ -78,37 +78,28 @@ jobs:
           node-version: 20
           cache: npm
 
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust artifacts
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install Linux system dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libfuse2
+
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate macOS icon (ICNS)
-        if: matrix.os == 'macos-latest'
-        run: |
-          mkdir -p build/icon.iconset
-          sips -z 16   16   build/icon.png --out build/icon.iconset/icon_16x16.png
-          sips -z 32   32   build/icon.png --out build/icon.iconset/icon_16x16@2x.png
-          sips -z 32   32   build/icon.png --out build/icon.iconset/icon_32x32.png
-          sips -z 64   64   build/icon.png --out build/icon.iconset/icon_32x32@2x.png
-          sips -z 128  128  build/icon.png --out build/icon.iconset/icon_128x128.png
-          sips -z 256  256  build/icon.png --out build/icon.iconset/icon_128x128@2x.png
-          sips -z 256  256  build/icon.png --out build/icon.iconset/icon_256x256.png
-          sips -z 512  512  build/icon.png --out build/icon.iconset/icon_256x256@2x.png
-          sips -z 512  512  build/icon.png --out build/icon.iconset/icon_512x512.png
-          iconutil -c icns build/icon.iconset -o build/icon.icns
-
-      - name: Type-check electron main
+      - uses: tauri-apps/tauri-action@v0
         env:
-          ELECTRON: "true"
-        run: npx tsc -p tsconfig.electron.json --noEmit
-
-      - name: Build renderer (Electron mode)
-        env:
-          ELECTRON: "true"
-        run: npx vite build
-
-      - name: Package and publish
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Suppress macOS code-signing when no certificate is configured.
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
-        run: npx electron-builder --publish always
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ needs.prepare.outputs.tag }}
+          releaseName: "GH Insight ${{ needs.prepare.outputs.version }}"
+          releaseDraft: false
+          prerelease: false

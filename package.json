@@ -3,7 +3,6 @@
   "version": "2.1.0",
   "license": "UNLICENSED",
   "type": "module",
-  "main": "dist-electron/main.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/MrDKOz/gh-insight"
@@ -15,8 +14,8 @@
     "test": "vitest --run",
     "lint": "eslint src --max-warnings 0",
     "lint:fix": "eslint src --fix",
-    "electron:dev": "cross-env ELECTRON=true vite",
-    "build:electron": "cross-env ELECTRON=true tsc -p tsconfig.electron.json --noEmit && cross-env ELECTRON=true vite build && electron-builder"
+    "tauri:dev": "tauri dev",
+    "build:tauri": "tauri build"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -24,6 +23,8 @@
     "@mui/material": "^7.3.9",
     "@redgate/honeycomb-fonts": "^0.1.0",
     "@redgate/honeycomb-mui-theme": "^2.3.0",
+    "@tauri-apps/api": "^2.10.1",
+    "@tauri-apps/plugin-shell": "^2.3.5",
     "fp-ts": "^2.16.11",
     "html-to-image": "^1.11.11",
     "io-ts": "^2.2.22",
@@ -37,37 +38,8 @@
       "brace-expansion": "1.1.13"
     }
   },
-  "build": {
-    "appId": "com.redgate.ghinsight",
-    "productName": "GHInsight",
-    "directories": {
-      "output": "dist-app"
-    },
-    "files": [
-      "dist/**",
-      "dist-electron/**"
-    ],
-    "publish": {
-      "provider": "github",
-      "owner": "MrDKOz",
-      "repo": "gh-insight",
-      "releaseType": "release"
-    },
-    "icon": "build/icon",
-    "linux": {
-      "target": "AppImage",
-      "icon": "build/icon.png"
-    },
-    "mac": {
-      "target": "dmg",
-      "icon": "build/icon.icns"
-    },
-    "win": {
-      "target": "portable",
-      "icon": "build/icon.ico"
-    }
-  },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.10.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^22.0.0",
@@ -79,9 +51,6 @@
     "@vitest/coverage-v8": "^4.1.0",
     "@vitest/eslint-plugin": "^1.6.13",
     "babel-plugin-react-compiler": "^1.0.0",
-    "cross-env": "^10.1.0",
-    "electron": "^35.7.5",
-    "electron-builder": "^26.8.1",
     "eslint": "^9.39.4",
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-import": "^2.32.0",
@@ -94,7 +63,6 @@
     "jsdom": "^29.0.1",
     "typescript": "^5.9.3",
     "vite": "^8.0.3",
-    "vite-plugin-electron": "^0.29.1",
     "vitest": "^4.1.0"
   }
 }
