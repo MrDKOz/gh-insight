@@ -1,6 +1,6 @@
 {
-  "name": "GHInsight",
-  "short_name": "GHInsight",
+  "name": "GH Insight",
+  "short_name": "GH Insight",
   "description": "Visualise GitHub milestone progress as Gantt charts, burndown charts, cycle-time scatter plots, and velocity graphs.",
   "start_url": "/GHInsight/",
   "display": "standalone",

@@ -1,4 +1,4 @@
-# GHInsight
+# GH Insight
 
 **Live:** [mrdkoz.github.io/GHInsight](https://mrdkoz.github.io/GHInsight/)
 

@@ -93,7 +93,7 @@ const HelpPopover: FunctionComponent = () => {
         }}}
       >
         <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>
-          About GHInsight
+          About GH Insight
         </Typography>
 
         <Stack gap={1.5}>
