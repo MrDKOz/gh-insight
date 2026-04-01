@@ -1,8 +1,12 @@
 node_modules/
 dist/
+dist-electron/
+dist-app/
 coverage/
 .env
 .env.local
 *.local
 .claude/
-dist-electron/
+.idea/
+inspection-out/
+*.sarif.json
