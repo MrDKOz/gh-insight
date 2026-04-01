@@ -51,5 +51,5 @@
   <line x1="80" y1="430" x2="530" y2="430" stroke="#21262d" stroke-width="1.5"/>
 
   <!-- URL -->
-  <text x="80" y="465" font-family="system-ui,-apple-system,sans-serif" font-size="22" fill="#0969da">dkoz.me/GHInsight</text>
+  <text x="80" y="465" font-family="system-ui,-apple-system,sans-serif" font-size="22" fill="#0969da">dkoz.me/gh-insight</text>
 </svg>

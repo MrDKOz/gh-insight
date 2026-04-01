@@ -2,13 +2,13 @@
   "name": "GH Insight",
   "short_name": "GH Insight",
   "description": "Visualise GitHub milestone progress as Gantt charts, burndown charts, cycle-time scatter plots, and velocity graphs.",
-  "start_url": "/GHInsight/",
+  "start_url": "/gh-insight/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#0969da",
   "icons": [
     {
-      "src": "/GHInsight/favicon.svg",
+      "src": "/gh-insight/favicon.svg",
       "type": "image/svg+xml",
       "sizes": "any"
     }

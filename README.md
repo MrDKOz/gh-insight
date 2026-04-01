@@ -1,6 +1,6 @@
 # GH Insight
 
-**Live:** [mrdkoz.github.io/GHInsight](https://mrdkoz.github.io/GHInsight/)
+**Live:** [dkoz.me/gh-insight](https://dkoz.me/gh-insight/)
 
 > **A note on this project:** This is an experiment in AI-driven development, built during my 10% / L&D time at Redgate. The goal was to learn how Claude works by attempting to build a genuinely usable application without writing a single line of code manually — using Claude Code to handle everything from architecture decisions to implementation. The application you see here is the result of that process. I think it's only fair to be upfront about that, both to set expectations and to give an honest account of what AI-assisted development looks like in practice.
 
@@ -33,7 +33,7 @@ Every view can be exported. Data exports: **CSV**, **Excel (XLSX)**, **Markdown*
 
 ## Using the live app
 
-Visit **[mrdkoz.github.io/GHInsight](https://mrdkoz.github.io/GHInsight/)** — no installation needed.
+Visit **[dkoz.me/gh-insight](https://dkoz.me/gh-insight/)** — no installation needed.
 
 You will need a GitHub Personal Access Token to load real data. A fine-grained token with the following read-only permissions is recommended:
 
