@@ -102,22 +102,26 @@ Every push to `main` automatically builds and deploys the web app to GitHub Page
 
 ### Releasing (Electron builds)
 
-Releases are triggered by merging a PR that carries one of these labels:
+To cut a release, include the version bump in your PR:
 
-| Label | Effect |
+1. Run `npm version patch`, `npm version minor`, or `npm version major` locally — this updates `package.json` and `package-lock.json`
+2. Commit the version bump as part of your PR
+3. Add the matching label to the PR before merging:
+
+| Label | Version change |
 |---|---|
-| `release:patch` | Bumps the patch version (e.g. 2.0.21 → 2.0.22) |
-| `release:minor` | Bumps the minor version (e.g. 2.0.21 → 2.1.0) |
-| `release:major` | Bumps the major version (e.g. 2.0.21 → 3.0.0) |
+| `release:patch` | e.g. 2.0.21 → 2.0.22 |
+| `release:minor` | e.g. 2.0.21 → 2.1.0 |
+| `release:major` | e.g. 2.0.21 → 3.0.0 |
 
-When a labelled PR is merged into `main`, the release workflow:
+When the labelled PR is merged into `main`, the release workflow:
 
 1. Runs tests as a final gate
-2. Bumps the version in `package.json`, commits it, and pushes a `vX.Y.Z` tag
+2. Reads the version from `package.json` and pushes a `vX.Y.Z` tag
 3. Builds the Electron app in parallel for macOS, Windows, and Linux
 4. Publishes a GitHub release with the built artefacts attached
 
-PRs without a release label merge normally with no version bump and no Electron build.
+PRs without a release label merge normally with no Electron build.
 
 ### Project structure
 
