@@ -54,7 +54,7 @@ jobs:
           gh release create "v$VERSION" \
             --title "GH Insight $VERSION" \
             --notes "Release $VERSION" \
-            --latest
+            --draft
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
