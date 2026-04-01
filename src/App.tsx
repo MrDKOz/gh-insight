@@ -199,6 +199,17 @@ const App: FunctionComponent = () => {
     document.body.classList.toggle("colorblind", settings.colorblindMode);
   }, [settings.colorblindMode]);
 
+  useEffect(() => {
+    const activeRepo = milestones.state.activeRepo;
+    const selected   = milestones.state.selected;
+    const base = "GitHub Work Visualiser";
+    if (!activeRepo) { document.title = base; return; }
+    const repo = `${activeRepo.owner}/${activeRepo.name}`;
+    if (selected.length === 0) { document.title = `${repo} — ${base}`; return; }
+    const label = selected.length === 1 && selected[0] ? selected[0].title : `${selected.length} milestones`;
+    document.title = `${label} — ${repo} — ${base}`;
+  }, [milestones.state.activeRepo, milestones.state.selected]);
+
   // ── View navigation ───────────────────────────────────────────────────────
 
   const handleViewChange = useCallback((v: View) => {
