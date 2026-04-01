@@ -10,6 +10,7 @@
     <link rel="canonical" href="https://dkoz.me/GitHubWorkVisualiser/" />
 
     <meta name="description" content="Visualise GitHub milestone progress as Gantt charts, burndown charts, cycle-time scatter plots, and velocity graphs." />
+    <meta name="keywords" content="GitHub, milestone, Gantt chart, burndown chart, cycle time, velocity, project management, issues, pull requests, visualiser" />
     <meta name="theme-color" content="#0969da" />
 
     <!-- Open Graph -->
@@ -32,9 +33,44 @@
     <meta name="twitter:image:alt" content="GitHub Work Visualiser — Gantt chart preview" />
 
     <title>GitHub Work Visualiser</title>
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "GitHub Work Visualiser",
+      "url": "https://dkoz.me/GitHubWorkVisualiser/",
+      "description": "Visualise GitHub milestone progress as Gantt charts, burndown charts, cycle-time scatter plots, and velocity graphs.",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Any",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "Gantt chart view",
+        "Burndown chart",
+        "Cycle time scatter plot",
+        "Velocity chart",
+        "Cumulative flow diagram",
+        "Contributors chart",
+        "CSV, XLSX, PDF, and PNG export",
+        "Colorblind-friendly palette",
+        "Multi-milestone support",
+        "Shareable URLs"
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <h1>GitHub Work Visualiser</h1>
+      <p>Visualise GitHub milestone progress as Gantt charts, burndown charts, cycle-time scatter plots, and velocity graphs.</p>
+      <p>Features include: Gantt chart, burndown chart, cycle time scatter plot, velocity chart, cumulative flow diagram, contributors chart, and export to CSV, XLSX, PDF, and PNG.</p>
+      <p>JavaScript is required to use this application. Please enable JavaScript in your browser.</p>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
