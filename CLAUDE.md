@@ -1,4 +1,4 @@
-# CLAUDE.md — GitHub Work Visualiser
+# CLAUDE.md — GHInsight
 
 ## Project overview
 
