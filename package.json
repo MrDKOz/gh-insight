@@ -6,7 +6,7 @@
   "main": "dist-electron/main.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/MrDKOz/GHInsight"
+    "url": "https://github.com/MrDKOz/gh-insight"
   },
   "scripts": {
     "dev": "vite",
@@ -50,7 +50,7 @@
     "publish": {
       "provider": "github",
       "owner": "MrDKOz",
-      "repo": "GHInsight",
+      "repo": "gh-insight",
       "releaseType": "release"
     },
     "icon": "build/icon",
