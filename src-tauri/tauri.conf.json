@@ -10,15 +10,6 @@
     "beforeBuildCommand": "npm run build"
   },
   "app": {
-    "windows": [
-      {
-        "title": "GH Insight",
-        "width": 1400,
-        "height": 900,
-        "resizable": true,
-        "fullscreen": false
-      }
-    ],
     "security": {
       "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https://github.com https://avatars.githubusercontent.com data:; connect-src https://api.github.com https://github.com https://avatars.githubusercontent.com https://objects.githubusercontent.com https://github-releases.githubusercontent.com https://www.gov.uk https://date.nager.at; worker-src blob:; object-src 'none'; base-uri 'self';"
     }
