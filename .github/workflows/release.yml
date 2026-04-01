@@ -111,4 +111,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Suppress macOS code-signing when no certificate is configured.
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          # electron-builder skips publishing when it detects GITHUB_EVENT_NAME=pull_request.
+          # This workflow only runs on merged PRs into a protected branch so it is safe to override.
+          PUBLISH_FOR_PULL_REQUEST: "true"
         run: npx electron-builder --publish always
