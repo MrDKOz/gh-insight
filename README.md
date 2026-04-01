@@ -2,23 +2,32 @@
 
 **Live:** [mrdkoz.github.io/GitHubWorkVisualiser](https://mrdkoz.github.io/GitHubWorkVisualiser/)
 
-A browser-based dashboard for visualising GitHub milestone progress. Point it at any public or private repository, select one or more milestones, and explore the data across six views.
+A browser-based dashboard for analysing GitHub milestone progress. Point it at any public or private repository, select one or more milestones, and explore the data across seven interactive views — then export what you need in the format you need it.
 
-## Features
+## What can it do?
 
-- **Gantt** — horizontal bars for every issue and PR, with resizable labels and scroll-wheel zoom
-- **Burndown** — daily open issue count over the milestone's lifetime
-- **Cycle Time** — scatter plot of days from creation to close, with median and mean reference lines
+### Seven views
+
+- **Gantt** — interactive horizontal bar timeline for every issue and PR, with scroll-wheel zoom and resizable labels
+- **Burndown** — daily open issue count plotted over the milestone's lifetime
+- **Cycle Time** — scatter plot of days from creation to close per item, with median and mean reference lines
 - **Velocity** — weekly stacked bar chart of closed issues and merged/closed PRs
-- **Cumulative Flow** — running totals of created vs completed items
-- **Contributors** — horizontal bar chart of issues and PRs per author
+- **Cumulative Flow** — running totals of created vs completed items over time
+- **Contributors** — per-author breakdown of issues and pull requests
 - **List** — sortable table of all items with status, dates, labels, assignees, and duration
-- **Filters** — show/hide by type and status; date range filters on creation and close date
-- **Export** — CSV, XLSX, Markdown, PNG (current view or full timeline), and PDF
+
+### Export everything
+
+Every view can be exported. Data exports: **CSV**, **Excel (XLSX)**, **Markdown**, and **PDF**. Visual exports: **PNG** of the current view, or a full-resolution PNG of the entire Gantt timeline.
+
+### More features
+
 - **Multi-milestone** — load several milestones at once and view them together, colour-coded by milestone
+- **Filters** — show/hide by type and status; date range filters on creation and close date
 - **Shareable URLs** — current milestone selection, active view, and all filters are encoded in the URL; the token is never included
-- **Colorblind mode** — alternative colour palette across all charts
+- **Colorblind mode** — alternative Okabe-Ito colour palette across all charts and views
 - **Demo mode** — try the app without a token using built-in sample data
+- **Desktop app** — available for Windows, macOS, and Linux via Electron
 
 ## Using the live app
 
@@ -40,6 +49,26 @@ You will need a GitHub Personal Access Token to load real data. A fine-grained t
 - Your token is encrypted with AES-GCM (256-bit, Web Crypto API). The ciphertext is stored in `localStorage`; the encryption key lives in IndexedDB and never leaves your browser.
 - All API calls go directly from your browser to `api.github.com` over HTTPS. No data passes through any third-party server.
 - The token is never written to the URL. Clearing your browser storage removes everything.
+
+## Common questions
+
+**How do I create a Gantt chart from GitHub milestones?**
+Enter your GitHub token, select a repository, choose one or more milestones, and switch to the Gantt view. Each issue and PR appears as a horizontal bar spanning its creation to close date. Zoom with the scroll wheel, resize the label column, and export to PNG or PDF when you're done.
+
+**How do I export GitHub milestone data to Excel or CSV?**
+Open the List view or any chart view, click the export button in the toolbar, and choose your format — CSV, Excel (XLSX), Markdown, or PDF. The Gantt view additionally supports full-timeline PNG export.
+
+**Can I track sprint velocity from GitHub issues?**
+Yes. The Velocity view shows a weekly stacked bar chart of closed issues and merged/closed pull requests, giving you a clear picture of throughput over time.
+
+**Can I see cycle time for GitHub issues?**
+Yes. The Cycle Time view plots each closed item as a dot at its days-from-creation-to-close, with median and mean reference lines overlaid.
+
+**Does it support multiple milestones at once?**
+Yes. Select any number of milestones from the same repository and all seven views update to show the combined data, with each milestone colour-coded so you can compare sprints or releases side by side.
+
+**Does it work with private repositories?**
+Yes. Use a fine-grained GitHub PAT with read-only permissions on Issues, Pull Requests, Contents, and Metadata. The token is encrypted in your browser and never sent anywhere except directly to `api.github.com`.
 
 ## Local development
 
