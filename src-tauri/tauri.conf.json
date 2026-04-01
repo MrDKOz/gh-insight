@@ -33,14 +33,5 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "macOS": {
-      "targets": ["dmg"]
-    },
-    "windows": {
-      "targets": ["nsis"]
-    },
-    "linux": {
-      "targets": ["appimage"]
-    }
   }
 }
