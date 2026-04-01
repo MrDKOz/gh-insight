@@ -2,7 +2,7 @@
 
 **Live:** [mrdkoz.github.io/GitHubWorkVisualiser](https://mrdkoz.github.io/GitHubWorkVisualiser/)
 
-> **A note on this project:** This is an experiment in AI-driven development. The goal was to learn how Claude works by attempting to build a genuinely usable application without writing a single line of code manually — using Claude Code to handle everything from architecture decisions to implementation. The application you see here is the result of that process. I think it's only fair to be upfront about that, both to set expectations and to give an honest account of what AI-assisted development looks like in practice.
+> **A note on this project:** This is an experiment in AI-driven development, built during my 10% / L&D time at Redgate. The goal was to learn how Claude works by attempting to build a genuinely usable application without writing a single line of code manually — using Claude Code to handle everything from architecture decisions to implementation. The application you see here is the result of that process. I think it's only fair to be upfront about that, both to set expectations and to give an honest account of what AI-assisted development looks like in practice.
 
 A browser-based dashboard for analysing GitHub milestone progress. Point it at any public or private repository, select one or more milestones, and explore the data across seven interactive views — then export what you need in the format you need it.
 
