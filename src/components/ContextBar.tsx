@@ -224,8 +224,6 @@ const ContextBar: FunctionComponent<Props> = memo(({
             <Tab key={v} label={v} value={v} />
           ))}
         </Tabs>
-        {/* Filter toggle button portals here from MilestoneView */}
-        <Box id="view-controls-slot" sx={{ display: "flex", alignItems: "center", px: 1.5 }} />
       </Box>
     )}
 
