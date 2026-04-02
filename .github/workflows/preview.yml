@@ -63,13 +63,23 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            const url = `https://dkoz.me/gh-insight/pr-${{ github.event.number }}/`;
+            const maxAttempts = 24;  // 24 × 10s = 4 minutes max
+            let ready = false;
+            for (let i = 0; i < maxAttempts; i++) {
+              try {
+                const res = await fetch(url);
+                if (res.ok) { ready = true; break; }
+              } catch (_) { /* network blip — keep polling */ }
+              await new Promise(r => setTimeout(r, 10_000));
+            }
             await github.rest.repos.createDeploymentStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
               deployment_id: ${{ steps.deployment.outputs.result }},
-              state: 'success',
-              environment_url: `https://dkoz.me/gh-insight/pr-${{ github.event.number }}/`,
-              description: 'Preview ready',
+              state: ready ? 'success' : 'failure',
+              environment_url: url,
+              description: ready ? 'Preview ready' : 'Preview did not become reachable in time',
             });
 
 
