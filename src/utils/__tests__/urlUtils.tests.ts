@@ -27,7 +27,7 @@ describe("readUrlParams", () => {
   it("returns empty defaults for an empty search string", () => {
     setSearch("");
 
-    expect(readUrlParams()).toEqual({ owner: "", repo: "", milestoneNums: [], epicNums: [], demo: false });
+    expect(readUrlParams()).toEqual({ owner: "", repo: "", milestoneNums: [], epicNums: [], demo: false, previewNoRepos: false });
   });
 
   it("parses owner, repo, milestones and epics", () => {

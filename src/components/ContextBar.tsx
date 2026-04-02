@@ -71,8 +71,8 @@ const ContextBar: FunctionComponent<Props> = memo(({
 }) => (
   <Box sx={{ bgcolor: "background.paper" }}>
 
-    {/* Row 1: workspace controls */}
-    <Box sx={{
+    {/* Row 1: workspace controls — hidden when the token has no repo access */}
+    {(repos.length > 0 || isDemo) && <Box sx={{
       px: 2,
       py: 1,
       minHeight: 52,
@@ -86,6 +86,7 @@ const ContextBar: FunctionComponent<Props> = memo(({
       {/* Repo selector */}
       <Autocomplete<Repo, false, false, true>
         freeSolo
+        forcePopupIcon="auto"
         options={repos}
         value={activeRepo}
         onChange={(_, v) => {
@@ -203,7 +204,7 @@ const ContextBar: FunctionComponent<Props> = memo(({
 
       {/* Portal target — Timeline renders Export button here when items are loaded */}
       <Box id="timeline-toolbar" sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }} />
-    </Box>
+    </Box>}
 
     {/* Row 2: view tabs — only shown when data is loaded */}
     {hasItems && (
