@@ -13,6 +13,32 @@ React 19 + TypeScript + Vite single-page app that fetches GitHub milestone data 
 
 ---
 
+## Workflow rules
+
+**All changes must be delivered via a pull request — never push directly to `main`.**
+
+`gh` CLI is available and should be used for all GitHub operations (creating PRs, viewing CI status, managing releases, etc.).
+
+---
+
+## GitHub Actions
+
+Four workflows live in `.github/workflows/`:
+
+### `ci.yml` — CI
+Runs on every push and pull request. Installs dependencies, runs `npm run lint`, `npx tsc --noEmit`, and `npm test`. All three must pass before a PR can be merged.
+
+### `deploy.yml` — Deploy to GitHub Pages
+Runs on every push to `main` (and can be triggered manually). Builds the app with `npm run build` and deploys `./dist` to the `gh-pages` branch via `peaceiris/actions-gh-pages`. Uses `keep_files: true` so PR preview subdirectories (`pr-N/`) are preserved alongside the main site. Deployments are serialised (no cancel-in-progress) to avoid leaving the site in a broken state.
+
+### `preview.yml` — PR Preview
+Runs on PR open, sync, reopen, and close events. On open/sync/reopen it builds the app with `DEPLOY_BASE=/gh-insight/pr-{N}/` and deploys to `pr-{N}/` on the `gh-pages` branch, then posts (or updates) a comment on the PR with the preview URL (`https://dkoz.me/gh-insight/pr-{N}/`). On close it removes the preview directory from `gh-pages`. Concurrent builds for the same PR are cancelled in favour of the latest.
+
+### `release.yml` — Release
+Runs when a PR labelled `release:patch`, `release:minor`, or `release:major` is merged into `main`. Reads the version from `package.json`, creates and pushes a git tag, then creates a draft GitHub release. A matrix build job then runs in parallel on macOS, Windows, and Linux: it type-checks the Electron main process, builds the renderer in Electron mode, and uploads the packaged binaries to the draft release via `electron-builder --publish always`. The release is left as a draft so assets can be reviewed before publishing.
+
+---
+
 ## Code principles
 
 ### Stay DRY — extract components and utilities

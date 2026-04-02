@@ -1,13 +1,15 @@
 import type { FunctionComponent } from "react";
 import Badge from "@mui/material/Badge";
 import Box from "@mui/material/Box";
+import Dialog from "@mui/material/Dialog";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import Link from "@mui/material/Link";
-import Popover from "@mui/material/Popover";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useGitHubReleaseCheck } from "../hooks/useGitHubReleaseCheck";
 
 const HelpCircleIcon: FunctionComponent = () => (
@@ -57,17 +59,8 @@ const SECTIONS: Section[] = [
 ];
 
 const HelpPopover: FunctionComponent = () => {
-  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
-  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [open, setOpen] = useState(false);
   const updateRelease = useGitHubReleaseCheck();
-
-  const cancelHide = () => {
-    if (hideTimer.current) { clearTimeout(hideTimer.current); hideTimer.current = null; }
-  };
-
-  const scheduleHide = () => {
-    hideTimer.current = setTimeout(() => setAnchor(null), 150);
-  };
 
   return (
     <>
@@ -81,78 +74,70 @@ const HelpPopover: FunctionComponent = () => {
         <IconButton
           size="small"
           aria-label="About this app"
-          onMouseEnter={(e) => { cancelHide(); setAnchor(e.currentTarget); }}
-          onMouseLeave={scheduleHide}
+          onClick={() => setOpen(true)}
         >
           <HelpCircleIcon />
         </IconButton>
       </Badge>
 
-      <Popover
-        open={Boolean(anchor)}
-        anchorEl={anchor}
-        onClose={() => setAnchor(null)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-        transformOrigin={{ vertical: "top", horizontal: "right" }}
-        disableAutoFocus
-        disableRestoreFocus
-        sx={{ pointerEvents: "none", mt: 0.5 }}
-        slotProps={{ paper: {
-          onMouseEnter: cancelHide,
-          onMouseLeave: scheduleHide,
-          sx: { pointerEvents: "auto", width: 320, p: 2.5 },
-        }}}
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        maxWidth="xs"
+        fullWidth
       >
-        <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>
+        <DialogTitle sx={{ fontWeight: 700, pb: 0 }}>
           About GH Insight
-        </Typography>
+        </DialogTitle>
 
-        <Stack gap={1.5}>
-          {SECTIONS.map((section, i) => (
-            <Box key={section.heading}>
-              {i > 0 && <Divider sx={{ mb: 1.5 }} />}
-              <Typography variant="caption" fontWeight={700} color="text.secondary"
-                sx={{ textTransform: "uppercase", letterSpacing: "0.06em", display: "block", mb: 0.75 }}>
-                {section.heading}
-              </Typography>
-              <Stack gap={0.5}>
-                {section.points.map((point, j) =>
-                  typeof point === "string" ? (
-                    <Typography key={j} variant="body2" color="text.primary" sx={{ lineHeight: 1.5 }}>
-                      {point}
-                    </Typography>
-                  ) : (
-                    <Link key={j} href={point.href} target="_blank" rel="noreferrer"
-                      variant="body2" sx={{ lineHeight: 1.5 }}>
-                      {point.text}
-                    </Link>
-                  )
-                )}
-              </Stack>
-            </Box>
-          ))}
-        </Stack>
+        <DialogContent sx={{ pt: 1.5 }}>
+          <Stack gap={1.5}>
+            {SECTIONS.map((section, i) => (
+              <Box key={section.heading}>
+                {i > 0 && <Divider sx={{ mb: 1.5 }} />}
+                <Typography variant="caption" fontWeight={700} color="text.secondary"
+                  sx={{ textTransform: "uppercase", letterSpacing: "0.06em", display: "block", mb: 0.75 }}>
+                  {section.heading}
+                </Typography>
+                <Stack gap={0.5}>
+                  {section.points.map((point, j) =>
+                    typeof point === "string" ? (
+                      <Typography key={j} variant="body2" color="text.primary" sx={{ lineHeight: 1.5 }}>
+                        {point}
+                      </Typography>
+                    ) : (
+                      <Link key={j} href={point.href} target="_blank" rel="noreferrer"
+                        variant="body2" sx={{ lineHeight: 1.5 }}>
+                        {point.text}
+                      </Link>
+                    )
+                  )}
+                </Stack>
+              </Box>
+            ))}
+          </Stack>
 
-        <Divider sx={{ mt: 1.5 }} />
-        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1.5 }}>
-          v{__APP_VERSION__} · Made by{" "}
-          <Link href="https://github.com/MrDKOz" target="_blank" rel="noreferrer" variant="caption">
-            @MrDKOz
-          </Link>
-        </Typography>
+          <Divider sx={{ mt: 1.5 }} />
+          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1.5 }}>
+            v{__APP_VERSION__} · Made by{" "}
+            <Link href="https://github.com/MrDKOz" target="_blank" rel="noreferrer" variant="caption">
+              @MrDKOz
+            </Link>
+          </Typography>
 
-        {updateRelease && (
-          <Link
-            href={updateRelease.releasesUrl}
-            target="_blank"
-            rel="noreferrer"
-            variant="caption"
-            sx={{ display: "block", mt: 0.75, fontWeight: 600, color: "error.main" }}
-          >
-            Update available (v{updateRelease.version}) →
-          </Link>
-        )}
-      </Popover>
+          {updateRelease && (
+            <Link
+              href={updateRelease.releasesUrl}
+              target="_blank"
+              rel="noreferrer"
+              variant="caption"
+              sx={{ display: "block", mt: 0.75, fontWeight: 600, color: "error.main" }}
+            >
+              Update available (v{updateRelease.version}) →
+            </Link>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
