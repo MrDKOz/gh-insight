@@ -33,14 +33,24 @@ type Props = {
   variant?: "toolbar";
 };
 
+const FILTER_BTN_SX = (active: boolean) => ({
+  fontSize: FS.sm,
+  height: 26,
+  borderColor: active ? "primary.main" : undefined,
+  color: active ? "primary.main" : "text.secondary",
+  fontWeight: active ? 700 : 500,
+});
+
 const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange, colorblindMode, variant }) => {
   const palette = colorblindMode ? COLORS_CB : COLORS;
   const patchFilters = useCallback((patch: Partial<Filters>) => onChange({ ...filters, ...patch }), [onChange, filters]);
 
-  const [labelsAnchor, setLabelsAnchor] = useState<HTMLElement | null>(null);
-  const [labelsSearch, setLabelsSearch] = useState("");
-  const [peopleAnchor, setPeopleAnchor] = useState<HTMLElement | null>(null);
-  const [peopleSearch, setPeopleSearch] = useState("");
+  const [createdAnchor, setCreatedAnchor] = useState<HTMLElement | null>(null);
+  const [closedAnchor,  setClosedAnchor]  = useState<HTMLElement | null>(null);
+  const [labelsAnchor,  setLabelsAnchor]  = useState<HTMLElement | null>(null);
+  const [labelsSearch,  setLabelsSearch]  = useState("");
+  const [peopleAnchor,  setPeopleAnchor]  = useState<HTMLElement | null>(null);
+  const [peopleSearch,  setPeopleSearch]  = useState("");
 
   // Derive unique labels and people (authors + assignees) from the full (unfiltered) item list
   const { labelMap, allPeople } = useMemo(() => {
@@ -67,13 +77,16 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
     filters.activeLabels.length > 0 ||
     filters.activePeople.length > 0;
 
+  const hasCreated = !!filters.createdStart || !!filters.createdEnd;
+  const hasClosed  = !!filters.closedStart  || !!filters.closedEnd;
+
   const toggles: Array<{ key: keyof Filters; label: string; count: number; color: string }> = (
     [
-      { key: "showOpenIssues", label: "Open issues", count: counts.openIssues, color: palette.issue },
-      { key: "showClosedIssues", label: "Closed issues", count: counts.closedIssues, color: palette.issue },
-      { key: "showOpenPRs", label: "Open PRs", count: counts.openPRs, color: palette.prMerged },
-      { key: "showMergedPRs", label: "Merged PRs", count: counts.mergedPRs, color: palette.prMerged },
-      { key: "showClosedPRs", label: "Closed PRs", count: counts.closedPRs, color: palette.prClosed },
+      { key: "showOpenIssues",   label: "Open issues",   count: counts.openIssues,   color: palette.issue    },
+      { key: "showClosedIssues", label: "Closed issues", count: counts.closedIssues, color: palette.issue    },
+      { key: "showOpenPRs",      label: "Open PRs",      count: counts.openPRs,      color: palette.prMerged },
+      { key: "showMergedPRs",    label: "Merged PRs",    count: counts.mergedPRs,    color: palette.prMerged },
+      { key: "showClosedPRs",    label: "Closed PRs",    count: counts.closedPRs,    color: palette.prClosed },
     ] as Array<{ key: keyof Filters; label: string; count: number; color: string }>
   ).filter((t) => t.count > 0);
 
@@ -124,26 +137,74 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
         bgcolor: "background.paper",
       }}
     >
-      <DateRangeFilter
-        label="Created"
-        startValue={filters.createdStart}
-        endValue={filters.createdEnd}
-        onStartChange={(v) => patchFilters({ createdStart: v })}
-        onStartClear={() => patchFilters({ createdStart: "" })}
-        onEndChange={(v) => patchFilters({ createdEnd: v })}
-        onEndClear={() => patchFilters({ createdEnd: "" })}
-      />
+      {/* ── Date range filters (button → popover) ──────────────────────── */}
+      <Button variant="outlined" size="small"
+        onClick={(e) => setCreatedAnchor(e.currentTarget)}
+        sx={FILTER_BTN_SX(hasCreated)}
+      >
+        Created{hasCreated ? " ·" : ""} ▾
+      </Button>
+      <Popover
+        open={Boolean(createdAnchor)}
+        anchorEl={createdAnchor}
+        onClose={() => setCreatedAnchor(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
+        slotProps={{ paper: { sx: { p: 1.5, display: "flex", flexDirection: "column", gap: 1 } } }}
+      >
+        <DateRangeFilter
+          label="Created"
+          startValue={filters.createdStart}
+          endValue={filters.createdEnd}
+          onStartChange={(v) => patchFilters({ createdStart: v })}
+          onStartClear={() => patchFilters({ createdStart: "" })}
+          onEndChange={(v) => patchFilters({ createdEnd: v })}
+          onEndClear={() => patchFilters({ createdEnd: "" })}
+        />
+        {hasCreated && (
+          <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+            <Button size="small" sx={{ fontSize: FS.sm }} onClick={() => patchFilters({ createdStart: "", createdEnd: "" })}>
+              Clear
+            </Button>
+          </Box>
+        )}
+      </Popover>
 
-      <DateRangeFilter
-        label="Closed"
-        startValue={filters.closedStart}
-        endValue={filters.closedEnd}
-        onStartChange={(v) => patchFilters({ closedStart: v })}
-        onStartClear={() => patchFilters({ closedStart: "" })}
-        onEndChange={(v) => patchFilters({ closedEnd: v })}
-        onEndClear={() => patchFilters({ closedEnd: "" })}
-      />
+      <Button variant="outlined" size="small"
+        onClick={(e) => setClosedAnchor(e.currentTarget)}
+        sx={FILTER_BTN_SX(hasClosed)}
+      >
+        Closed{hasClosed ? " ·" : ""} ▾
+      </Button>
+      <Popover
+        open={Boolean(closedAnchor)}
+        anchorEl={closedAnchor}
+        onClose={() => setClosedAnchor(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
+        slotProps={{ paper: { sx: { p: 1.5, display: "flex", flexDirection: "column", gap: 1 } } }}
+      >
+        <DateRangeFilter
+          label="Closed"
+          startValue={filters.closedStart}
+          endValue={filters.closedEnd}
+          onStartChange={(v) => patchFilters({ closedStart: v })}
+          onStartClear={() => patchFilters({ closedStart: "" })}
+          onEndChange={(v) => patchFilters({ closedEnd: v })}
+          onEndClear={() => patchFilters({ closedEnd: "" })}
+        />
+        {hasClosed && (
+          <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+            <Button size="small" sx={{ fontSize: FS.sm }} onClick={() => patchFilters({ closedStart: "", closedEnd: "" })}>
+              Clear
+            </Button>
+          </Box>
+        )}
+      </Popover>
 
+      <Divider orientation="vertical" flexItem />
+
+      {/* ── Type toggles ───────────────────────────────────────────────── */}
       <Stack direction="row" alignItems="center" gap={0.75} flexWrap="wrap">
         {toggles.map(({ key, label, count, color }) => (
           <Chip
@@ -175,6 +236,9 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
         ))}
       </Stack>
 
+      <Divider orientation="vertical" flexItem />
+
+      {/* ── Labels ─────────────────────────────────────────────────────── */}
       {labelMap.size > 0 && (() => {
         const activeCount = filters.activeLabels.length;
         const query = labelsSearch.trim().toLowerCase();
@@ -189,13 +253,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
               onClick={(e) => setLabelsAnchor(e.currentTarget)}
               aria-haspopup="true"
               aria-expanded={Boolean(labelsAnchor)}
-              sx={{
-                fontSize: FS.sm,
-                height: 26,
-                borderColor: activeCount > 0 ? "primary.main" : undefined,
-                color: activeCount > 0 ? "primary.main" : "text.secondary",
-                fontWeight: activeCount > 0 ? 700 : 500,
-              }}
+              sx={FILTER_BTN_SX(activeCount > 0)}
             >
               Labels{activeCount > 0 ? ` (${activeCount})` : ""} ▾
             </Button>
@@ -267,6 +325,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
         );
       })()}
 
+      {/* ── People ─────────────────────────────────────────────────────── */}
       {allPeople.length > 0 && (() => {
         const activeCount = filters.activePeople.length;
         const query = peopleSearch.trim().toLowerCase();
@@ -279,13 +338,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
               onClick={(e) => setPeopleAnchor(e.currentTarget)}
               aria-haspopup="true"
               aria-expanded={Boolean(peopleAnchor)}
-              sx={{
-                fontSize: FS.sm,
-                height: 26,
-                borderColor: activeCount > 0 ? "primary.main" : undefined,
-                color: activeCount > 0 ? "primary.main" : "text.secondary",
-                fontWeight: activeCount > 0 ? 700 : 500,
-              }}
+              sx={FILTER_BTN_SX(activeCount > 0)}
             >
               People{activeCount > 0 ? ` (${activeCount})` : ""} ▾
             </Button>
