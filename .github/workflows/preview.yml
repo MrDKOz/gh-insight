@@ -6,7 +6,7 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
+  deployments: write
 
 # Cancel in-progress preview builds for the same PR when new commits arrive.
 concurrency:
@@ -29,6 +29,23 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Create GitHub deployment
+        uses: actions/github-script@v7
+        id: deployment
+        with:
+          script: |
+            const { data } = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.payload.pull_request.head.sha,
+              environment: `pr-${{ github.event.number }}`,
+              auto_merge: false,
+              required_contexts: [],
+              description: `Preview for PR #${{ github.event.number }}`,
+              transient_environment: true,
+            });
+            return data.id;
+
       - name: Build preview
         env:
           DEPLOY_BASE: /gh-insight/pr-${{ github.event.number }}/
@@ -42,42 +59,19 @@ jobs:
           destination_dir: pr-${{ github.event.number }}
           keep_files: true
 
-      - name: Comment on PR
+      - name: Mark deployment success
         uses: actions/github-script@v7
         with:
           script: |
-            const url = `https://dkoz.me/gh-insight/pr-${{ github.event.number }}/`;
-            const marker = '<!-- gh-insight-preview -->';
-            const body = [
-              marker,
-              '## Preview deployment',
-              '',
-              `✅ **[${url}](${url})**`,
-              '',
-              `_Updated: ${new Date().toUTCString()}_`,
-            ].join('\n');
-
-            const { data: comments } = await github.rest.issues.listComments({
+            await github.rest.repos.createDeploymentStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
+              deployment_id: ${{ steps.deployment.outputs.result }},
+              state: 'success',
+              environment_url: `https://dkoz.me/gh-insight/pr-${{ github.event.number }}/`,
+              description: 'Preview ready',
             });
-            const existing = comments.find(c => c.body.includes(marker));
-            if (existing) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existing.id,
-                body,
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body,
-              });
-            }
+
 
   cleanup:
     if: github.event.action == 'closed'
@@ -87,6 +81,24 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: gh-pages
+
+      - name: Mark deployment inactive
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: deployments } = await github.rest.repos.listDeployments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              environment: `pr-${{ github.event.number }}`,
+            });
+            for (const d of deployments) {
+              await github.rest.repos.createDeploymentStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                deployment_id: d.id,
+                state: 'inactive',
+              });
+            }
 
       - name: Remove preview directory
         run: |
