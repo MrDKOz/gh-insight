@@ -29,15 +29,17 @@ type Props = {
   onClose: () => void;
   settings: Settings;
   updateSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
+  dark: boolean;
+  onToggleDark: () => void;
   onExportConfig: () => void;
   fileInputRef: RefObject<HTMLInputElement | null>;
   onImportConfig: (e: ChangeEvent<HTMLInputElement>) => void;
-  onDisconnect: () => void;
 };
 
 const SettingsPopover: FunctionComponent<Props> = ({
   anchor, onClose, settings, updateSetting,
-  onExportConfig, fileInputRef, onImportConfig, onDisconnect,
+  dark, onToggleDark,
+  onExportConfig, fileInputRef, onImportConfig,
 }) => (
   <>
     <Popover
@@ -51,6 +53,10 @@ const SettingsPopover: FunctionComponent<Props> = ({
         <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Settings</Typography>
         <Divider sx={{ mb: 1.5 }} />
         <Stack direction="column" gap={0.5}>
+          <FormControlLabel
+            control={<Switch size="small" checked={dark} onChange={onToggleDark} />}
+            label={<Typography variant="body2">Dark mode</Typography>}
+          />
           <FormControlLabel
             control={<Switch size="small" checked={settings.highlightWeekends} onChange={(e) => updateSetting("highlightWeekends", e.target.checked)} />}
             label={<Typography variant="body2">Highlight weekends</Typography>}
@@ -98,10 +104,6 @@ const SettingsPopover: FunctionComponent<Props> = ({
           <Button onClick={onExportConfig}>Export</Button>
           <Button onClick={() => fileInputRef.current?.click()}>Import</Button>
         </ButtonGroup>
-        <Divider sx={{ my: 1.5 }} />
-        <Button variant="outlined" color="error" size="small" fullWidth onClick={onDisconnect}>
-          Disconnect
-        </Button>
       </Box>
     </Popover>
     <input type="file" accept=".json" hidden ref={fileInputRef} onChange={onImportConfig} />

@@ -268,9 +268,8 @@ const App: FunctionComponent = () => {
 
           <AppHeader
             userProfile={auth.userProfile ?? DEMO_USER}
-            dark={dark}
-            onToggleDark={toggleDark}
             onSettingsClick={(e) => setSettingsAnchor(e.currentTarget)}
+            onSignOut={handleDisconnect}
           />
 
           <SettingsPopover
@@ -278,10 +277,11 @@ const App: FunctionComponent = () => {
             onClose={() => setSettingsAnchor(null)}
             settings={settings}
             updateSetting={updateSetting}
+            dark={dark}
+            onToggleDark={toggleDark}
             onExportConfig={handleExportConfig}
             fileInputRef={fileInputRef}
             onImportConfig={handleImportConfig}
-            onDisconnect={handleDisconnect}
           />
 
           <ContextBar
