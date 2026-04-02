@@ -12,47 +12,53 @@ type GanttLegendProps = {
   snapMode: "day" | "hour";
   onSnapModeChange: (mode: "day" | "hour") => void;
   onFitToScreen: () => void;
+  /** When true, renders only the Fit/Day/Hour controls (for the tab-bar slot). */
+  compact?: boolean;
 };
 
-const GanttLegend: FunctionComponent<GanttLegendProps> = ({ hasOpenIssues, colorblindMode, snapMode, onSnapModeChange, onFitToScreen }) => {
+const GanttLegend: FunctionComponent<GanttLegendProps> = ({ hasOpenIssues, colorblindMode, snapMode, onSnapModeChange, onFitToScreen, compact = false }) => {
   const palette = colorblindMode ? COLORS_CB : COLORS;
   // 0x73 hex ≈ 0.45 alpha — used for the open-issue dashed bar fill
   const issueClosed = `linear-gradient(135deg, ${palette.issue} 0%, ${palette.issueDark} 100%)`;
   const issueOpen   = `linear-gradient(135deg, ${palette.issue}73 0%, ${palette.issueDark}73 100%)`;
   const prMergedBg  = `linear-gradient(135deg, ${palette.prMerged} 0%, ${palette.prMergedDark} 100%)`;
   const prClosedBg  = `linear-gradient(135deg, ${palette.prClosed} 0%, ${palette.prClosedDark} 100%)`;
+
+  const controls = (
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>
+      <Button size="small" variant="outlined" onClick={onFitToScreen} aria-label="Fit timeline to screen width">
+        Fit to screen
+      </Button>
+      <ToggleButtonGroup
+        value={snapMode}
+        exclusive
+        size="small"
+        onChange={(_, newSnapMode: "day" | "hour" | null) => { if (newSnapMode) { onSnapModeChange(newSnapMode); } }}
+        aria-label="Bar snap granularity"
+      >
+        <ToggleButton value="day"  aria-label="Snap bars to day boundaries">Day</ToggleButton>
+        <ToggleButton value="hour" aria-label="Snap bars to hour boundaries">Hour</ToggleButton>
+      </ToggleButtonGroup>
+    </Box>
+  );
+
+  if (compact) { return controls; }
+
   return (
-  <Box sx={{ display: "flex", alignItems: "center", gap: 2.5, flexWrap: "wrap" }}>
-      <Box sx={{ display: "flex", gap: 2.5, flexWrap: "wrap", flex: 1 }}>
-        {[
-          { bg: issueClosed, label: "Issues (closed)" },
-          ...(hasOpenIssues
-            ? [{ bg: issueOpen, label: "Issues (open)", dashed: true, borderColor: palette.issue }]
-            : []),
-          { bg: prMergedBg, label: "PRs (merged)" },
-          { bg: prClosedBg, label: "PRs (closed)" },
-        ].map(({ bg, label, dashed, borderColor }) => (
-          <Box key={label} sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: FS.md }}>
-            <Box sx={{ width: 20, height: 14, borderRadius: "3px", flexShrink: 0, background: bg, ...(dashed ? { border: `2px dashed ${borderColor ?? palette.issue}` } : {}) }} />
-            {label}
-          </Box>
-        ))}
-      </Box>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>
-        <Button size="small" variant="outlined" onClick={onFitToScreen} aria-label="Fit timeline to screen width">
-          Fit to screen
-        </Button>
-        <ToggleButtonGroup
-          value={snapMode}
-          exclusive
-          size="small"
-          onChange={(_, newSnapMode: "day" | "hour" | null) => { if (newSnapMode) { onSnapModeChange(newSnapMode); } }}
-          aria-label="Bar snap granularity"
-        >
-          <ToggleButton value="day"  aria-label="Snap bars to day boundaries">Day</ToggleButton>
-          <ToggleButton value="hour" aria-label="Snap bars to hour boundaries">Hour</ToggleButton>
-        </ToggleButtonGroup>
-      </Box>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 2.5, flexWrap: "wrap", mb: 1 }}>
+      {[
+        { bg: issueClosed, label: "Issues (closed)" },
+        ...(hasOpenIssues
+          ? [{ bg: issueOpen, label: "Issues (open)", dashed: true, borderColor: palette.issue }]
+          : []),
+        { bg: prMergedBg, label: "PRs (merged)" },
+        { bg: prClosedBg, label: "PRs (closed)" },
+      ].map(({ bg, label, dashed, borderColor }) => (
+        <Box key={label} sx={{ display: "flex", alignItems: "center", gap: "7px", fontSize: FS.md }}>
+          <Box sx={{ width: 20, height: 14, borderRadius: "3px", flexShrink: 0, background: bg, ...(dashed ? { border: `2px dashed ${borderColor ?? palette.issue}` } : {}) }} />
+          {label}
+        </Box>
+      ))}
     </Box>
   );
 };

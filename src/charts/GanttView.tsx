@@ -315,9 +315,11 @@ const GanttView = forwardRef<GanttHandle, Props>(({
   return (
     <>
       {legendSlot && createPortal(
-        <GanttLegend hasOpenIssues={hasOpenIssues} colorblindMode={colorblindMode} snapMode={snapMode} onSnapModeChange={onSnapModeChange} onFitToScreen={onFitToScreen} />,
+        <GanttLegend compact hasOpenIssues={hasOpenIssues} colorblindMode={colorblindMode} snapMode={snapMode} onSnapModeChange={onSnapModeChange} onFitToScreen={onFitToScreen} />,
         legendSlot,
       )}
+
+      <GanttLegend hasOpenIssues={hasOpenIssues} colorblindMode={colorblindMode} snapMode={snapMode} onSnapModeChange={onSnapModeChange} onFitToScreen={onFitToScreen} />
 
       <Box className="tl-body">
         <Box className="tl-label-col" style={{ width: labelWidth }}>

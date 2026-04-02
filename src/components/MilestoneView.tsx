@@ -214,10 +214,11 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
     {viewControlsSlot && createPortal(
       <Button
         size="small"
+        color="primary"
         variant={filtersExpanded ? "contained" : "outlined"}
         disableElevation
         onClick={() => setFiltersExpanded((x) => !x)}
-        sx={{ fontSize: "0.75rem", height: 28, fontWeight: filtersExpanded || activeFilterCount > 0 ? 700 : 500 }}
+        sx={{ fontSize: "0.75rem", height: 28, fontWeight: 600 }}
       >
         Filters{activeFilterCount > 0 ? ` · ${activeFilterCount}` : ""}
       </Button>,
