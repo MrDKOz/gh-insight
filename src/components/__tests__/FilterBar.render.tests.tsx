@@ -48,7 +48,7 @@ const Controlled = ({ items }: { items: TimelineItem[] }) => {
 
 describe("FilterBar — render smoke", () => {
   it("renders date range filters without crashing", () => {
-    const { getByText } = wrap(
+    const { getAllByRole } = wrap(
       <FilterBar
         items={[closedIssue, mergedPR]}
         filters={DEFAULT_FILTERS}
@@ -58,8 +58,9 @@ describe("FilterBar — render smoke", () => {
       />,
     );
 
-    expect(getByText("Created")).toBeInTheDocument();
-    expect(getByText("Closed")).toBeInTheDocument();
+    const buttons = getAllByRole("button");
+    expect(buttons.some((b) => b.textContent?.startsWith("Created"))).toBe(true);
+    expect(buttons.some((b) => b.textContent?.startsWith("Closed") && !b.textContent.includes("issues"))).toBe(true);
   });
 
   it("renders item-type toggle chips for non-zero counts", () => {

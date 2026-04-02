@@ -289,7 +289,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
         epicsHasMore:           false,
         emptyEpicNums:          [],
         // shared
-        isDemo:                 false,
+        isDemo:                 state.isDemo,
         error:                  null,
         // display state — preserved across repo change
         view:                   state.view,

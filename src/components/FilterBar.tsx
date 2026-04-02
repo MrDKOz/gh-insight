@@ -13,6 +13,7 @@ import Typography from "@mui/material/Typography";
 import { useCallback, useMemo, useState } from "react";
 import { DEFAULT_FILTERS } from "../types/FilterTypes";
 import { COLORS, COLORS_CB, labelTextColor } from "../utils/colorUtils";
+import { fmtDate } from "../utils/dateUtils";
 import { FS } from "../utils/displayUtils";
 import { DateRangeFilter, IconReset } from "./DateRangeFilter";
 
@@ -34,12 +35,21 @@ type Props = {
 };
 
 const FILTER_BTN_SX = (active: boolean) => ({
-  fontSize: FS.sm,
-  height: 26,
   borderColor: active ? "primary.main" : undefined,
   color: active ? "primary.main" : "text.secondary",
   fontWeight: active ? 700 : 500,
+  maxWidth: 220,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap" as const,
 });
+
+/** "from 1 Jan", "until 1 Jan", or "1 Jan – 30 Jun" */
+const fmtDateRange = (start: string, end: string): string => {
+  if (start && end)  { return `${fmtDate(start)} – ${fmtDate(end)}`; }
+  if (start)         { return `from ${fmtDate(start)}`; }
+  return `until ${fmtDate(end)}`;
+};
 
 const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange, colorblindMode, variant }) => {
   const palette = colorblindMode ? COLORS_CB : COLORS;
@@ -52,9 +62,8 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
   const [peopleAnchor,  setPeopleAnchor]  = useState<HTMLElement | null>(null);
   const [peopleSearch,  setPeopleSearch]  = useState("");
 
-  // Derive unique labels and people (authors + assignees) from the full (unfiltered) item list
   const { labelMap, allPeople } = useMemo(() => {
-    const lm = new Map<string, string>(); // name → color
+    const lm = new Map<string, string>();
     const peopleSet = new Set<string>();
     for (const item of items) {
       for (const l of item.labels) {lm.set(l.name, l.color);}
@@ -65,17 +74,11 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
   }, [items]);
 
   const isActive =
-    !!filters.createdStart ||
-    !!filters.createdEnd ||
-    !!filters.closedStart ||
-    !!filters.closedEnd ||
-    !filters.showOpenIssues ||
-    !filters.showClosedIssues ||
-    !filters.showOpenPRs ||
-    !filters.showMergedPRs ||
-    !filters.showClosedPRs ||
-    filters.activeLabels.length > 0 ||
-    filters.activePeople.length > 0;
+    !!filters.createdStart || !!filters.createdEnd ||
+    !!filters.closedStart  || !!filters.closedEnd  ||
+    !filters.showOpenIssues || !filters.showClosedIssues ||
+    !filters.showOpenPRs || !filters.showMergedPRs || !filters.showClosedPRs ||
+    filters.activeLabels.length > 0 || filters.activePeople.length > 0;
 
   const hasCreated = !!filters.createdStart || !!filters.createdEnd;
   const hasClosed  = !!filters.closedStart  || !!filters.closedEnd;
@@ -89,20 +92,6 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
       { key: "showClosedPRs",    label: "Closed PRs",    count: counts.closedPRs,    color: palette.prClosed },
     ] as Array<{ key: keyof Filters; label: string; count: number; color: string }>
   ).filter((t) => t.count > 0);
-
-  const toggleLabel = (name: string) => {
-    const next = filters.activeLabels.includes(name)
-      ? filters.activeLabels.filter((l) => l !== name)
-      : [...filters.activeLabels, name];
-    patchFilters({ activeLabels: next });
-  };
-
-  const togglePerson = (login: string) => {
-    const next = filters.activePeople.includes(login)
-      ? filters.activePeople.filter((p) => p !== login)
-      : [...filters.activePeople, login];
-    patchFilters({ activePeople: next });
-  };
 
   const ROLE_OPTIONS: Array<{ value: PeopleRole; label: string; title: string }> = [
     { value: "author",    label: "Author",    title: "Match selected people as issue/PR authors" },
@@ -118,9 +107,9 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
         display: "flex",
         alignItems: "center",
         flexWrap: "wrap",
-        gap: 1,
+        gap: 1.5,
         px: 2,
-        py: 0.75,
+        py: 1,
         borderBottom: 1,
         borderColor: isActive ? "primary.light" : "divider",
         bgcolor: "background.paper",
@@ -128,7 +117,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
         display: "flex",
         alignItems: "center",
         flexWrap: "wrap",
-        gap: 1,
+        gap: 1.5,
         px: 1.5,
         py: 1,
         border: 1,
@@ -137,12 +126,13 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
         bgcolor: "background.paper",
       }}
     >
-      {/* ── Date range filters (button → popover) ──────────────────────── */}
+      {/* ── Date range buttons ─────────────────────────────────────────── */}
       <Button variant="outlined" size="small"
         onClick={(e) => setCreatedAnchor(e.currentTarget)}
         sx={FILTER_BTN_SX(hasCreated)}
+        title={hasCreated ? fmtDateRange(filters.createdStart, filters.createdEnd) : undefined}
       >
-        Created{hasCreated ? " ·" : ""} ▾
+        {hasCreated ? `Created: ${fmtDateRange(filters.createdStart, filters.createdEnd)}` : "Created"} ▾
       </Button>
       <Popover
         open={Boolean(createdAnchor)}
@@ -163,9 +153,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
         />
         {hasCreated && (
           <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-            <Button size="small" sx={{ fontSize: FS.sm }} onClick={() => patchFilters({ createdStart: "", createdEnd: "" })}>
-              Clear
-            </Button>
+            <Button size="small" sx={{ fontSize: FS.sm }} onClick={() => patchFilters({ createdStart: "", createdEnd: "" })}>Clear</Button>
           </Box>
         )}
       </Popover>
@@ -173,8 +161,9 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
       <Button variant="outlined" size="small"
         onClick={(e) => setClosedAnchor(e.currentTarget)}
         sx={FILTER_BTN_SX(hasClosed)}
+        title={hasClosed ? fmtDateRange(filters.closedStart, filters.closedEnd) : undefined}
       >
-        Closed{hasClosed ? " ·" : ""} ▾
+        {hasClosed ? `Closed: ${fmtDateRange(filters.closedStart, filters.closedEnd)}` : "Closed"} ▾
       </Button>
       <Popover
         open={Boolean(closedAnchor)}
@@ -195,9 +184,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
         />
         {hasClosed && (
           <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-            <Button size="small" sx={{ fontSize: FS.sm }} onClick={() => patchFilters({ closedStart: "", closedEnd: "" })}>
-              Clear
-            </Button>
+            <Button size="small" sx={{ fontSize: FS.sm }} onClick={() => patchFilters({ closedStart: "", closedEnd: "" })}>Clear</Button>
           </Box>
         )}
       </Popover>
@@ -212,16 +199,13 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
             label={
               <Stack component="span" direction="row" alignItems="center" gap={0.5}>
                 {label}
-                <Box component="span" sx={{ fontSize: FS.xs, opacity: 0.7 }}>
-                  {count}
-                </Box>
+                <Box component="span" sx={{ fontSize: FS.xs, opacity: 0.7 }}>{count}</Box>
               </Stack>
             }
             size="small"
             onClick={() => patchFilters({ [key]: !filters[key] })}
             title={filters[key] ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
             sx={{
-              height: 26,
               cursor: "pointer",
               color: filters[key] ? color : "text.secondary",
               bgcolor: `${color}1a`,
@@ -229,7 +213,6 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
               borderColor: `${color}55`,
               opacity: filters[key] ? 1 : 0.35,
               fontWeight: 500,
-              fontSize: FS.sm,
               "&:hover": { bgcolor: `${color}2e`, opacity: 1 },
             }}
           />
@@ -238,26 +221,20 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
 
       <Divider orientation="vertical" flexItem />
 
-      {/* ── Labels ─────────────────────────────────────────────────────── */}
+      {/* ── Labels picker ──────────────────────────────────────────────── */}
       {labelMap.size > 0 && (() => {
         const activeCount = filters.activeLabels.length;
         const query = labelsSearch.trim().toLowerCase();
-        const filtered = [...labelMap.entries()].filter(([name]) =>
-          !query || name.toLowerCase().includes(query),
-        );
+        const filtered = [...labelMap.entries()].filter(([name]) => !query || name.toLowerCase().includes(query));
         return (
           <>
-            <Button
-              variant="outlined"
-              size="small"
+            <Button variant="outlined" size="small"
               onClick={(e) => setLabelsAnchor(e.currentTarget)}
-              aria-haspopup="true"
-              aria-expanded={Boolean(labelsAnchor)}
+              aria-haspopup="true" aria-expanded={Boolean(labelsAnchor)}
               sx={FILTER_BTN_SX(activeCount > 0)}
             >
               Labels{activeCount > 0 ? ` (${activeCount})` : ""} ▾
             </Button>
-
             <Popover
               open={Boolean(labelsAnchor)}
               anchorEl={labelsAnchor}
@@ -267,82 +244,60 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
               slotProps={{ paper: { sx: { width: 280, display: "flex", flexDirection: "column" } } }}
             >
               <Box sx={{ p: 1 }}>
-                <TextField
-                  size="small"
-                  placeholder="Search labels…"
-                  value={labelsSearch}
-                  onChange={(e) => setLabelsSearch(e.target.value)}
-                  autoFocus
-                  fullWidth
+                <TextField size="small" placeholder="Search labels…" value={labelsSearch}
+                  onChange={(e) => setLabelsSearch(e.target.value)} autoFocus fullWidth
                   slotProps={{ htmlInput: { "aria-label": "Search labels" } }}
                   sx={{ "& .MuiInputBase-input": { fontSize: FS.md, py: 0.625 } }}
                 />
               </Box>
               <Divider />
               <Box sx={{ p: 1, maxHeight: 260, overflowY: "auto", display: "flex", flexWrap: "wrap", gap: "4px" }}>
-                {filtered.length === 0 ? (
-                  <Typography variant="caption" color="text.disabled" sx={{ p: 0.5 }}>
-                    No labels match
-                  </Typography>
-                ) : filtered.map(([name, color]) => {
-                  const active = filters.activeLabels.includes(name);
-                  const textCol = labelTextColor(color);
-                  return (
-                    <Chip
-                      key={name}
-                      label={name}
-                      size="small"
-                      onClick={() => toggleLabel(name)}
-                      aria-pressed={active}
-                      sx={{
-                        height: 22,
-                        cursor: "pointer",
+                {filtered.length === 0
+                  ? <Typography variant="caption" color="text.disabled" sx={{ p: 0.5 }}>No labels match</Typography>
+                  : filtered.map(([name, color]) => {
+                    const active = filters.activeLabels.includes(name);
+                    const textCol = labelTextColor(color);
+                    return (
+                      <Chip key={name} label={name} size="small" onClick={() => {
+                        const next = active ? filters.activeLabels.filter((l) => l !== name) : [...filters.activeLabels, name];
+                        patchFilters({ activeLabels: next });
+                      }} aria-pressed={active} sx={{
+                        height: 22, cursor: "pointer",
                         bgcolor: active ? color : `${color}33`,
                         color: active ? textCol : "text.secondary",
-                        border: "1px solid",
-                        borderColor: `${color}99`,
-                        fontWeight: 500,
-                        fontSize: FS.xs,
+                        border: "1px solid", borderColor: `${color}99`,
+                        fontWeight: 500, fontSize: FS.xs,
                         opacity: active ? 1 : 0.65,
                         "&:hover": { bgcolor: color, color: textCol, opacity: 1 },
-                      }}
-                    />
-                  );
-                })}
+                      }} />
+                    );
+                  })}
               </Box>
-              {activeCount > 0 && (
-                <>
-                  <Divider />
-                  <Box sx={{ p: 0.75, display: "flex", justifyContent: "flex-end" }}>
-                    <Button size="small" sx={{ fontSize: FS.sm }} onClick={() => patchFilters({ activeLabels: [] })}>
-                      Clear
-                    </Button>
-                  </Box>
-                </>
-              )}
+              {activeCount > 0 && (<>
+                <Divider />
+                <Box sx={{ p: 0.75, display: "flex", justifyContent: "flex-end" }}>
+                  <Button size="small" sx={{ fontSize: FS.sm }} onClick={() => patchFilters({ activeLabels: [] })}>Clear</Button>
+                </Box>
+              </>)}
             </Popover>
           </>
         );
       })()}
 
-      {/* ── People ─────────────────────────────────────────────────────── */}
+      {/* ── People picker ──────────────────────────────────────────────── */}
       {allPeople.length > 0 && (() => {
         const activeCount = filters.activePeople.length;
         const query = peopleSearch.trim().toLowerCase();
         const filteredPeople = allPeople.filter((p) => !query || p.toLowerCase().includes(query));
         return (
           <>
-            <Button
-              variant="outlined"
-              size="small"
+            <Button variant="outlined" size="small"
               onClick={(e) => setPeopleAnchor(e.currentTarget)}
-              aria-haspopup="true"
-              aria-expanded={Boolean(peopleAnchor)}
+              aria-haspopup="true" aria-expanded={Boolean(peopleAnchor)}
               sx={FILTER_BTN_SX(activeCount > 0)}
             >
               People{activeCount > 0 ? ` (${activeCount})` : ""} ▾
             </Button>
-
             <Popover
               open={Boolean(peopleAnchor)}
               anchorEl={peopleAnchor}
@@ -351,20 +306,12 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
               transformOrigin={{ vertical: "top", horizontal: "left" }}
               slotProps={{ paper: { sx: { width: 280, display: "flex", flexDirection: "column" } } }}
             >
-              {/* Role toggle */}
               <Box sx={{ p: 1 }}>
-                <Box
-                  sx={{ display: "flex", border: 1, borderColor: "divider", borderRadius: 0.75, overflow: "hidden" }}
-                  role="group"
-                  aria-label="Match people by role"
-                >
+                <Box sx={{ display: "flex", border: 1, borderColor: "divider", borderRadius: 0.75, overflow: "hidden" }}
+                  role="group" aria-label="Match people by role">
                   {ROLE_OPTIONS.map(({ value, label, title }, i) => (
-                    <Box
-                      key={value}
-                      component="button"
-                      onClick={() => patchFilters({ peopleRole: value })}
-                      title={title}
-                      aria-pressed={filters.peopleRole === value}
+                    <Box key={value} component="button" onClick={() => patchFilters({ peopleRole: value })}
+                      title={title} aria-pressed={filters.peopleRole === value}
                       sx={{
                         flex: 1, px: 1, py: 0.5,
                         fontSize: FS.sm, fontWeight: 500, lineHeight: 1.4,
@@ -379,8 +326,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
                           bgcolor: filters.peopleRole === value ? "primary.dark" : "action.hover",
                           color: filters.peopleRole === value ? "primary.contrastText" : "text.primary",
                         },
-                      }}
-                    >
+                      }}>
                       {label}
                     </Box>
                   ))}
@@ -388,58 +334,65 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
               </Box>
               <Divider />
               <Box sx={{ p: 1 }}>
-                <TextField
-                  size="small"
-                  placeholder="Search people…"
-                  value={peopleSearch}
-                  onChange={(e) => setPeopleSearch(e.target.value)}
-                  autoFocus
-                  fullWidth
+                <TextField size="small" placeholder="Search people…" value={peopleSearch}
+                  onChange={(e) => setPeopleSearch(e.target.value)} autoFocus fullWidth
                   slotProps={{ htmlInput: { "aria-label": "Search people" } }}
                   sx={{ "& .MuiInputBase-input": { fontSize: FS.md, py: 0.625 } }}
                 />
               </Box>
               <Divider />
               <Box sx={{ p: 1, maxHeight: 220, overflowY: "auto", display: "flex", flexWrap: "wrap", gap: "4px" }}>
-                {filteredPeople.length === 0 ? (
-                  <Typography variant="caption" color="text.disabled" sx={{ p: 0.5 }}>
-                    No people match
-                  </Typography>
-                ) : filteredPeople.map((login) => {
-                  const active = filters.activePeople.includes(login);
-                  return (
-                    <Chip
-                      key={login}
-                      label={login}
-                      size="small"
-                      onClick={() => togglePerson(login)}
-                      aria-pressed={active}
-                      sx={{
-                        height: 22,
-                        cursor: "pointer",
-                        fontWeight: 500,
-                        fontSize: FS.xs,
-                        opacity: active ? 1 : 0.6,
-                        "&:hover": { opacity: 1 },
-                      }}
-                    />
-                  );
-                })}
+                {filteredPeople.length === 0
+                  ? <Typography variant="caption" color="text.disabled" sx={{ p: 0.5 }}>No people match</Typography>
+                  : filteredPeople.map((login) => {
+                    const active = filters.activePeople.includes(login);
+                    return (
+                      <Chip key={login} label={login} size="small"
+                        onClick={() => {
+                          const next = active ? filters.activePeople.filter((p) => p !== login) : [...filters.activePeople, login];
+                          patchFilters({ activePeople: next });
+                        }}
+                        aria-pressed={active}
+                        sx={{ height: 22, cursor: "pointer", fontWeight: 500, fontSize: FS.xs, opacity: active ? 1 : 0.6, "&:hover": { opacity: 1 } }}
+                      />
+                    );
+                  })}
               </Box>
-              {activeCount > 0 && (
-                <>
-                  <Divider />
-                  <Box sx={{ p: 0.75, display: "flex", justifyContent: "flex-end" }}>
-                    <Button size="small" sx={{ fontSize: FS.sm }} onClick={() => patchFilters({ activePeople: [] })}>
-                      Clear
-                    </Button>
-                  </Box>
-                </>
-              )}
+              {activeCount > 0 && (<>
+                <Divider />
+                <Box sx={{ p: 0.75, display: "flex", justifyContent: "flex-end" }}>
+                  <Button size="small" sx={{ fontSize: FS.sm }} onClick={() => patchFilters({ activePeople: [] })}>Clear</Button>
+                </Box>
+              </>)}
             </Popover>
           </>
         );
       })()}
+
+      {/* ── Active filter tokens — visible without opening any picker ──── */}
+      {(filters.activeLabels.length > 0 || filters.activePeople.length > 0) && (
+        <Divider orientation="vertical" flexItem />
+      )}
+      {filters.activeLabels.map((name) => {
+        const color = labelMap.get(name) ?? "#888";
+        const textCol = labelTextColor(color);
+        return (
+          <Chip key={`lbl:${name}`} label={name} size="small"
+            onDelete={() => patchFilters({ activeLabels: filters.activeLabels.filter((l) => l !== name) })}
+            sx={{
+              bgcolor: color, color: textCol,
+              fontWeight: 600,
+              "& .MuiChip-deleteIcon": { color: textCol, opacity: 0.7, "&:hover": { opacity: 1, color: textCol } },
+            }}
+          />
+        );
+      })}
+      {filters.activePeople.map((login) => (
+        <Chip key={`ppl:${login}`} label={login} size="small"
+          onDelete={() => patchFilters({ activePeople: filters.activePeople.filter((p) => p !== login) })}
+          sx={{ fontWeight: 500 }}
+        />
+      ))}
 
       {isActive && (
         <IconButton size="small" onClick={() => onChange(DEFAULT_FILTERS)} title="Reset all filters" aria-label="Reset all filters" sx={{ ml: "auto" }}>

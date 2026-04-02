@@ -132,7 +132,7 @@ const ItemPicker = <T extends BaseItem,>({
             />
           )}
           slots={{ paper: PaperWithFooter }}
-          sx={{ width: 220 }}
+          sx={{ width: selected.length > 0 ? 140 : 220 }}
           disabled={loadingNums.length > 0}
           openOnFocus
           blurOnSelect
