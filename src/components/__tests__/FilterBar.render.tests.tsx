@@ -59,6 +59,7 @@ describe("FilterBar — render smoke", () => {
     );
 
     const buttons = getAllByRole("button");
+
     expect(buttons.some((b) => b.textContent?.startsWith("Created"))).toBe(true);
     expect(buttons.some((b) => b.textContent?.startsWith("Closed") && !b.textContent.includes("issues"))).toBe(true);
   });
