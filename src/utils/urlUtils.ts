@@ -3,11 +3,12 @@ import type { Filters } from "../types/FilterTypes";
 import type { Repo } from "../types/GitHubTypes";
 import { DEFAULT_VIEW, VIEWS } from "../types/AppTypes";
 
-const readUrlParams = (): { owner: string; repo: string; milestoneNums: number[]; epicNums: number[]; demo: boolean } => {
+const readUrlParams = (): { owner: string; repo: string; milestoneNums: number[]; epicNums: number[]; demo: boolean; previewNoRepos: boolean } => {
   const urlParams = new URLSearchParams(window.location.search);
-  const demo  = urlParams.get("demo") === "1";
-  const owner = demo ? "" : (urlParams.get("owner") ?? "");
-  const repo  = demo ? "" : (urlParams.get("repo")  ?? "");
+  const demo          = urlParams.get("demo") === "1";
+  const previewNoRepos = urlParams.get("preview") === "no-repos";
+  const owner = (demo || previewNoRepos) ? "" : (urlParams.get("owner") ?? "");
+  const repo  = (demo || previewNoRepos) ? "" : (urlParams.get("repo")  ?? "");
   const raw   = urlParams.get("milestones") ?? "";
   const milestoneNums = raw
     .split(",")
@@ -18,7 +19,7 @@ const readUrlParams = (): { owner: string; repo: string; milestoneNums: number[]
     .split(",")
     .map((s) => parseInt(s, 10))
     .filter((n) => Number.isFinite(n) && n > 0);
-  return { owner, repo, milestoneNums, epicNums, demo };
+  return { owner, repo, milestoneNums, epicNums, demo, previewNoRepos };
 };
 
 const syncUrlParams = (activeRepo: Repo | null, selectedNums: number[], isDemo: boolean, selectedEpicNums: number[] = []): void => {

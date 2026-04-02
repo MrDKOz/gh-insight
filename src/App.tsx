@@ -38,7 +38,7 @@ const App: FunctionComponent = () => {
   const { settings, updateSetting }     = useSettings();
   const newVersionAvailable = useNewVersionAvailable();
 
-  const initialPhase: AppPhase = localStorage.getItem(LS_TOKEN) || INITIAL_URL_PARAMS.demo
+  const initialPhase: AppPhase = localStorage.getItem(LS_TOKEN) || INITIAL_URL_PARAMS.demo || INITIAL_URL_PARAMS.previewNoRepos
     ? "authenticating"
     : "splash";
 
@@ -104,12 +104,22 @@ const App: FunctionComponent = () => {
     }
   }, [setUserProfile, setRepos, setPhase, loadDemoForRepo, milestoneDispatch]);
 
+  const handlePreviewNoRepos = useCallback(() => {
+    setUserProfile(DEMO_USER);
+    setRepos([]);
+    setPhase("dashboard");
+  }, [setUserProfile, setRepos, setPhase]);
+
   // Auto-login from stored token, or auto-start demo from URL param.
   // The ref guard ensures this runs exactly once — dependency changes caused
   // by token state updating (e.g. after gh CLI auth) must not re-fire it.
   useEffect(() => {
     if (autoLoginRan.current) { return; }
     autoLoginRan.current = true;
+    if (INITIAL_URL_PARAMS.previewNoRepos) {
+      handlePreviewNoRepos();
+      return;
+    }
     if (INITIAL_URL_PARAMS.demo) {
       handleDemo();
       return;
@@ -137,13 +147,23 @@ const App: FunctionComponent = () => {
         localStorage.removeItem(LS_TOKEN);
         setPhase("splash");
       });
-  }, [handleDemo, saveToken, setPhase, setTokenError, transitionToDashboard]);
+  }, [handleDemo, handlePreviewNoRepos, saveToken, setPhase, setTokenError, transitionToDashboard]);
 
   const handleDisconnect = useCallback(() => {
     disconnect();
     resetMilestones();
     setSettingsAnchor(null);
   }, [disconnect, resetMilestones]);
+
+  const handleRefreshRepos = useCallback(async () => {
+    if (!auth.token) { return; }
+    try {
+      const repoList = await fetchUserRepos(auth.token);
+      setRepos(repoList);
+    } catch {
+      // leave existing state — the existing tokenError alert will surface the issue
+    }
+  }, [auth.token, setRepos]);
 
   // ── Repo / milestone orchestration ───────────────────────────────────────
 
@@ -389,7 +409,21 @@ const App: FunctionComponent = () => {
               );
             })()}
 
-            {!milestones.state.activeRepo && (
+            {auth.repos.length === 0 && !milestones.state.isDemo && (
+              <EmptyState
+                icon={<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>}
+                title="No repositories accessible"
+                message="Your token doesn't have permission to list repositories. Check your token scopes, or sign out and try a different token."
+                actions={
+                  <>
+                    <Button variant="outlined" size="small" onClick={() => { void handleRefreshRepos(); }}>Refresh</Button>
+                    <Button variant="outlined" size="small" color="error" onClick={handleDisconnect}>Sign out</Button>
+                  </>
+                }
+              />
+            )}
+
+            {auth.repos.length > 0 && !milestones.state.activeRepo && (
               <EmptyState
                 icon={<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h2.5l2 2H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" /></svg>}
                 title="Select a repository"
