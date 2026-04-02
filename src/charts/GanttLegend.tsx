@@ -21,8 +21,9 @@ const GanttLegend: FunctionComponent<GanttLegendProps> = ({ hasOpenIssues, color
   const issueOpen   = `linear-gradient(135deg, ${palette.issue}73 0%, ${palette.issueDark}73 100%)`;
   const prMergedBg  = `linear-gradient(135deg, ${palette.prMerged} 0%, ${palette.prMergedDark} 100%)`;
   const prClosedBg  = `linear-gradient(135deg, ${palette.prClosed} 0%, ${palette.prClosedDark} 100%)`;
+
   return (
-  <Box sx={{ display: "flex", alignItems: "center", gap: 2.5, flexWrap: "wrap" }}>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 2.5, flexWrap: "wrap", mb: 1 }}>
       <Box sx={{ display: "flex", gap: 2.5, flexWrap: "wrap", flex: 1 }}>
         {[
           { bg: issueClosed, label: "Issues (closed)" },

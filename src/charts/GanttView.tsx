@@ -324,7 +324,6 @@ const GanttView = forwardRef<GanttHandle, Props>(({
                   : undefined,
               }}
             >
-              <Box component="span" className={bi.badgeClass}>{bi.item.type.toUpperCase()}</Box>
               {bi.isDraft && (
                 <Box component="span" sx={{ fontSize: FS.tiny, fontWeight: 700, color: "text.secondary", bgcolor: "action.selected", borderRadius: "3px", px: "3px", py: "1px", mr: "2px", flexShrink: 0 }}>DRAFT</Box>
               )}

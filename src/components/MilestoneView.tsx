@@ -70,7 +70,7 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
   const [exportError, setExportError] = useState<string | null>(null);
 
   const [toolbarSlot, setToolbarSlot] = useState<Element | null>(null);
-  const [filterSlot, setFilterSlot] = useState<Element | null>(null);
+  const [filterSlot, setFilterSlot]   = useState<Element | null>(null);
 
   const wrapperRef = useRef<HTMLDivElement>(null);
 

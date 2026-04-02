@@ -319,7 +319,7 @@ describe("SET_REPO", () => {
     expect(next.itemsCache).toEqual({});
     expect(next.loadingNums).toEqual([]);
     expect(next.loadingList).toBe(false);
-    expect(next.isDemo).toBe(false);
+    expect(next.isDemo).toBe(true); // SET_REPO preserves isDemo so switching repos in demo mode stays in demo
     expect(next.error).toBeNull();
     expect(next.emptyMilestoneNums).toEqual([]);
     // view, filters, includePRs should be preserved

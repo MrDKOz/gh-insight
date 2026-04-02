@@ -4,6 +4,7 @@ import type { FunctionComponent, HTMLAttributes, Key } from "react";
 import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
@@ -83,59 +84,74 @@ const ContextBar: FunctionComponent<Props> = memo(({
       borderColor: "divider",
     }}>
 
-      {/* Repo selector */}
-      <Autocomplete<Repo, false, false, true>
-        freeSolo
-        forcePopupIcon="auto"
-        options={repos}
-        value={activeRepo}
-        onChange={(_, v) => {
-          if (!v) { onRepoChange(null); return; }
-          if (typeof v === "string") {
-            const slash = v.indexOf("/");
-            if (slash > 0) {
-              onRepoChange({ id: -1, owner: v.slice(0, slash), name: v.slice(slash + 1), fullName: v, private: false, description: null });
-            }
-            return;
+      {/* Repo selector — chip when a repo is selected, autocomplete when picking */}
+      {activeRepo ? (
+        <Chip
+          variant="outlined"
+          label={
+            <Stack direction="row" alignItems="center" gap={0.5}>
+              {activeRepo.private && <LockIcon />}
+              <Box component="span">{activeRepo.fullName}</Box>
+            </Stack>
           }
-          onRepoChange(v);
-        }}
-        getOptionLabel={(r) => (typeof r === "string" ? r : r.fullName)}
-        // noinspection SuspiciousTypeOfGuard — freeSolo passes strings at runtime even though TS types a/b as Repo
-        isOptionEqualToValue={(a, b) => (typeof a === "string" || typeof b === "string" ? false : a.fullName === b.fullName)}
-        filterOptions={(options, { inputValue }) => {
-          const query = inputValue.toLowerCase();
-          return query ? options.filter((r) => r.fullName.toLowerCase().includes(query)) : options;
-        }}
-        renderOption={(props, option) => {
-          const { key, ...rest } = props as typeof props & { key: Key };
-          return (
-          <Box key={key} component="li" {...rest} sx={{ ...(rest as HTMLAttributes<HTMLLIElement>).style, width: "100%" }}>
-            <Box sx={{ display: "flex", flexDirection: "column", minWidth: 0, width: "100%" }}>
-              <Stack direction="row" alignItems="center" gap={0.75}>
-                {option.private && <LockIcon />}
-                <Typography variant="body2" noWrap>{option.fullName}</Typography>
-              </Stack>
-              {option.description && (
-                <Typography variant="caption" color="text.secondary" noWrap sx={{ opacity: 0.8 }}>
-                  {option.description}
-                </Typography>
-              )}
+          onDelete={() => onRepoChange(null)}
+          sx={{ height: 32, fontSize: "0.8125rem", fontWeight: 500, flexShrink: 0 }}
+        />
+      ) : (
+        <Autocomplete<Repo, false, false, true>
+          freeSolo
+          forcePopupIcon="auto"
+          options={repos}
+          value={activeRepo}
+          onChange={(_, v) => {
+            if (!v) { onRepoChange(null); return; }
+            if (typeof v === "string") {
+              const slash = v.indexOf("/");
+              if (slash > 0) {
+                onRepoChange({ id: -1, owner: v.slice(0, slash), name: v.slice(slash + 1), fullName: v, private: false, description: null });
+              }
+              return;
+            }
+            onRepoChange(v);
+          }}
+          getOptionLabel={(r) => (typeof r === "string" ? r : r.fullName)}
+          // noinspection SuspiciousTypeOfGuard — freeSolo passes strings at runtime even though TS types a/b as Repo
+          isOptionEqualToValue={(a, b) => (typeof a === "string" || typeof b === "string" ? false : a.fullName === b.fullName)}
+          filterOptions={(options, { inputValue }) => {
+            const query = inputValue.toLowerCase();
+            return query ? options.filter((r) => r.fullName.toLowerCase().includes(query)) : options;
+          }}
+          renderOption={(props, option) => {
+            const { key, ...rest } = props as typeof props & { key: Key };
+            return (
+            <Box key={key} component="li" {...rest} sx={{ ...(rest as HTMLAttributes<HTMLLIElement>).style, width: "100%" }}>
+              <Box sx={{ display: "flex", flexDirection: "column", minWidth: 0, width: "100%" }}>
+                <Stack direction="row" alignItems="center" gap={0.75}>
+                  {option.private && <LockIcon />}
+                  <Typography variant="body2" noWrap>{option.fullName}</Typography>
+                </Stack>
+                {option.description && (
+                  <Typography variant="caption" color="text.secondary" noWrap sx={{ opacity: 0.8 }}>
+                    {option.description}
+                  </Typography>
+                )}
+              </Box>
             </Box>
-          </Box>
-          );
-        }}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            label="Repository"
-            size="small"
-            placeholder={repos.length === 0 ? "owner/repo" : "Search repos…"}
-          />
-        )}
-        sx={{ width: 300, flexShrink: 0 }}
-        noOptionsText={isDemo ? "No demo repos" : "No repositories found"}
-      />
+            );
+          }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              size="small"
+              placeholder={repos.length === 0 ? "owner/repo" : "Search repos…"}
+              autoFocus
+            />
+          )}
+          sx={{ width: 280, flexShrink: 0 }}
+          noOptionsText={isDemo ? "No demo repos" : "No repositories found"}
+          openOnFocus
+        />
+      )}
 
       <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
 
@@ -146,7 +162,6 @@ const ContextBar: FunctionComponent<Props> = memo(({
           <Typography variant="caption" color="text.secondary">Loading milestones…</Typography>
         </Stack>
       )}
-
       {!loadingList && milestones.length > 0 && (
         <MilestonePicker
           milestones={milestones}
@@ -168,7 +183,6 @@ const ContextBar: FunctionComponent<Props> = memo(({
           <Typography variant="caption" color="text.secondary">Loading epics…</Typography>
         </Stack>
       )}
-
       {!loadingEpicList && epics.length > 0 && (
         <EpicPicker
           epics={epics}
@@ -183,7 +197,7 @@ const ContextBar: FunctionComponent<Props> = memo(({
         />
       )}
 
-      {/* Refresh — lives next to milestones, not at the far end */}
+      {/* Refresh */}
       {selected.length > 0 && !isDemo && (
         <Button
           variant="text"
@@ -206,30 +220,31 @@ const ContextBar: FunctionComponent<Props> = memo(({
       <Box id="timeline-toolbar" sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }} />
     </Box>}
 
-    {/* Row 2: view tabs — only shown when data is loaded */}
-    {hasItems && (
-      <Tabs
-        value={view}
-        onChange={(_, v: View) => onViewChange(v)}
-        variant="scrollable"
-        scrollButtons="auto"
-        sx={{
-          px: 2,
-          minHeight: 40,
-          borderBottom: 1,
-          borderColor: "divider",
-          "& .MuiTab-root": { minHeight: 40, py: 0.5, fontSize: "0.8125rem" },
-        }}
-      >
-        {VIEWS.map((v) => (
-          <Tab key={v} label={v} value={v} />
-        ))}
-      </Tabs>
-    )}
-
-    {/* Row 3: filter bar — portaled from Timeline when data is loaded */}
+    {/* Row 2: filter bar — portaled from MilestoneView when data is loaded */}
     {hasItems && (
       <Box id="filter-bar-slot" />
+    )}
+
+    {/* Row 3: view tabs */}
+    {hasItems && (
+      <Box sx={{ display: "flex", alignItems: "center", borderBottom: 1, borderColor: "divider" }}>
+        <Tabs
+          value={view}
+          onChange={(_, v: View) => onViewChange(v)}
+          variant="scrollable"
+          scrollButtons="auto"
+          sx={{
+            flex: 1,
+            px: 2,
+            minHeight: 40,
+            "& .MuiTab-root": { minHeight: 40, py: 0.5, fontSize: "0.8125rem" },
+          }}
+        >
+          {VIEWS.map((v) => (
+            <Tab key={v} label={v} value={v} />
+          ))}
+        </Tabs>
+      </Box>
     )}
   </Box>
 ));
