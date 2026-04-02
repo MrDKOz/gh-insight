@@ -5,8 +5,7 @@ import type { MouseEvent } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Tooltip from "@mui/material/Tooltip";
-import { forwardRef, memo, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { forwardRef, memo, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { AuthorCard, AuthorTag } from "../components/AuthorTag";
 import { ItemHoverCard, fixedItemCardPos } from "../components/ItemHoverCard";
 import { useGanttLayout } from "../hooks/useGanttLayout";
@@ -73,12 +72,6 @@ const GanttView = forwardRef<GanttHandle, Props>(({
   const hasOpenIssues = useMemo(() => items.some((i) => i.type === "issue" && !i.closedAt), [items]);
 
   useImperativeHandle(ref, () => ({ trackColEl: trackColRef.current }), [trackColRef]);
-
-  const [legendSlot, setLegendSlot] = useState<Element | null>(null);
-
-  useLayoutEffect(() => {
-    setLegendSlot(document.getElementById("gantt-legend-slot"));
-  }, []);
 
   const [hoverItem, setHoverItem] = useState<TimelineItem | null>(null);
   const [cardPos, setCardPos] = useState({ top: 0, left: 0 });
@@ -314,11 +307,6 @@ const GanttView = forwardRef<GanttHandle, Props>(({
 
   return (
     <>
-      {legendSlot && createPortal(
-        <GanttLegend compact hasOpenIssues={hasOpenIssues} colorblindMode={colorblindMode} snapMode={snapMode} onSnapModeChange={onSnapModeChange} onFitToScreen={onFitToScreen} />,
-        legendSlot,
-      )}
-
       <GanttLegend hasOpenIssues={hasOpenIssues} colorblindMode={colorblindMode} snapMode={snapMode} onSnapModeChange={onSnapModeChange} onFitToScreen={onFitToScreen} />
 
       <Box className="tl-body">

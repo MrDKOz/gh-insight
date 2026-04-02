@@ -224,8 +224,6 @@ const ContextBar: FunctionComponent<Props> = memo(({
             <Tab key={v} label={v} value={v} />
           ))}
         </Tabs>
-        {/* Gantt legend portals here when Gantt view is active */}
-        <Box id="gantt-legend-slot" sx={{ display: "flex", alignItems: "center" }} />
         {/* Filter toggle button portals here from MilestoneView */}
         <Box id="view-controls-slot" sx={{ display: "flex", alignItems: "center", px: 1.5 }} />
       </Box>
