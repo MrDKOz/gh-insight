@@ -205,7 +205,12 @@ const ContextBar: FunctionComponent<Props> = memo(({
       <Box id="timeline-toolbar" sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }} />
     </Box>}
 
-    {/* Row 2: view tabs + gantt legend slot + filter toggle slot */}
+    {/* Row 2: filter bar — portaled from MilestoneView when data is loaded */}
+    {hasItems && (
+      <Box id="filter-bar-slot" />
+    )}
+
+    {/* Row 3: view tabs */}
     {hasItems && (
       <Box sx={{ display: "flex", alignItems: "center", borderBottom: 1, borderColor: "divider" }}>
         <Tabs
@@ -225,11 +230,6 @@ const ContextBar: FunctionComponent<Props> = memo(({
           ))}
         </Tabs>
       </Box>
-    )}
-
-    {/* Row 3: filter bar — portaled from Timeline when data is loaded */}
-    {hasItems && (
-      <Box id="filter-bar-slot" />
     )}
   </Box>
 ));
