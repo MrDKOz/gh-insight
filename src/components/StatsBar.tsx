@@ -100,7 +100,7 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
   }, [milestones, items]);
 
   return (
-    <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+    <Box sx={{ border: 1, borderColor: "divider", borderRadius: 1.5, bgcolor: "action.hover", px: 1.5, mb: 0.5 }}>
       <Stack
         direction="row"
         alignItems="center"

@@ -69,8 +69,10 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
   const [exporting, setExporting] = useState<ExportFormat | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
 
-  const [toolbarSlot, setToolbarSlot] = useState<Element | null>(null);
-  const [filterSlot, setFilterSlot] = useState<Element | null>(null);
+  const [toolbarSlot, setToolbarSlot]         = useState<Element | null>(null);
+  const [filterSlot, setFilterSlot]           = useState<Element | null>(null);
+  const [viewControlsSlot, setViewControlsSlot] = useState<Element | null>(null);
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
 
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -119,7 +121,17 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
   useLayoutEffect(() => {
     setToolbarSlot(document.getElementById("timeline-toolbar"));
     setFilterSlot(document.getElementById("filter-bar-slot"));
+    setViewControlsSlot(document.getElementById("view-controls-slot"));
   }, []);
+
+  const activeFilterCount = useMemo(() => {
+    let n = 0;
+    if (filters.createdStart || filters.createdEnd) { n++; }
+    if (filters.closedStart  || filters.closedEnd)  { n++; }
+    if (!filters.showOpenIssues || !filters.showClosedIssues || !filters.showOpenPRs || !filters.showMergedPRs || !filters.showClosedPRs) { n++; }
+    n += filters.activeLabels.length + filters.activePeople.length;
+    return n;
+  }, [filters]);
 
   const visibleFormats = useMemo(() => formatsForView(view), [view]);
 
@@ -199,7 +211,19 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
   return (
     <>
     {toolbarSlot && createPortal(toolbar, toolbarSlot)}
-    {filterSlot && createPortal(
+    {viewControlsSlot && createPortal(
+      <Button
+        size="small"
+        variant={filtersExpanded ? "contained" : "outlined"}
+        disableElevation
+        onClick={() => setFiltersExpanded((x) => !x)}
+        sx={{ fontSize: "0.75rem", height: 28, fontWeight: filtersExpanded || activeFilterCount > 0 ? 700 : 500 }}
+      >
+        Filters{activeFilterCount > 0 ? ` · ${activeFilterCount}` : ""}
+      </Button>,
+      viewControlsSlot,
+    )}
+    {filtersExpanded && filterSlot && createPortal(
       <FilterBar
         variant="toolbar"
         items={items}

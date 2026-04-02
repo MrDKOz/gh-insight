@@ -128,7 +128,6 @@ const ContextBar: FunctionComponent<Props> = memo(({
         renderInput={(params) => (
           <TextField
             {...params}
-            label="Repository"
             size="small"
             placeholder={repos.length === 0 ? "owner/repo" : "Search repos…"}
           />
@@ -206,25 +205,30 @@ const ContextBar: FunctionComponent<Props> = memo(({
       <Box id="timeline-toolbar" sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }} />
     </Box>}
 
-    {/* Row 2: view tabs — only shown when data is loaded */}
+    {/* Row 2: view tabs + gantt legend slot + filter toggle slot */}
     {hasItems && (
-      <Tabs
-        value={view}
-        onChange={(_, v: View) => onViewChange(v)}
-        variant="scrollable"
-        scrollButtons="auto"
-        sx={{
-          px: 2,
-          minHeight: 40,
-          borderBottom: 1,
-          borderColor: "divider",
-          "& .MuiTab-root": { minHeight: 40, py: 0.5, fontSize: "0.8125rem" },
-        }}
-      >
-        {VIEWS.map((v) => (
-          <Tab key={v} label={v} value={v} />
-        ))}
-      </Tabs>
+      <Box sx={{ display: "flex", alignItems: "center", borderBottom: 1, borderColor: "divider" }}>
+        <Tabs
+          value={view}
+          onChange={(_, v: View) => onViewChange(v)}
+          variant="scrollable"
+          scrollButtons="auto"
+          sx={{
+            flex: 1,
+            px: 2,
+            minHeight: 40,
+            "& .MuiTab-root": { minHeight: 40, py: 0.5, fontSize: "0.8125rem" },
+          }}
+        >
+          {VIEWS.map((v) => (
+            <Tab key={v} label={v} value={v} />
+          ))}
+        </Tabs>
+        {/* Gantt legend portals here when Gantt view is active */}
+        <Box id="gantt-legend-slot" sx={{ display: "flex", alignItems: "center" }} />
+        {/* Filter toggle button portals here from MilestoneView */}
+        <Box id="view-controls-slot" sx={{ display: "flex", alignItems: "center", px: 1.5 }} />
+      </Box>
     )}
 
     {/* Row 3: filter bar — portaled from Timeline when data is loaded */}

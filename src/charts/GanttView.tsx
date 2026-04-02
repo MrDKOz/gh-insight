@@ -5,7 +5,8 @@ import type { MouseEvent } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Tooltip from "@mui/material/Tooltip";
-import { forwardRef, memo, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { forwardRef, memo, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AuthorCard, AuthorTag } from "../components/AuthorTag";
 import { ItemHoverCard, fixedItemCardPos } from "../components/ItemHoverCard";
 import { useGanttLayout } from "../hooks/useGanttLayout";
@@ -72,6 +73,12 @@ const GanttView = forwardRef<GanttHandle, Props>(({
   const hasOpenIssues = useMemo(() => items.some((i) => i.type === "issue" && !i.closedAt), [items]);
 
   useImperativeHandle(ref, () => ({ trackColEl: trackColRef.current }), [trackColRef]);
+
+  const [legendSlot, setLegendSlot] = useState<Element | null>(null);
+
+  useLayoutEffect(() => {
+    setLegendSlot(document.getElementById("gantt-legend-slot"));
+  }, []);
 
   const [hoverItem, setHoverItem] = useState<TimelineItem | null>(null);
   const [cardPos, setCardPos] = useState({ top: 0, left: 0 });
@@ -307,7 +314,10 @@ const GanttView = forwardRef<GanttHandle, Props>(({
 
   return (
     <>
-      <GanttLegend hasOpenIssues={hasOpenIssues} colorblindMode={colorblindMode} snapMode={snapMode} onSnapModeChange={onSnapModeChange} onFitToScreen={onFitToScreen} />
+      {legendSlot && createPortal(
+        <GanttLegend hasOpenIssues={hasOpenIssues} colorblindMode={colorblindMode} snapMode={snapMode} onSnapModeChange={onSnapModeChange} onFitToScreen={onFitToScreen} />,
+        legendSlot,
+      )}
 
       <Box className="tl-body">
         <Box className="tl-label-col" style={{ width: labelWidth }}>
@@ -324,7 +334,6 @@ const GanttView = forwardRef<GanttHandle, Props>(({
                   : undefined,
               }}
             >
-              <Box component="span" className={bi.badgeClass}>{bi.item.type.toUpperCase()}</Box>
               {bi.isDraft && (
                 <Box component="span" sx={{ fontSize: FS.tiny, fontWeight: 700, color: "text.secondary", bgcolor: "action.selected", borderRadius: "3px", px: "3px", py: "1px", mr: "2px", flexShrink: 0 }}>DRAFT</Box>
               )}
