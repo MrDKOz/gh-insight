@@ -12,6 +12,7 @@ const platform = isElectron() ? "electron" : "web";
 
 posthog.init(import.meta.env.VITE_POSTHOG_KEY as string, {
   api_host: import.meta.env.VITE_POSTHOG_HOST as string,
+  ui_host: "https://eu.posthog.com",
   person_profiles: "never",
   capture_pageview: true,
   capture_pageleave: true,
