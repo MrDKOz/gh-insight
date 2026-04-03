@@ -74,6 +74,7 @@ const HelpPopover: FunctionComponent = () => {
         <IconButton
           size="small"
           aria-label="About this app"
+          onClick={() => setOpen(true)}
         >
           <HelpCircleIcon />
         </IconButton>
