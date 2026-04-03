@@ -196,6 +196,8 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
         {toggles.map(({ key, label, count, color }) => (
           <Chip
             key={key}
+            role="button"
+            aria-pressed={Boolean(filters[key])}
             label={
               <Stack component="span" direction="row" alignItems="center" gap={0.5}>
                 {label}
@@ -311,7 +313,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
                   role="group" aria-label="Match people by role">
                   {ROLE_OPTIONS.map(({ value, label, title }, i) => (
                     <Box key={value} component="button" onClick={() => patchFilters({ peopleRole: value })}
-                      title={title} aria-pressed={filters.peopleRole === value}
+                      aria-label={title} aria-pressed={filters.peopleRole === value}
                       sx={{
                         flex: 1, px: 1, py: 0.5,
                         fontSize: FS.sm, fontWeight: 500, lineHeight: 1.4,
