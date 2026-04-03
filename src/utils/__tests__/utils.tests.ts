@@ -1,8 +1,8 @@
 import type { TimelineItem } from "../../types/GitHubTypes";
 import { DEFAULT_FILTERS, applyFilters } from "../../types/FilterTypes";
 import { COLORS, COLORS_CB, EPIC_COLORS, EPIC_COLORS_CB, MILESTONE_COLORS, MILESTONE_COLORS_CB, labelTextColor, makeChartColors, makeStatusChipSx } from "../colorUtils";
-import { MS_PER_DAY, MS_PER_HOUR, durationDays, fmtDate, fmtDateTime, forecastCompletion, snapToHour } from "../dateUtils";
-import { assigneesOtherThanAuthor, hoverCardPos, itemEndDate, itemStatus, pluralize, safeUrl, upperBound } from "../displayUtils";
+import { MS_PER_DAY, MS_PER_HOUR, buildBankHolidayMap, durationDays, fmtDate, fmtDateTime, forecastCompletion, snapToHour } from "../dateUtils";
+import { assigneesOtherThanAuthor, buildMilestoneMap, hoverCardPos, itemEndDate, itemStatus, partitionItems, pluralize, safeUrl, upperBound } from "../displayUtils";
 import { readViewFiltersFromUrl, setViewParam, syncFiltersToUrl } from "../urlUtils";
 
 const issue = (overrides: Partial<{ closedAt: string | null }> = {}): TimelineItem => ({
@@ -753,3 +753,111 @@ describe("EPIC_COLORS_CB", () => {
     for (const c of EPIC_COLORS_CB) { expect(c).toMatch(/^#[0-9a-f]{6}$/i); }
   });
 });
+
+describe("buildMilestoneMap", () => {
+  const meta = (number: number, title: string) => ({ number, title, color: "#aabbcc", dueOn: null, kind: "milestone" as const });
+
+  it("returns an empty map for an empty array", () => {
+    expect(buildMilestoneMap([])).toEqual(new Map());
+  });
+
+  it("maps each milestone by its number", () => {
+    const m1 = meta(1, "v1.0");
+    const m2 = meta(2, "v2.0");
+    const map = buildMilestoneMap([m1, m2]);
+
+    expect(map.get(1)).toBe(m1);
+    expect(map.get(2)).toBe(m2);
+  });
+
+  it("last entry wins when milestone numbers collide", () => {
+    const a = meta(1, "first");
+    const b = meta(1, "second");
+    const map = buildMilestoneMap([a, b]);
+
+    expect(map.get(1)?.title).toBe("second");
+  });
+});
+
+describe("partitionItems", () => {
+  const closedIssue  = issue({ closedAt: "2025-03-01T00:00:00Z" });
+  const openIssue    = issue({ closedAt: null });
+  const mergedPR     = pr({ mergedAt: "2025-03-01T00:00:00Z", closedAt: "2025-03-01T00:00:00Z" });
+  const closedPR     = pr({ mergedAt: null, closedAt: "2025-03-01T00:00:00Z" });
+  const openPR       = pr({ mergedAt: null, closedAt: null });
+
+  it("returns all-empty partitions for an empty array", () => {
+    const p = partitionItems([]);
+
+    expect(p.issueItems).toHaveLength(0);
+    expect(p.prItems).toHaveLength(0);
+    expect(p.closedIssues).toHaveLength(0);
+    expect(p.openIssues).toHaveLength(0);
+    expect(p.mergedPRs).toHaveLength(0);
+    expect(p.closedPRs).toHaveLength(0);
+  });
+
+  it("separates issues from PRs", () => {
+    const p = partitionItems([closedIssue, openIssue, mergedPR]);
+
+    expect(p.issueItems).toHaveLength(2);
+    expect(p.prItems).toHaveLength(1);
+  });
+
+  it("splits closed and open issues correctly", () => {
+    const p = partitionItems([closedIssue, openIssue]);
+
+    expect(p.closedIssues).toEqual([closedIssue]);
+    expect(p.openIssues).toEqual([openIssue]);
+  });
+
+  it("splits merged, closed-not-merged, and open PRs correctly", () => {
+    const p = partitionItems([mergedPR, closedPR, openPR]);
+
+    expect(p.mergedPRs).toEqual([mergedPR]);
+    expect(p.closedPRs).toEqual([closedPR]);
+    // open PRs appear in prItems but not in mergedPRs or closedPRs
+    expect(p.prItems).toContain(openPR);
+    expect(p.mergedPRs).not.toContain(openPR);
+    expect(p.closedPRs).not.toContain(openPR);
+  });
+
+  it("a merged PR does not appear in closedPRs", () => {
+    const p = partitionItems([mergedPR]);
+
+    expect(p.mergedPRs).toContain(mergedPR);
+    expect(p.closedPRs).not.toContain(mergedPR);
+  });
+});
+
+describe("buildBankHolidayMap", () => {
+  it("returns an empty map for an empty array", () => {
+    expect(buildBankHolidayMap([])).toEqual(new Map());
+  });
+
+  it("maps each date to its holiday name", () => {
+    const map = buildBankHolidayMap([
+      { date: "2025-12-25", name: "Christmas Day" },
+      { date: "2025-01-01", name: "New Year's Day" },
+    ]);
+
+    expect(map.get("2025-12-25")).toBe("Christmas Day");
+    expect(map.get("2025-01-01")).toBe("New Year's Day");
+  });
+
+  it("last entry wins when the same date appears twice", () => {
+    const map = buildBankHolidayMap([
+      { date: "2025-05-05", name: "Early May Bank Holiday" },
+      { date: "2025-05-05", name: "Substitute" },
+    ]);
+
+    expect(map.get("2025-05-05")).toBe("Substitute");
+  });
+
+  it("does not include dates outside the provided array", () => {
+    const map = buildBankHolidayMap([{ date: "2025-12-25", name: "Christmas Day" }]);
+
+    expect(map.has("2025-12-26")).toBe(false);
+  });
+});
+
