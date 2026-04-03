@@ -1,7 +1,6 @@
 import type { Action, AppState } from "../state/appReducer";
 import type { Epic, Milestone, MilestoneMeta, Repo, TimelineItem } from "../types/GitHubTypes";
 import type { Dispatch } from "react";
-import posthog from "posthog-js";
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { fetchAllRemainingMilestones, fetchEpicItems, fetchEpics, fetchMilestoneItems, fetchMilestonesInitial } from "../api/github";
 import { DEMO_DATA_BY_REPO } from "../data/demo";
@@ -196,7 +195,6 @@ const useMilestones = ({ token, colorblindMode = false }: UseMilestonesOptions):
   }, [token]);
 
   const addMilestone = useCallback(async (milestone: Milestone) => {
-    posthog.capture("milestone_selected", { milestones_count_after: state.selected.length + 1, epics_selected: state.selectedEpics.length });
     dispatch({ type: "SELECT_MILESTONE", milestone });
     if (milestone.number in state.itemsCache || !state.activeRepo) { return; }
     const repo = state.activeRepo;
@@ -207,15 +205,13 @@ const useMilestones = ({ token, colorblindMode = false }: UseMilestonesOptions):
       (items) => dispatch({ type: "FETCH_ITEMS_SUCCESS", milestoneNumber: milestone.number, items }),
       (error) => dispatch({ type: "FETCH_ITEMS_ERROR", milestoneNumber: milestone.number, error }),
     );
-  }, [state.itemsCache, state.activeRepo, state.selected.length, state.selectedEpics.length, token]);
+  }, [state.itemsCache, state.activeRepo, token]);
 
   const removeMilestone = useCallback((num: number) => {
-    posthog.capture("milestone_deselected", { milestones_count_after: state.selected.length - 1, epics_selected: state.selectedEpics.length });
     dispatch({ type: "REMOVE_MILESTONE", milestoneNumber: num });
-  }, [state.selected.length, state.selectedEpics.length]);
+  }, []);
 
   const addEpic = useCallback(async (epic: Epic) => {
-    posthog.capture("epic_selected", { epics_count_after: state.selectedEpics.length + 1, milestones_selected: state.selected.length });
     dispatch({ type: "SELECT_EPIC", epic });
     if (epic.number in state.epicItemsCache || !state.activeRepo) { return; }
     const repo = state.activeRepo;
@@ -226,16 +222,14 @@ const useMilestones = ({ token, colorblindMode = false }: UseMilestonesOptions):
       (items) => dispatch({ type: "FETCH_EPIC_ITEMS_SUCCESS", epicNumber: epic.number, items }),
       (error) => dispatch({ type: "FETCH_EPIC_ITEMS_ERROR", epicNumber: epic.number, error }),
     );
-  }, [state.epicItemsCache, state.activeRepo, state.selectedEpics.length, state.selected.length, token]);
+  }, [state.epicItemsCache, state.activeRepo, token]);
 
   const removeEpic = useCallback((epicNumber: number) => {
-    posthog.capture("epic_deselected", { epics_count_after: state.selectedEpics.length - 1, milestones_selected: state.selected.length });
     dispatch({ type: "REMOVE_EPIC", epicNumber });
-  }, [state.selectedEpics.length, state.selected.length]);
+  }, []);
 
   const loadMoreMilestones = useCallback(async () => {
     if (!state.activeRepo || state.loadingMoreMilestones || !state.milestonesHasMore) { return; }
-    posthog.capture("load_more_triggered", { item_type: "milestone" });
     dispatch({ type: "FETCH_MORE_MILESTONES_START" });
     try {
       const remaining = await fetchAllRemainingMilestones(
@@ -250,7 +244,6 @@ const useMilestones = ({ token, colorblindMode = false }: UseMilestonesOptions):
 
   const loadMoreEpics = useCallback(async () => {
     if (!state.activeRepo || state.loadingMoreEpics || !state.epicsHasMore) { return; }
-    posthog.capture("load_more_triggered", { item_type: "epic" });
     dispatch({ type: "FETCH_MORE_EPICS_START" });
     try {
       const { items } = await fetchEpics(state.activeRepo.owner, state.activeRepo.name, token, undefined, ["CLOSED"]);
@@ -263,7 +256,6 @@ const useMilestones = ({ token, colorblindMode = false }: UseMilestonesOptions):
 
   const refreshMilestones = useCallback(async () => {
     if (state.selected.length === 0 || !state.activeRepo) { return; }
-    posthog.capture("data_refreshed", { milestones_count: state.selected.length });
     refreshAbortRef.current?.abort();
     const ac = new AbortController();
     refreshAbortRef.current = ac;

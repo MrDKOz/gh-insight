@@ -7,7 +7,6 @@ import Button from "@mui/material/Button";
 import CssBaseline from "@mui/material/CssBaseline";
 import LinearProgress from "@mui/material/LinearProgress";
 import { ThemeProvider } from "@mui/material/styles";
-import posthog from "posthog-js";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchUserProfile, fetchUserRepos } from "./api/github";
 import { AppHeader } from "./components/AppHeader";
@@ -85,7 +84,6 @@ const App: FunctionComponent = () => {
       milestoneDispatch({ type: "SET_REPO", repo: autoRepo });
     }
     setPhase("dashboard");
-    posthog.capture("auth", { method: "token" });
     if (autoRepo) {
       void loadMilestonesForRepo(autoRepo, {
         autoSelectNums:     INITIAL_URL_PARAMS.milestoneNums,
@@ -100,7 +98,6 @@ const App: FunctionComponent = () => {
     setUserProfile(DEMO_USER);
     setRepos(DEMO_REPOS);
     setPhase("dashboard");
-    posthog.capture("auth", { method: "demo" });
     if (firstRepo) {
       milestoneDispatch({ type: "SET_REPO", repo: firstRepo });
       loadDemoForRepo(firstRepo, INITIAL_URL_PARAMS.milestoneNums);
@@ -173,7 +170,6 @@ const App: FunctionComponent = () => {
   const handleRepoSelect = useCallback((repo: Repo | null) => {
     milestones.dispatch({ type: "SET_REPO", repo });
     if (!repo) { return; }
-    posthog.capture("repo_switched", { is_private: repo.private });
     if (milestones.state.isDemo) {
       milestones.loadDemoForRepo(repo, []);
     } else {
@@ -204,7 +200,6 @@ const App: FunctionComponent = () => {
     if (foundRepo) {
       await loadMilestonesForRepo(foundRepo, { autoSelectNums: milestoneNums, autoSelectEpicNums: epicNums });
     }
-    posthog.capture("share_code_imported", { milestones_count: milestoneNums.length, epics_count: epicNums.length, view });
   }, [auth.repos, milestoneDispatch, loadMilestonesForRepo]);
 
   // ── URL synchronisation ───────────────────────────────────────────────────
@@ -239,7 +234,6 @@ const App: FunctionComponent = () => {
 
   const handleViewChange = useCallback((v: View) => {
     milestones.dispatch({ type: "SET_VIEW", view: v });
-    posthog.capture("view_change", { view: v });
   }, [milestones]);
 
   // ── Config import / export ────────────────────────────────────────────────
