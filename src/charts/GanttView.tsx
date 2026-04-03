@@ -9,7 +9,7 @@ import { forwardRef, memo, useEffect, useImperativeHandle, useMemo, useRef, useS
 import { AuthorCard, AuthorTag } from "../components/AuthorTag";
 import { ItemHoverCard, fixedItemCardPos } from "../components/ItemHoverCard";
 import { useGanttLayout } from "../hooks/useGanttLayout";
-import { COLORS, COLORS_CB } from "../utils/colorUtils";
+import { COLORS, COLORS_CB, labelTextColor } from "../utils/colorUtils";
 import { DAY_NAMES, MS_PER_DAY, MS_PER_HOUR, STALE_MS, buildBankHolidayMap, durationDays, fmtDate, fmtDateTime, snapToHour } from "../utils/dateUtils";
 import { FS, itemEndDate, safeUrl } from "../utils/displayUtils";
 import { GanttLegend } from "./GanttLegend";
@@ -465,7 +465,7 @@ const GanttView = forwardRef<GanttHandle, Props>(({
                       <Box
                         component="span"
                         aria-hidden="true"
-                        style={{ position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)", background: bi.reviewBadge.bg, color: "#ffffff", fontSize: 9, fontWeight: 700, lineHeight: 1, padding: "2px 4px", borderRadius: 3, pointerEvents: "none", userSelect: "none" }}
+                        style={{ position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)", background: bi.reviewBadge.bg, color: labelTextColor(bi.reviewBadge.bg), fontSize: 9, fontWeight: 700, lineHeight: 1, padding: "2px 4px", borderRadius: 3, pointerEvents: "none", userSelect: "none" }}
                       >
                         {bi.reviewBadge.label}
                       </Box>
