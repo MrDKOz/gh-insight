@@ -17,7 +17,7 @@ import { useColumnResize } from "../hooks/useColumnResize";
 import { COLORS, COLORS_CB, makeStatusChipSx } from "../utils/colorUtils";
 import { MS_PER_DAY, fmtDate } from "../utils/dateUtils";
 import { FS, buildMilestoneMap, itemEndDate, itemStatus, pluralize, safeUrl } from "../utils/displayUtils";
-import { RESIZE_HANDLE_SX, TABLE_HEADER_CELL_SX, TABULAR_NUMS_SX, makeStatusIndicatorChipSx } from "../utils/sxTokens";
+import { DOT_SX, RESIZE_HANDLE_SX, TABLE_HEADER_CELL_SX, TABULAR_NUMS_SX } from "../utils/sxTokens";
 import { AuthorWithAssignees } from "./AuthorWithAssignees";
 import { LabelBadge } from "./LabelBadge";
 import { MilestonePill } from "./MilestonePill";
@@ -300,25 +300,22 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                       sx={{ ...statusChipSx[status.toLowerCase()], fontSize: FS.sm, fontWeight: 600, height: 22 }}
                     />
                     {item.type === "pr" && item.reviewDecision === "APPROVED" && (
-                      <Chip
-                        label="Approved"
-                        size="small"
-                        sx={makeStatusIndicatorChipSx(palette.success)}
-                      />
+                      <Box sx={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                        <Box sx={{ ...DOT_SX, bgcolor: palette.success }} />
+                        <Box component="span" sx={{ fontSize: FS.sm, fontWeight: 600, color: palette.success }}>Approved</Box>
+                      </Box>
                     )}
                     {item.type === "pr" && item.reviewDecision === "CHANGES_REQUESTED" && (
-                      <Chip
-                        label="Changes requested"
-                        size="small"
-                        sx={makeStatusIndicatorChipSx(palette.prClosed)}
-                      />
+                      <Box sx={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                        <Box sx={{ ...DOT_SX, bgcolor: palette.prClosed }} />
+                        <Box component="span" sx={{ fontSize: FS.sm, fontWeight: 600, color: palette.prClosed }}>Changes requested</Box>
+                      </Box>
                     )}
                     {item.type === "pr" && item.reviewDecision === "REVIEW_REQUIRED" && (
-                      <Chip
-                        label="Awaiting review"
-                        size="small"
-                        sx={makeStatusIndicatorChipSx(palette.warning)}
-                      />
+                      <Box sx={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                        <Box sx={{ ...DOT_SX, bgcolor: palette.warning }} />
+                        <Box component="span" sx={{ fontSize: FS.sm, fontWeight: 600, color: palette.warning }}>Awaiting review</Box>
+                      </Box>
                     )}
                   </Box>
                 </TableCell>

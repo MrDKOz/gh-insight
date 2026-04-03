@@ -93,19 +93,5 @@ export const TABULAR_NUMS_SX = {
   fontVariantNumeric: "tabular-nums",
 } as const satisfies SxProps;
 
-/**
- * Produces the sx for a semi-transparent status indicator chip.
- * bg: color at 13% opacity (hex 22); border: color at 40% opacity (hex 66).
- */
-export const makeStatusIndicatorChipSx = (color: string) => ({
-  bgcolor: `${color}22`,
-  color,
-  border: `1px solid ${color}66`,
-  fontSize: FS.sm,
-  fontWeight: 700,
-  height: 20,
-  borderRadius: 0.5,
-  ml: 0.5,
-});
 
 export { CARD_LABEL_SX, CHART_EMPTY_STATE_SX, DOT_SX, HOVER_CARD_BASE_SX, RESIZE_HANDLE_SX, STAT_ROW_SX };
