@@ -62,4 +62,31 @@ test.describe("demo mode with data loaded", () => {
     await resetBtn.click();
     await expect(resetBtn).not.toBeVisible();
   });
+
+  test("List view renders a table with data rows", async ({ page }) => {
+    await page.getByRole("tab", { name: "List" }).click();
+
+    // The table should have at least one body row
+    const rows = page.locator("tbody tr");
+    await expect(rows.first()).toBeVisible();
+    const count = await rows.count();
+    expect(count).toBeGreaterThan(0);
+  });
+
+  test("export menu in List view shows data format options", async ({ page }) => {
+    await page.getByRole("tab", { name: "List" }).click();
+
+    await page.getByRole("button", { name: /Export/i }).click();
+
+    await expect(page.getByRole("menuitem", { name: "CSV" })).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: "Markdown" })).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: "XLSX" })).toBeVisible();
+  });
+
+  test("Burndown view renders a chart", async ({ page }) => {
+    await page.getByRole("tab", { name: "Burndown" }).click();
+
+    // The burndown chart renders an SVG
+    await expect(page.locator("svg").first()).toBeVisible();
+  });
 });
