@@ -28,12 +28,12 @@ type Props = {
   colorblindMode: boolean;
 };
 
-type SortCol = "type" | "number" | "title" | "author" | "status" | "milestone" | "created" | "closed" | "age" | "days";
+type SortCol = "type" | "number" | "title" | "author" | "status" | "milestone" | "changes" | "created" | "closed" | "age" | "days";
 type SortDir = "asc" | "desc";
 
-// Default column widths (px): type, #, title, author, status, [milestone,] created, closed, age, days
-const DEFAULTS_SINGLE = [56, 60, 320, 160, 88,      92, 92, 62, 62] as const;
-const DEFAULTS_MULTI  = [56, 60, 320, 160, 88, 120, 92, 92, 62, 62] as const;
+// Default column widths (px): type, #, title, author, status, [milestone,] changes, created, closed, age, days
+const DEFAULTS_SINGLE = [56, 60, 320, 160, 88,      90, 92, 92, 62, 62] as const;
+const DEFAULTS_MULTI  = [56, 60, 320, 160, 88, 120, 90, 92, 92, 62, 62] as const;
 
 type ThProps = {
   col: SortCol;
@@ -109,6 +109,12 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
             milestoneMap.get(b.milestoneNumber)?.title ?? "",
           );
           break;
+        case "changes": {
+          const ca = a.type === "pr" ? a.additions + a.deletions : 0;
+          const cb = b.type === "pr" ? b.additions + b.deletions : 0;
+          cmp = ca - cb;
+          break;
+        }
         case "created":
           cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
           break;
@@ -164,8 +170,8 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
 
   // Column indices shift when milestone is visible.
   const columnIndices = isMulti
-    ? { type: 0, num: 1, title: 2, author: 3, status: 4, milestone: 5, created: 6, closed: 7, age: 8, days: 9 }
-    : { type: 0, num: 1, title: 2, author: 3, status: 4, milestone: -1, created: 5, closed: 6, age: 7, days: 8 };
+    ? { type: 0, num: 1, title: 2, author: 3, status: 4, milestone: 5, changes: 6, created: 7, closed: 8, age: 9, days: 10 }
+    : { type: 0, num: 1, title: 2, author: 3, status: 4, milestone: -1, changes: 5, created: 6, closed: 7, age: 8, days: 9 };
 
   return (
     <TableContainer sx={{ border: 1, borderColor: "divider", borderRadius: 1, overflowX: "auto" }}>
@@ -181,6 +187,7 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
             <Th col="author"    label="Author / Assignees" sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(columnIndices.author)} />
             <Th col="status"    label="Status"             sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(columnIndices.status)} />
             {isMulti && <Th col="milestone" label="Milestone" sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(columnIndices.milestone)} />}
+            <Th col="changes"   label="+/−"                sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(columnIndices.changes)} />
             <Th col="created"   label="Created"            sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(columnIndices.created)} />
             <Th col="closed"    label="Closed"             sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(columnIndices.closed)} />
             <Th col="age"       label="Age"                sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(columnIndices.age)} />
@@ -285,13 +292,6 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                       ))}
                     </Box>
                   )}
-                  {item.type === "pr" && (
-                    <Box sx={{ mt: "2px", fontSize: FS.xs }}>
-                      <Box component="span" sx={{ ...TABULAR_NUMS_SX, color: palette.success }}>+{item.additions}</Box>
-                      <Box component="span" sx={{ color: "text.disabled" }}> / </Box>
-                      <Box component="span" sx={{ ...TABULAR_NUMS_SX, color: palette.prClosed }}>-{item.deletions}</Box>
-                    </Box>
-                  )}
                 </TableCell>
                 <TableCell sx={{ overflow: "hidden", color: "text.secondary", fontSize: FS.base }}>
                   <AuthorWithAssignees author={item.author} assignees={item.assignees} />
@@ -331,6 +331,16 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                     {milestoneMeta && <MilestonePill color={milestoneMeta.color} title={milestoneMeta.title} />}
                   </TableCell>
                 )}
+                <TableCell sx={{ overflow: "hidden", whiteSpace: "nowrap" }}>
+                  {item.type === "pr" ? (
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+                      <Box component="span" sx={{ ...TABULAR_NUMS_SX, color: palette.success, fontSize: FS.base, fontWeight: 500 }}>+{item.additions}</Box>
+                      <Box component="span" sx={{ ...TABULAR_NUMS_SX, color: palette.prClosed, fontSize: FS.base, fontWeight: 500 }}>−{item.deletions}</Box>
+                    </Box>
+                  ) : (
+                    <Typography component="span" color="divider">—</Typography>
+                  )}
+                </TableCell>
                 <TableCell sx={{ overflow: "hidden", whiteSpace: "nowrap", color: "text.secondary", fontSize: FS.base }}>
                   {fmtDate(item.createdAt)}
                 </TableCell>
