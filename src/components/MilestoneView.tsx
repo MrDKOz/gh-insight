@@ -15,6 +15,7 @@ import Paper from "@mui/material/Paper";
 import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import posthog from "posthog-js";
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Burndown } from "../charts/Burndown";
@@ -134,6 +135,7 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
         return;
       }
       try {
+        posthog.capture("export", { format: fmt, view });
         if (view === "Review Wait") {
           if      (fmt === "CSV")                {exportReviewWaitCSV(filteredItems, title, milestones);}
           else if (fmt === "Markdown")           {exportReviewWaitMarkdown(filteredItems, title, milestones);}

@@ -1,8 +1,17 @@
+import posthog from "posthog-js";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import { App } from "./App";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+
+posthog.init("phc_xEKzVGincEBYoURACTWeCF9AVxJ6f9dtVDMT5w3Zgev8", {
+  api_host: "https://eu.i.posthog.com",
+  person_profiles: "never",
+  capture_pageview: true,
+  capture_pageleave: true,
+  autocapture: false,
+});
 
 const rootEl = document.getElementById("root");
 if (!rootEl) { throw new Error("Root element #root not found in DOM"); }
