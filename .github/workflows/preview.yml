@@ -92,7 +92,7 @@ jobs:
         with:
           ref: gh-pages
 
-      - name: Mark deployment inactive
+      - name: Mark deployments inactive and delete
         uses: actions/github-script@v7
         with:
           script: |
@@ -108,7 +108,23 @@ jobs:
                 deployment_id: d.id,
                 state: 'inactive',
               });
+              await github.rest.repos.deleteDeployment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                deployment_id: d.id,
+              });
             }
+
+      - name: Delete environment
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.ENVIRONMENTS_TOKEN }}
+          script: |
+            await github.rest.repos.deleteAnEnvironment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              environment_name: `pr-${{ github.event.number }}`,
+            });
 
       - name: Remove preview directory
         run: |
