@@ -1,6 +1,7 @@
 import type { Action, AppState } from "../state/appReducer";
 import type { Epic, Milestone, MilestoneMeta, Repo, TimelineItem } from "../types/GitHubTypes";
 import type { Dispatch } from "react";
+import posthog from "posthog-js";
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { fetchAllRemainingMilestones, fetchEpicItems, fetchEpics, fetchMilestoneItems, fetchMilestonesInitial } from "../api/github";
 import { DEMO_DATA_BY_REPO } from "../data/demo";
@@ -195,6 +196,7 @@ const useMilestones = ({ token, colorblindMode = false }: UseMilestonesOptions):
   }, [token]);
 
   const addMilestone = useCallback(async (milestone: Milestone) => {
+    posthog.capture("milestone_selected", { milestones_count_after: state.selected.length + 1, epics_selected: state.selectedEpics.length });
     dispatch({ type: "SELECT_MILESTONE", milestone });
     if (milestone.number in state.itemsCache || !state.activeRepo) { return; }
     const repo = state.activeRepo;
@@ -205,13 +207,15 @@ const useMilestones = ({ token, colorblindMode = false }: UseMilestonesOptions):
       (items) => dispatch({ type: "FETCH_ITEMS_SUCCESS", milestoneNumber: milestone.number, items }),
       (error) => dispatch({ type: "FETCH_ITEMS_ERROR", milestoneNumber: milestone.number, error }),
     );
-  }, [state.itemsCache, state.activeRepo, token]);
+  }, [state.itemsCache, state.activeRepo, state.selected.length, state.selectedEpics.length, token]);
 
   const removeMilestone = useCallback((num: number) => {
+    posthog.capture("milestone_deselected", { milestones_count_after: state.selected.length - 1, epics_selected: state.selectedEpics.length });
     dispatch({ type: "REMOVE_MILESTONE", milestoneNumber: num });
-  }, []);
+  }, [state.selected.length, state.selectedEpics.length]);
 
   const addEpic = useCallback(async (epic: Epic) => {
+    posthog.capture("epic_selected", { epics_count_after: state.selectedEpics.length + 1, milestones_selected: state.selected.length });
     dispatch({ type: "SELECT_EPIC", epic });
     if (epic.number in state.epicItemsCache || !state.activeRepo) { return; }
     const repo = state.activeRepo;
@@ -222,11 +226,12 @@ const useMilestones = ({ token, colorblindMode = false }: UseMilestonesOptions):
       (items) => dispatch({ type: "FETCH_EPIC_ITEMS_SUCCESS", epicNumber: epic.number, items }),
       (error) => dispatch({ type: "FETCH_EPIC_ITEMS_ERROR", epicNumber: epic.number, error }),
     );
-  }, [state.epicItemsCache, state.activeRepo, token]);
+  }, [state.epicItemsCache, state.activeRepo, state.selectedEpics.length, state.selected.length, token]);
 
   const removeEpic = useCallback((epicNumber: number) => {
+    posthog.capture("epic_deselected", { epics_count_after: state.selectedEpics.length - 1, milestones_selected: state.selected.length });
     dispatch({ type: "REMOVE_EPIC", epicNumber });
-  }, []);
+  }, [state.selectedEpics.length, state.selected.length]);
 
   const loadMoreMilestones = useCallback(async () => {
     if (!state.activeRepo || state.loadingMoreMilestones || !state.milestonesHasMore) { return; }

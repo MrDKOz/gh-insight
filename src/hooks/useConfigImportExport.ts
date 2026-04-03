@@ -1,6 +1,7 @@
 import type { Repo } from "../types/GitHubTypes";
 import type { Settings } from "../types/SettingsTypes";
 import type { ChangeEvent, RefObject } from "react";
+import posthog from "posthog-js";
 import { useCallback, useRef, useState } from "react";
 import { parseImportConfig } from "../utils/configImport";
 
@@ -37,6 +38,7 @@ const useConfigImportExport = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExportConfig = useCallback(() => {
+    posthog.capture("config_exported");
     const config = { version: 1, owner: activeRepo?.owner ?? "", repo: activeRepo?.name ?? "", dark, settings };
     const blob = new Blob([JSON.stringify(config, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -59,7 +61,7 @@ const useConfigImportExport = ({
       let raw: unknown;
       try { raw = JSON.parse(ev.target.result); } catch { setConfigError("Config import failed: invalid file"); return; }
       const config = parseImportConfig(raw);
-      if (typeof config === "string") { setConfigError(`Config import failed: ${config}`); return; }
+      if (typeof config === "string") { posthog.capture("config_imported", { success: false }); setConfigError(`Config import failed: ${config}`); return; }
       if (config.dark !== undefined) { applyDark(config.dark); }
       if (config.token)              { setToken(config.token); saveToken(config.token); }
       if (config.settings) {
@@ -69,6 +71,7 @@ const useConfigImportExport = ({
         if (highlightBankHolidays !== undefined) { updateSetting("highlightBankHolidays", highlightBankHolidays); }
         if (bankHolidayRegions    !== undefined) { updateSetting("bankHolidayRegions",    bankHolidayRegions); }
       }
+      posthog.capture("config_imported", { success: true });
       onImportSuccess();
     };
     reader.readAsText(file);
