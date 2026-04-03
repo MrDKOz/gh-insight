@@ -1,5 +1,6 @@
 import type { Settings } from "../types/SettingsTypes";
 import * as t from "io-ts";
+import posthog from "posthog-js";
 import { useCallback, useState } from "react";
 import { DEFAULT_SETTINGS } from "../types/SettingsTypes";
 import { decodeSafe } from "../utils/iotsUtils";
@@ -48,6 +49,7 @@ const useSettings = (): { settings: Settings; updateSetting: <K extends keyof Se
   const [settings, setSettings] = useState<Settings>(loadSettings);
 
   const updateSetting = useCallback(<K extends keyof Settings>(key: K, value: Settings[K]) => {
+    posthog.capture("setting_changed", { setting: key, value });
     setSettings((prev) => {
       const next = { ...prev, [key]: value };
       try { localStorage.setItem(LS_KEY, JSON.stringify(next)); } catch { /* quota exceeded — setting still applies for this session */ }

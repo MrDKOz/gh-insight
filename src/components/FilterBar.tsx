@@ -10,6 +10,7 @@ import Popover from "@mui/material/Popover";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import posthog from "posthog-js";
 import { useCallback, useMemo, useState } from "react";
 import { DEFAULT_FILTERS } from "../types/FilterTypes";
 import { COLORS, COLORS_CB, labelTextColor } from "../utils/colorUtils";
@@ -203,7 +204,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
               </Stack>
             }
             size="small"
-            onClick={() => patchFilters({ [key]: !filters[key] })}
+            onClick={() => { posthog.capture("filter_type_toggled", { filter: key, enabled: !filters[key] }); patchFilters({ [key]: !filters[key] }); }}
             title={filters[key] ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
             sx={{
               cursor: "pointer",
@@ -260,6 +261,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
                     return (
                       <Chip key={name} label={name} size="small" onClick={() => {
                         const next = active ? filters.activeLabels.filter((l) => l !== name) : [...filters.activeLabels, name];
+                        posthog.capture("filter_label_toggled", { action: active ? "removed" : "added", labels_count_after: next.length });
                         patchFilters({ activeLabels: next });
                       }} aria-pressed={active} sx={{
                         height: 22, cursor: "pointer",
@@ -276,7 +278,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
               {activeCount > 0 && (<>
                 <Divider />
                 <Box sx={{ p: 0.75, display: "flex", justifyContent: "flex-end" }}>
-                  <Button size="small" sx={{ fontSize: FS.sm }} onClick={() => patchFilters({ activeLabels: [] })}>Clear</Button>
+                  <Button size="small" sx={{ fontSize: FS.sm }} onClick={() => { posthog.capture("filter_label_toggled", { action: "cleared", labels_count_after: 0 }); patchFilters({ activeLabels: [] }); }}>Clear</Button>
                 </Box>
               </>)}
             </Popover>
@@ -310,7 +312,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
                 <Box sx={{ display: "flex", border: 1, borderColor: "divider", borderRadius: 0.75, overflow: "hidden" }}
                   role="group" aria-label="Match people by role">
                   {ROLE_OPTIONS.map(({ value, label, title }, i) => (
-                    <Box key={value} component="button" onClick={() => patchFilters({ peopleRole: value })}
+                    <Box key={value} component="button" onClick={() => { posthog.capture("filter_people_role_changed", { role: value }); patchFilters({ peopleRole: value }); }}
                       title={title} aria-pressed={filters.peopleRole === value}
                       sx={{
                         flex: 1, px: 1, py: 0.5,
@@ -350,6 +352,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
                       <Chip key={login} label={login} size="small"
                         onClick={() => {
                           const next = active ? filters.activePeople.filter((p) => p !== login) : [...filters.activePeople, login];
+                          posthog.capture("filter_people_toggled", { action: active ? "removed" : "added", people_count_after: next.length });
                           patchFilters({ activePeople: next });
                         }}
                         aria-pressed={active}
@@ -361,7 +364,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
               {activeCount > 0 && (<>
                 <Divider />
                 <Box sx={{ p: 0.75, display: "flex", justifyContent: "flex-end" }}>
-                  <Button size="small" sx={{ fontSize: FS.sm }} onClick={() => patchFilters({ activePeople: [] })}>Clear</Button>
+                  <Button size="small" sx={{ fontSize: FS.sm }} onClick={() => { posthog.capture("filter_people_toggled", { action: "cleared", people_count_after: 0 }); patchFilters({ activePeople: [] }); }}>Clear</Button>
                 </Box>
               </>)}
             </Popover>
@@ -395,7 +398,7 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
       ))}
 
       {isActive && (
-        <IconButton size="small" onClick={() => onChange(DEFAULT_FILTERS)} title="Reset all filters" aria-label="Reset all filters" sx={{ ml: "auto" }}>
+        <IconButton size="small" onClick={() => { posthog.capture("filters_reset"); onChange(DEFAULT_FILTERS); }} title="Reset all filters" aria-label="Reset all filters" sx={{ ml: "auto" }}>
           <IconReset />
         </IconButton>
       )}

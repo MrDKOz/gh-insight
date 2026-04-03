@@ -173,6 +173,7 @@ const App: FunctionComponent = () => {
   const handleRepoSelect = useCallback((repo: Repo | null) => {
     milestones.dispatch({ type: "SET_REPO", repo });
     if (!repo) { return; }
+    posthog.capture("repo_switched", { is_private: repo.private });
     if (milestones.state.isDemo) {
       milestones.loadDemoForRepo(repo, []);
     } else {
@@ -203,6 +204,7 @@ const App: FunctionComponent = () => {
     if (foundRepo) {
       await loadMilestonesForRepo(foundRepo, { autoSelectNums: milestoneNums, autoSelectEpicNums: epicNums });
     }
+    posthog.capture("share_code_imported", { milestones_count: milestoneNums.length, epics_count: epicNums.length, view });
   }, [auth.repos, milestoneDispatch, loadMilestonesForRepo]);
 
   // ── URL synchronisation ───────────────────────────────────────────────────
