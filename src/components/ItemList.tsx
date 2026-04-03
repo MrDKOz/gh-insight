@@ -14,10 +14,10 @@ import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useState } from "react";
 
 import { useColumnResize } from "../hooks/useColumnResize";
-import { COLORS, COLORS_CB, makeStatusChipSx } from "../utils/colorUtils";
+import { COLORS, COLORS_CB } from "../utils/colorUtils";
 import { MS_PER_DAY, fmtDate } from "../utils/dateUtils";
 import { FS, buildMilestoneMap, itemEndDate, itemStatus, pluralize, safeUrl } from "../utils/displayUtils";
-import { DOT_SX, RESIZE_HANDLE_SX, TABLE_HEADER_CELL_SX, TABULAR_NUMS_SX } from "../utils/sxTokens";
+import { RESIZE_HANDLE_SX, TABLE_HEADER_CELL_SX, TABULAR_NUMS_SX } from "../utils/sxTokens";
 import { AuthorWithAssignees } from "./AuthorWithAssignees";
 import { LabelBadge } from "./LabelBadge";
 import { MilestonePill } from "./MilestonePill";
@@ -160,7 +160,11 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
     "pr-closed": { bgcolor: palette.prClosed, color: colorblindMode ? "#000" : "#fff" },
   }), [palette, colorblindMode]);
 
-  const statusChipSx = makeStatusChipSx(colorblindMode);
+  const statusColor: Record<string, string> = {
+    open:   palette.warning,
+    closed: palette.prClosed,
+    merged: palette.prMerged,
+  };
 
   // Helper to build the onResize handler for a given column index.
   const resize = useCallback((i: number) => (e: MouseEvent) => startResize(i, e, widths[i] ?? 0), [startResize, widths]);
@@ -293,30 +297,11 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                   <AuthorWithAssignees author={item.author} assignees={item.assignees} />
                 </TableCell>
                 <TableCell sx={{ overflow: "hidden" }}>
-                  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "3px" }}>
-                    <Chip
-                      label={status}
-                      size="small"
-                      sx={{ ...statusChipSx[status.toLowerCase()], fontSize: FS.sm, fontWeight: 600, height: 22 }}
-                    />
-                    {item.type === "pr" && item.reviewDecision === "APPROVED" && (
-                      <Box sx={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                        <Box sx={{ ...DOT_SX, bgcolor: palette.success }} />
-                        <Box component="span" sx={{ fontSize: FS.sm, fontWeight: 600, color: palette.success }}>Approved</Box>
-                      </Box>
-                    )}
-                    {item.type === "pr" && item.reviewDecision === "CHANGES_REQUESTED" && (
-                      <Box sx={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                        <Box sx={{ ...DOT_SX, bgcolor: palette.prClosed }} />
-                        <Box component="span" sx={{ fontSize: FS.sm, fontWeight: 600, color: palette.prClosed }}>Changes requested</Box>
-                      </Box>
-                    )}
-                    {item.type === "pr" && item.reviewDecision === "REVIEW_REQUIRED" && (
-                      <Box sx={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                        <Box sx={{ ...DOT_SX, bgcolor: palette.warning }} />
-                        <Box component="span" sx={{ fontSize: FS.sm, fontWeight: 600, color: palette.warning }}>Awaiting review</Box>
-                      </Box>
-                    )}
+                  <Box component="span" sx={{ fontSize: FS.base, fontWeight: 600, color: statusColor[status.toLowerCase()] }}>
+                    {status}
+                    {item.type === "pr" && item.reviewDecision === "APPROVED" && ", approved"}
+                    {item.type === "pr" && item.reviewDecision === "CHANGES_REQUESTED" && ", changes requested"}
+                    {item.type === "pr" && item.reviewDecision === "REVIEW_REQUIRED" && ", awaiting review"}
                   </Box>
                 </TableCell>
                 {isMulti && (
