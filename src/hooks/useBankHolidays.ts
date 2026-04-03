@@ -1,28 +1,27 @@
 import type { BankHoliday, Region } from "../api/bankHolidayApi";
-import type { TimelineItem } from "../types/GitHubTypes";
 import { useEffect, useState } from "react";
 import { fetchBankHolidays } from "../api/bankHolidayApi";
 
 const useBankHolidays = (options: {
   enabled: boolean;
   regions: Region[];
-  allItems: TimelineItem[];
+  /** Unix timestamp (ms) of the earliest item creation date, or null when there are no items. */
+  minTime: number | null;
+  /** Unix timestamp (ms) of the latest item creation date (clamped to now), or null when there are no items. */
+  maxTime: number | null;
 }): BankHoliday[] => {
-  const { enabled, regions, allItems } = options;
+  const { enabled, regions, minTime, maxTime } = options;
   const [bankHolidays, setBankHolidays] = useState<BankHoliday[]>([]);
 
   useEffect(() => {
-    if (!enabled || regions.length === 0 || allItems.length === 0) {
+    if (!enabled || regions.length === 0 || minTime === null || maxTime === null) {
       setBankHolidays([]);
       return;
     }
-    const timestamps = allItems.map((i) => new Date(i.createdAt).getTime());
-    const minTime = Math.min(...timestamps);
-    const maxTime = Math.max(...timestamps, Date.now());
     fetchBankHolidays(regions, minTime, maxTime)
       .then(setBankHolidays)
       .catch(() => { /* silently ignore — non-critical feature */ });
-  }, [enabled, regions, allItems]);
+  }, [enabled, regions, minTime, maxTime]);
 
   return bankHolidays;
 };

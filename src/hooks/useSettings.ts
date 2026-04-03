@@ -33,12 +33,15 @@ const loadSettings = (): Settings => {
     if (!parsedSettings) { return DEFAULT_SETTINGS; }
     // Prefer the canonical array field; fall back to the legacy singular field
     const regions = parsedSettings.bankHolidayRegions ?? (parsedSettings.bankHolidayRegion ? [parsedSettings.bankHolidayRegion] : null);
-    return {
+    const settings: Settings = {
       highlightWeekends:     parsedSettings.highlightWeekends     ?? DEFAULT_SETTINGS.highlightWeekends,
       colorblindMode:        parsedSettings.colorblindMode        ?? DEFAULT_SETTINGS.colorblindMode,
       highlightBankHolidays: parsedSettings.highlightBankHolidays ?? DEFAULT_SETTINGS.highlightBankHolidays,
       bankHolidayRegions: regions && regions.length > 0 ? regions : DEFAULT_SETTINGS.bankHolidayRegions,
     };
+    // Apply colorblind class immediately so there is no flash before React mounts
+    document.body.classList.toggle("colorblind", settings.colorblindMode);
+    return settings;
   } catch {
     return DEFAULT_SETTINGS;
   }
@@ -48,6 +51,9 @@ const useSettings = (): { settings: Settings; updateSetting: <K extends keyof Se
   const [settings, setSettings] = useState<Settings>(loadSettings);
 
   const updateSetting = useCallback(<K extends keyof Settings>(key: K, value: Settings[K]) => {
+    if (key === "colorblindMode") {
+      document.body.classList.toggle("colorblind", value as boolean);
+    }
     setSettings((prev) => {
       const next = { ...prev, [key]: value };
       try { localStorage.setItem(LS_KEY, JSON.stringify(next)); } catch { /* quota exceeded — setting still applies for this session */ }
