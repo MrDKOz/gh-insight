@@ -209,7 +209,10 @@ const cropGanttToCurrentView = async (
   const pr = 2; // must match htmlToImageOpts pixelRatio
   const img = new Image();
   img.src = fullDataUrl;
-  await new Promise<void>((resolve) => { img.onload = () => resolve(); });
+  await new Promise<void>((resolve, reject) => {
+    img.onload  = () => resolve();
+    img.onerror = () => reject(new Error("Failed to load captured image for Gantt crop"));
+  });
 
   const outW = Math.round((labelColWidth + trackClientWidth) * pr);
   const outH = img.height;
@@ -302,7 +305,10 @@ const embedImageInPDF = async (dataUrl: string, title: string, filename: string)
 
   const img = new Image();
   img.src = dataUrl;
-  await new Promise<void>((resolve) => { img.onload = () => resolve(); });
+  await new Promise<void>((resolve, reject) => {
+    img.onload  = () => resolve();
+    img.onerror = () => reject(new Error("Failed to load captured image for PDF embed"));
+  });
   // Captured at pixelRatio 2, so divide by 2 for CSS px → mm scaling
   const imgCssW = img.width / 2;
   const imgCssH = img.height / 2;
@@ -441,7 +447,8 @@ const drawPDFTable = (
     doc.setTextColor(36, 41, 47);
     let x = MARGIN;
     for (const [j, col] of cols.entries()) {
-      const cell = doc.splitTextToSize(row[j] ?? "", col.width - PAD_X * 2)[0] ?? "";
+      const cellLines = doc.splitTextToSize(row[j] ?? "", col.width - PAD_X * 2);
+      const cell = cellLines.length > 1 ? `${cellLines[0] as string}\u2026` : (cellLines[0] ?? "");
       doc.text(cell, x + PAD_X, y + BASE_Y);
       if (j === linkColIdx) {
         const url = getUrl(i);

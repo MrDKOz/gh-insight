@@ -71,10 +71,12 @@ const useMilestones = ({ token, colorblindMode = false }: UseMilestonesOptions):
     filters: urlState.filters,
   });
 
-  const loadAbortRef     = useRef<AbortController | null>(null);
-  const refreshAbortRef  = useRef<AbortController | null>(null);
-  const itemAbortRefs    = useRef<Map<number, AbortController>>(new Map());
-  const epicAbortRefs    = useRef<Map<number, AbortController>>(new Map());
+  const loadAbortRef          = useRef<AbortController | null>(null);
+  const refreshAbortRef       = useRef<AbortController | null>(null);
+  const loadMoreMsAbortRef    = useRef<AbortController | null>(null);
+  const loadMoreEpicsAbortRef = useRef<AbortController | null>(null);
+  const itemAbortRefs         = useRef<Map<number, AbortController>>(new Map());
+  const epicAbortRefs         = useRef<Map<number, AbortController>>(new Map());
 
   // Abort all in-flight requests on unmount
   useEffect(() => {
@@ -83,6 +85,8 @@ const useMilestones = ({ token, colorblindMode = false }: UseMilestonesOptions):
     return () => {
       loadAbortRef.current?.abort();
       refreshAbortRef.current?.abort();
+      loadMoreMsAbortRef.current?.abort();
+      loadMoreEpicsAbortRef.current?.abort();
       abortMap.forEach((ac) => ac.abort());
       epicAbortMap.forEach((ac) => ac.abort());
     };
@@ -125,6 +129,8 @@ const useMilestones = ({ token, colorblindMode = false }: UseMilestonesOptions):
 
   const loadMilestonesForRepo = useCallback(async (repo: Repo, opts?: LoadMilestonesOpts) => {
     loadAbortRef.current?.abort();
+    loadMoreMsAbortRef.current?.abort();
+    loadMoreEpicsAbortRef.current?.abort();
     const ac = new AbortController();
     loadAbortRef.current = ac;
     const effectiveToken = opts?.overrideToken ?? token;
@@ -230,10 +236,13 @@ const useMilestones = ({ token, colorblindMode = false }: UseMilestonesOptions):
 
   const loadMoreMilestones = useCallback(async () => {
     if (!state.activeRepo || state.loadingMoreMilestones || !state.milestonesHasMore) { return; }
+    loadMoreMsAbortRef.current?.abort();
+    const ac = new AbortController();
+    loadMoreMsAbortRef.current = ac;
     dispatch({ type: "FETCH_MORE_MILESTONES_START" });
     try {
       const remaining = await fetchAllRemainingMilestones(
-        state.activeRepo.owner, state.activeRepo.name, token, state.milestonesNextPage,
+        state.activeRepo.owner, state.activeRepo.name, token, state.milestonesNextPage, ac.signal,
       );
       dispatch({ type: "FETCH_MORE_MILESTONES_SUCCESS", milestones: remaining });
     } catch (e) {
@@ -244,9 +253,12 @@ const useMilestones = ({ token, colorblindMode = false }: UseMilestonesOptions):
 
   const loadMoreEpics = useCallback(async () => {
     if (!state.activeRepo || state.loadingMoreEpics || !state.epicsHasMore) { return; }
+    loadMoreEpicsAbortRef.current?.abort();
+    const ac = new AbortController();
+    loadMoreEpicsAbortRef.current = ac;
     dispatch({ type: "FETCH_MORE_EPICS_START" });
     try {
-      const { items } = await fetchEpics(state.activeRepo.owner, state.activeRepo.name, token, undefined, ["CLOSED"]);
+      const { items } = await fetchEpics(state.activeRepo.owner, state.activeRepo.name, token, ac.signal, ["CLOSED"]);
       dispatch({ type: "FETCH_MORE_EPICS_SUCCESS", epics: items });
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") { return; }
