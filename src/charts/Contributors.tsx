@@ -22,25 +22,29 @@ type ContribRow = {
   issues: number;
   merged: number;
   closed: number;
-  open: number;
+  openIssue: number;
+  openPR: number;
   total: number;
 };
+
+type Segment = "issues" | "merged" | "closed" | "openIssue" | "openPR";
 
 type Hover = {
   x: number;
   y: number;
   row: ContribRow;
-  segment: "issues" | "merged" | "closed" | "open";
+  segment: Segment;
   count: number;
   earliestDate: string | null;
   latestDate: string | null;
 };
 
-const SEG_LABELS: Record<"issues" | "merged" | "closed" | "open", string> = {
-  issues: "issues closed",
-  merged: "PRs merged",
-  closed: "PRs closed",
-  open:   "open",
+const SEG_LABELS: Record<Segment, string> = {
+  issues:    "issues closed",
+  merged:    "PRs merged",
+  closed:    "PRs closed",
+  openIssue: "open issues",
+  openPR:    "open PRs",
 };
 
 // PADDING_LEFT is the left margin reserved for avatar + username label.
@@ -68,7 +72,7 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
     const ensure = (login: string): ContribRow => {
       let entry = rowMap.get(login);
       if (!entry) {
-        entry = { login, issues: 0, merged: 0, closed: 0, open: 0, total: 0 };
+        entry = { login, issues: 0, merged: 0, closed: 0, openIssue: 0, openPR: 0, total: 0 };
         rowMap.set(login, entry);
       }
       return entry;
@@ -78,15 +82,16 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
     for (const item of items) {
       const logins  = item.assignees.length > 0 ? item.assignees : [item.author];
       const endDate = itemEndDate(item);
-      const seg: "issues" | "merged" | "closed" | "open" =
-        !endDate ? "open" : item.type === "issue" ? "issues" : item.mergedAt ? "merged" : "closed";
+      const seg: Segment =
+        !endDate
+          ? (item.type === "issue" ? "openIssue" : "openPR")
+          : item.type === "issue"
+            ? "issues"
+            : item.mergedAt ? "merged" : "closed";
 
       for (const login of logins) {
         const row = ensure(login);
-        if (!endDate)               { row.open++;   }
-        else if (item.type === "issue") { row.issues++; }
-        else if (item.mergedAt)     { row.merged++; }
-        else                        { row.closed++; }
+        row[seg]++;
         row.total++;
 
         if (endDate) {
@@ -105,7 +110,7 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
   }, [items]);
 
   const onEnter = useCallback(
-    (e: MouseEvent, row: ContribRow, segment: "issues" | "merged" | "closed" | "open", count: number) => {
+    (e: MouseEvent, row: ContribRow, segment: Segment, count: number) => {
       const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) {return;}
       const dates = dateIndex.get(`${row.login}:${segment}`);
@@ -130,7 +135,13 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
     );
   }
 
-  const segColors = { issues: chartColors.issue, merged: chartColors.prMerged, closed: chartColors.prClosed, open: chartColors.grid };
+  const segColors: Record<Segment, string> = {
+    issues:    chartColors.issue,
+    merged:    chartColors.prMerged,
+    closed:    chartColors.prClosed,
+    openIssue: chartColors.grid,
+    openPR:    chartColors.mean,
+  };
 
   const maxTotal = Math.max(...rows.map((r) => r.total), 1);
   const chartWidth = SVG_WIDTH - PADDING_LEFT - PADDING_RIGHT;
@@ -151,12 +162,18 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
   const avatarX = PADDING_LEFT - AVATAR_R_GAP - AVATAR_SIZE;
   const textX   = avatarX - AVATAR_T_GAP;
 
-  const LEGEND_ITEMS = [
-    { seg: "issues" as const, label: "Issues closed" },
-    { seg: "merged" as const, label: "PRs merged" },
-    { seg: "closed" as const, label: "PRs closed" },
-    { seg: "open"   as const, label: "Open" },
+  // Only show legend entries for segments that actually appear in the data.
+  const ALL_LEGEND_ITEMS: { seg: Segment; label: string }[] = [
+    { seg: "issues",    label: "Issues closed" },
+    { seg: "merged",    label: "PRs merged" },
+    { seg: "closed",    label: "PRs closed" },
+    { seg: "openIssue", label: "Open issues" },
+    { seg: "openPR",    label: "Open PRs" },
   ];
+  const usedSegs = new Set(rows.flatMap((r) =>
+    (["issues", "merged", "closed", "openIssue", "openPR"] as Segment[]).filter((s) => r[s] > 0),
+  ));
+  const legendItems = ALL_LEGEND_ITEMS.filter(({ seg }) => usedSegs.has(seg));
 
   return (
     <Box className="chart-wrap" ref={containerRef} role="presentation" style={{ position: "relative" }}>
@@ -189,7 +206,8 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
             <th scope="col">Issues closed</th>
             <th scope="col">PRs merged</th>
             <th scope="col">PRs closed</th>
-            <th scope="col">Open</th>
+            <th scope="col">Open issues</th>
+            <th scope="col">Open PRs</th>
             <th scope="col">Total</th>
           </tr>
         </thead>
@@ -200,7 +218,8 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
               <td>{row.issues}</td>
               <td>{row.merged}</td>
               <td>{row.closed}</td>
-              <td>{row.open}</td>
+              <td>{row.openIssue}</td>
+              <td>{row.openPR}</td>
               <td>{row.total}</td>
             </tr>
           ))}
@@ -232,11 +251,12 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
           const cy = PADDING_TOP + ri * ROW_H + ROW_H / 2 - BAR_H / 2;
           let offset = 0;
 
-          const segments: Array<{ seg: "issues" | "merged" | "closed" | "open"; count: number }> = [
-            { seg: "issues", count: row.issues },
-            { seg: "merged", count: row.merged },
-            { seg: "closed", count: row.closed },
-            { seg: "open",   count: row.open   },
+          const segments: Array<{ seg: Segment; count: number }> = [
+            { seg: "issues",    count: row.issues },
+            { seg: "merged",    count: row.merged },
+            { seg: "closed",    count: row.closed },
+            { seg: "openIssue", count: row.openIssue },
+            { seg: "openPR",    count: row.openPR },
           ];
 
           const profileUrl = safeUrl(`https://github.com/${row.login}`);
@@ -324,7 +344,7 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
         ))}
 
         <ChartLegend
-          items={LEGEND_ITEMS.map(({ seg, label }) => ({ color: segColors[seg], label }))}
+          items={legendItems.map(({ seg, label }) => ({ color: segColors[seg], label }))}
           cx={PADDING_LEFT + chartWidth / 2}
           y={PADDING_TOP - 4}
           fill={chartColors.label}
