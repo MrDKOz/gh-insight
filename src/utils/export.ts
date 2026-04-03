@@ -158,7 +158,14 @@ const inlineImages = async (el: HTMLElement): Promise<() => void> => {
     const src = img.getAttribute("src");
     if (!src || src.startsWith("data:")) {return;}
     try {
-      const response = await fetch(src, { mode: "cors" });
+      // github.com/user.png redirects to avatars.githubusercontent.com but the
+      // redirect response lacks CORS headers, causing fetch() to fail. Rewrite
+      // to the final host directly, which does support CORS.
+      const fetchSrc = src.replace(
+        /^https:\/\/github\.com\/([^?]+)\.png(\?.*)?$/,
+        (_, login, qs) => `https://avatars.githubusercontent.com/${login}${qs ?? ""}`,
+      );
+      const response = await fetch(fetchSrc, { mode: "cors" });
       if (!response.ok) {return;}
       const blob = await response.blob();
       const dataUrl = await new Promise<string>((resolve, reject) => {
