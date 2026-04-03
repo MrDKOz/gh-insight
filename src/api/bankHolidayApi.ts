@@ -1,7 +1,7 @@
 import * as t from "io-ts";
 import { decodeOrThrow } from "../utils/iotsUtils";
 
-// UK divisions match the keys used by the gov.uk API exactly
+// UK divisions match the keys used in bank-holidays-uk.json exactly
 type Region = "england-and-wales" | "scotland" | "northern-ireland" | "US";
 type BankHoliday = { date: string; name: string };
 
@@ -20,7 +20,8 @@ const UsHolidayCodec = t.type({
   types:     t.array(t.string),
 });
 
-const UsResponseCodec = t.array(UsHolidayCodec);
+// US file is { "2025": [...], "2026": [...], ... } — updated annually by CI.
+const UsFileCodec = t.record(t.string, t.array(UsHolidayCodec));
 
 // ── Cache ─────────────────────────────────────────────────────────────────────
 
@@ -36,8 +37,9 @@ const fetchHolidaysForYear = async (region: Region, year: number): Promise<BankH
   let holidays: BankHoliday[];
 
   if (region !== "US") {
-    const response = await fetch("https://www.gov.uk/bank-holidays.json");
-    if (!response.ok) { throw new Error(`UK bank-holiday API returned ${response.status}`); }
+    // bank-holidays-uk.json is served from the same origin and cached by the browser.
+    const response = await fetch("bank-holidays-uk.json");
+    if (!response.ok) { throw new Error(`bank-holidays-uk.json: ${response.status}`); }
     const data = decodeOrThrow(await response.json() as unknown, UkResponseCodec);
     const division = data[region];
     holidays = (division?.events ?? [])
@@ -45,11 +47,13 @@ const fetchHolidaysForYear = async (region: Region, year: number): Promise<BankH
       .map((ev) => ({ date: ev.date, name: ev.title }))
       .sort((a, b) => a.date.localeCompare(b.date));
   } else {
-    const response = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/US`);
-    if (!response.ok) { throw new Error(`US holiday API returned ${response.status}`); }
-    const data = decodeOrThrow(await response.json() as unknown, UsResponseCodec);
-    holidays = data
-      .filter((d) => d.date.startsWith(String(year)) && !d.types.includes("Observance"))
+    // bank-holidays-us.json is served from the same origin and cached by the browser.
+    const response = await fetch("bank-holidays-us.json");
+    if (!response.ok) { throw new Error(`bank-holidays-us.json: ${response.status}`); }
+    const data = decodeOrThrow(await response.json() as unknown, UsFileCodec);
+    const yearData = data[String(year)] ?? [];
+    holidays = yearData
+      .filter((d) => !d.types.includes("Observance"))
       .map((d) => ({ date: d.date, name: d.localName }))
       .sort((a, b) => a.date.localeCompare(b.date));
   }
@@ -76,6 +80,9 @@ const fetchForRegion = async (region: Region, minTime: number, maxTime: number):
  * Returns all bank/public holidays across the given regions within [minTime, maxTime].
  * Results from multiple regions are merged and deduplicated by date.
  * Results are cached per (region, year).
+ *
+ * Data is served from public/bank-holidays-uk.json and public/bank-holidays-us.json,
+ * which are refreshed annually by the update-holidays CI workflow.
  */
 const fetchBankHolidays = async (regions: Region[], minTime: number, maxTime: number): Promise<BankHoliday[]> => {
   if (regions.length === 0) { return []; }

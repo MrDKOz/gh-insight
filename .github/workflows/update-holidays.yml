@@ -1,0 +1,72 @@
+name: Update holiday data
+
+on:
+  schedule:
+    # Runs on 1 Jan each year at 06:00 UTC — after new-year US/UK data is published
+    - cron: "0 6 1 1 *"
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch UK bank holidays
+        run: |
+          curl -fsSL "https://www.gov.uk/bank-holidays.json" \
+            | python3 -m json.tool --no-ensure-ascii \
+            > public/bank-holidays-uk.json
+
+      - name: Fetch US public holidays (current + next 2 years)
+        run: |
+          python3 - <<'EOF'
+          import json, urllib.request, datetime
+
+          current_year = datetime.date.today().year
+          years = [current_year, current_year + 1, current_year + 2]
+
+          # Load existing file so we don't lose older years still in use
+          try:
+            with open("public/bank-holidays-us.json") as f:
+              data = json.load(f)
+          except FileNotFoundError:
+            data = {}
+
+          for year in years:
+            url = f"https://date.nager.at/api/v3/PublicHolidays/{year}/US"
+            with urllib.request.urlopen(url) as resp:
+              data[str(year)] = json.loads(resp.read())
+
+          with open("public/bank-holidays-us.json", "w") as f:
+            json.dump(data, f, indent=2)
+          EOF
+
+      - name: Check for changes
+        id: diff
+        run: |
+          git diff --quiet public/bank-holidays-uk.json public/bank-holidays-us.json \
+            && echo "changed=false" >> "$GITHUB_OUTPUT" \
+            || echo "changed=true"  >> "$GITHUB_OUTPUT"
+
+      - name: Open PR with updated data
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="chore/holiday-data-$(date +%Y)"
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add public/bank-holidays-uk.json public/bank-holidays-us.json
+          git commit -m "chore: update holiday data for $(date +%Y)"
+          git push origin "$BRANCH"
+          gh pr create \
+            --title "chore: update holiday data for $(date +%Y)" \
+            --body "Annual holiday data refresh — UK gov.uk + US nager.at for $(date +%Y)/$(( $(date +%Y) + 1 ))/$(( $(date +%Y) + 2 ))." \
+            --base main \
+            --head "$BRANCH"
