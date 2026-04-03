@@ -1,4 +1,4 @@
-import type { MilestoneMeta, TimelineItem } from "../types/GitHubTypes";
+import type { IssueItem, MilestoneMeta, PRItem, TimelineItem } from "../types/GitHubTypes";
 
 /**
  * App-wide font-size scale. Use these named tokens everywhere instead of raw
@@ -90,16 +90,24 @@ const buildMilestoneMap = (milestones: MilestoneMeta[]): Map<number, MilestoneMe
  * across MilestoneView, StatsBar, and similar views.
  */
 const partitionItems = (items: TimelineItem[]) => {
-  const issueItems = items.filter((i) => i.type === "issue");
-  const prItems    = items.filter((i) => i.type === "pr");
-  return {
-    issueItems,
-    prItems,
-    closedIssues: issueItems.filter((i) => i.closedAt),
-    openIssues:   issueItems.filter((i) => !i.closedAt),
-    mergedPRs:    prItems.filter((i) => i.mergedAt),
-    closedPRs:    prItems.filter((i) => !i.mergedAt && i.closedAt),
-  };
+  const issueItems:   IssueItem[] = [];
+  const prItems:      PRItem[]    = [];
+  const closedIssues: IssueItem[] = [];
+  const openIssues:   IssueItem[] = [];
+  const mergedPRs:    PRItem[]    = [];
+  const closedPRs:    PRItem[]    = [];
+  for (const item of items) {
+    if (item.type === "issue") {
+      issueItems.push(item);
+      if (item.closedAt) { closedIssues.push(item); }
+      else               { openIssues.push(item); }
+    } else {
+      prItems.push(item);
+      if (item.mergedAt)      { mergedPRs.push(item); }
+      else if (item.closedAt) { closedPRs.push(item); }
+    }
+  }
+  return { issueItems, prItems, closedIssues, openIssues, mergedPRs, closedPRs };
 };
 
 export { FS, assigneesOtherThanAuthor, buildMilestoneMap, hoverCardPos, itemEndDate, itemStatus, partitionItems, pluralize, safeUrl, upperBound };

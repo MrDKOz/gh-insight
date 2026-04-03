@@ -82,7 +82,8 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
   // ── Single-milestone mode (stacked issues/merged/closed) ─────────────────────
   const weeks = useMemo(() => {
     if (isMulti) {return [];}
-    const buckets = new Map<number, Week>();
+    const buckets    = new Map<number, Week>();
+    const authorSets = new Map<number, Set<string>>();
     for (const item of filteredItems) {
       const endDate = itemEndDate(item);
       if (!endDate) {continue;}
@@ -91,12 +92,15 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
       if (!w) {
         w = { startMs: ws, endMs: ws + 6 * MS_PER_DAY, issues: 0, merged: 0, closed: 0, authors: [] };
         buckets.set(ws, w);
+        authorSets.set(ws, new Set());
       }
-      if (item.type === "issue")      {w.issues++;}
-      else if (item.mergedAt)         {w.merged++;}
-      else                            {w.closed++;}
-      if (!w.authors.includes(item.author)) {w.authors.push(item.author);}
+      if (item.type === "issue") {w.issues++;}
+      else if (item.mergedAt)    {w.merged++;}
+      else                       {w.closed++;}
+      authorSets.get(ws)!.add(item.author);
     }
+    // Materialise author sets into sorted arrays for the hover card.
+    for (const [ws, w] of buckets) { w.authors = [...authorSets.get(ws)!]; }
     return [...buckets.values()].sort((a, b) => a.startMs - b.startMs);
   }, [filteredItems, isMulti]);
 
