@@ -47,6 +47,7 @@ const ShareImportSplitButton: FunctionComponent<Props> = ({ onImportCode }) => {
             onClick={() => {
               void navigator.clipboard
                 .writeText(encodeShareCode())
+                .then(() => { setCopyTooltip("copied"); })
                 .catch(() => { setClipboardError("Could not copy — please copy the share code manually."); });
             }}
           >
