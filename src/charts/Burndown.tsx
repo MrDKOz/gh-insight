@@ -69,20 +69,32 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
   }, [issues, hasOpenIssues, todayMs]);
 
   // ── Per-milestone series (for both single and multi mode) ─────────────────────
+  // Pre-bucket issues by milestone number in one pass so each milestone's
+  // series computation is O(k) rather than rescanning the full array.
+  const issuesByMilestone = useMemo(() => {
+    const map = new Map<number, TimelineItem[]>();
+    for (const issue of issues) {
+      const bucket = map.get(issue.milestoneNumber);
+      if (bucket) { bucket.push(issue); }
+      else        { map.set(issue.milestoneNumber, [issue]); }
+    }
+    return map;
+  }, [issues]);
+
   const milestoneSeries = useMemo(() => {
     if (issues.length === 0) {return [];}
-    return milestones.map((milestone) => {
-      const milestoneIssues = issues.filter((i) => i.milestoneNumber === milestone.number);
-      if (milestoneIssues.length === 0) {return { milestone, points: [] };}
+    return milestones.flatMap((milestone) => {
+      const milestoneIssues = issuesByMilestone.get(milestone.number) ?? [];
+      if (milestoneIssues.length === 0) {return [];}
       const sortedCreatedTs = milestoneIssues.map((i) => new Date(i.createdAt).getTime()).sort((a, b) => a - b);
       const sortedClosedTs  = milestoneIssues.flatMap((i) => i.closedAt ? [new Date(i.closedAt).getTime()] : []).sort((a, b) => a - b);
       const points = Array.from({ length: totalDays + 1 }, (_, index) => {
         const t = minTime + index * MS_PER_DAY;
         return { t, count: upperBound(sortedCreatedTs, t) - upperBound(sortedClosedTs, t) };
       });
-      return { milestone, points };
-    }).filter((series) => series.points.length > 0);
-  }, [issues, milestones, totalDays, minTime]);
+      return [{ milestone, points }];
+    });
+  }, [issues.length, milestones, issuesByMilestone, totalDays, minTime]);
 
   // Single-milestone path (first series)
   const singleSeries = milestoneSeries[0];

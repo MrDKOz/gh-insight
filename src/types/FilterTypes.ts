@@ -33,8 +33,14 @@ const DEFAULT_FILTERS: Filters = {
   peopleRole: "either",
 };
 
-const applyFilters = (items: TimelineItem[], filters: Filters): TimelineItem[] =>
-  items.filter((item) => {
+const applyFilters = (items: TimelineItem[], filters: Filters): TimelineItem[] => {
+  // Pre-compute sets once rather than rebuilding them inside the per-item loop.
+  const activeLabelsSet = filters.activeLabels.length > 0 ? new Set(filters.activeLabels) : null;
+  const activePeopleSet = filters.activePeople.length > 0 ? new Set(filters.activePeople) : null;
+  const matchAuthor    = filters.peopleRole === "author"    || filters.peopleRole === "either";
+  const matchAssignees = filters.peopleRole === "assignees" || filters.peopleRole === "either";
+
+  return items.filter((item) => {
     if (filters.createdStart && item.createdAt.slice(0, 10) < filters.createdStart) {return false;}
     if (filters.createdEnd && item.createdAt.slice(0, 10) > filters.createdEnd) {return false;}
 
@@ -57,23 +63,20 @@ const applyFilters = (items: TimelineItem[], filters: Filters): TimelineItem[] =
       if (isClosed && !filters.showClosedPRs) {return false;}
     }
 
-    if (filters.activeLabels.length > 0) {
-      const itemLabels = new Set(item.labels.map((l) => l.name));
-      if (!filters.activeLabels.some((l) => itemLabels.has(l))) {return false;}
+    if (activeLabelsSet) {
+      if (!item.labels.some((l) => activeLabelsSet.has(l.name))) {return false;}
     }
 
-    if (filters.activePeople.length > 0) {
-      const matchAuthor    = filters.peopleRole === "author"    || filters.peopleRole === "either";
-      const matchAssignees = filters.peopleRole === "assignees" || filters.peopleRole === "either";
-      const itemAssignees  = new Set(item.assignees);
+    if (activePeopleSet) {
       const passes =
-        (matchAuthor    && filters.activePeople.includes(item.author)) ||
-        (matchAssignees && filters.activePeople.some((p) => itemAssignees.has(p)));
+        (matchAuthor    && activePeopleSet.has(item.author)) ||
+        (matchAssignees && item.assignees.some((a) => activePeopleSet.has(a)));
       if (!passes) {return false;}
     }
 
     return true;
   });
+};
 
 export { DEFAULT_FILTERS, applyFilters };
 export type { Filters, PeopleRole };
