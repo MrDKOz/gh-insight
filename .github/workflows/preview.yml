@@ -49,6 +49,8 @@ jobs:
       - name: Build preview
         env:
           DEPLOY_BASE: /gh-insight/pr-${{ github.event.number }}/
+          VITE_POSTHOG_KEY: ${{ vars.VITE_POSTHOG_KEY }}
+          VITE_POSTHOG_HOST: ${{ vars.VITE_POSTHOG_HOST }}
         run: npm run build
 
       - name: Deploy preview
