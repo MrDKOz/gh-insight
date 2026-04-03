@@ -3,7 +3,6 @@ import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
-import posthog from "posthog-js";
 import { Component } from "react";
 
 type Props = { children: ReactNode };
@@ -18,7 +17,6 @@ class ErrorBoundary extends Component<Props, State> {
 
   override componentDidCatch(error: Error, info: ErrorInfo): void {
     console.error("Uncaught render error:", error, info.componentStack);
-    posthog.capture("render_error", { error_message: error.message });
   }
 
   override render(): ReactNode {

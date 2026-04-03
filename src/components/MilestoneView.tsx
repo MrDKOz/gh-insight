@@ -15,7 +15,6 @@ import Paper from "@mui/material/Paper";
 import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import posthog from "posthog-js";
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Burndown } from "../charts/Burndown";
@@ -108,10 +107,10 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
     dispatch({ type: "SET_FILTERS", filters: newFilters });
   }, [dispatch]);
 
-  const toggleBurndownPRs     = useCallback(() => { posthog.capture("chart_pr_toggled", { chart: "burndown",       include_prs: !includePRs.burndown       }); dispatch({ type: "SET_INCLUDE_PRS", chart: "burndown",       value: !includePRs.burndown       }); }, [dispatch, includePRs.burndown]);
-  const toggleCycleTimePRs    = useCallback(() => { posthog.capture("chart_pr_toggled", { chart: "cycleTime",      include_prs: !includePRs.cycleTime      }); dispatch({ type: "SET_INCLUDE_PRS", chart: "cycleTime",      value: !includePRs.cycleTime      }); }, [dispatch, includePRs.cycleTime]);
-  const toggleVelocityPRs     = useCallback(() => { posthog.capture("chart_pr_toggled", { chart: "velocity",       include_prs: !includePRs.velocity       }); dispatch({ type: "SET_INCLUDE_PRS", chart: "velocity",       value: !includePRs.velocity       }); }, [dispatch, includePRs.velocity]);
-  const toggleCumulativeFlowPRs = useCallback(() => { posthog.capture("chart_pr_toggled", { chart: "cumulativeFlow", include_prs: !includePRs.cumulativeFlow }); dispatch({ type: "SET_INCLUDE_PRS", chart: "cumulativeFlow", value: !includePRs.cumulativeFlow }); }, [dispatch, includePRs.cumulativeFlow]);
+  const toggleBurndownPRs       = useCallback(() => { dispatch({ type: "SET_INCLUDE_PRS", chart: "burndown",       value: !includePRs.burndown       }); }, [dispatch, includePRs.burndown]);
+  const toggleCycleTimePRs      = useCallback(() => { dispatch({ type: "SET_INCLUDE_PRS", chart: "cycleTime",      value: !includePRs.cycleTime      }); }, [dispatch, includePRs.cycleTime]);
+  const toggleVelocityPRs       = useCallback(() => { dispatch({ type: "SET_INCLUDE_PRS", chart: "velocity",       value: !includePRs.velocity       }); }, [dispatch, includePRs.velocity]);
+  const toggleCumulativeFlowPRs = useCallback(() => { dispatch({ type: "SET_INCLUDE_PRS", chart: "cumulativeFlow", value: !includePRs.cumulativeFlow }); }, [dispatch, includePRs.cumulativeFlow]);
 
   // Read portal target nodes after mount — querying the DOM inline during
   // render returns null on first paint because sibling components haven't
@@ -135,7 +134,6 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
         return;
       }
       try {
-        posthog.capture("export", { format: fmt, view });
         if (view === "Review Wait") {
           if      (fmt === "CSV")                {exportReviewWaitCSV(filteredItems, title, milestones);}
           else if (fmt === "Markdown")           {exportReviewWaitMarkdown(filteredItems, title, milestones);}

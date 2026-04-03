@@ -11,7 +11,6 @@ import MenuItem from "@mui/material/MenuItem";
 import Snackbar from "@mui/material/Snackbar";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
-import posthog from "posthog-js";
 import { useState } from "react";
 import { encodeShareCode } from "../utils/urlUtils";
 
@@ -48,7 +47,6 @@ const ShareImportSplitButton: FunctionComponent<Props> = ({ onImportCode }) => {
             onClick={() => {
               void navigator.clipboard
                 .writeText(encodeShareCode())
-                .then(() => { setCopyTooltip("copied"); posthog.capture("share_code_copied"); })
                 .catch(() => { setClipboardError("Could not copy — please copy the share code manually."); });
             }}
           >

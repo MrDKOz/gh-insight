@@ -1,6 +1,5 @@
 import type { AppPhase } from "../types/AppTypes";
 import type { Repo, UserProfile } from "../types/GitHubTypes";
-import posthog from "posthog-js";
 import { useCallback, useState } from "react";
 import { fetchUserProfile, fetchUserRepos } from "../api/github";
 import { EncryptionUnavailableError, deleteKey, encryptToken } from "../utils/tokenCrypto";
@@ -64,7 +63,6 @@ const useAuth = (initialPhase: AppPhase): UseAuthReturn => {
         fetchUserRepos(inputToken),
       ]);
       if (profileResult.status === "rejected") {
-        posthog.capture("auth_error", { method: "token" });
         setAuthError(profileResult.reason instanceof Error ? profileResult.reason.message : String(profileResult.reason));
         setPhase("splash");
         return;
@@ -80,7 +78,6 @@ const useAuth = (initialPhase: AppPhase): UseAuthReturn => {
       }
       setPhase("dashboard");
     } catch (e) {
-      posthog.capture("auth_error", { method: "token" });
       setAuthError(e instanceof Error ? e.message : String(e));
       setPhase("splash");
     }
@@ -108,7 +105,6 @@ const useAuth = (initialPhase: AppPhase): UseAuthReturn => {
       ]);
       if (profileResult.status === "rejected") {
         console.error("[connectWithGhCli] auth failed:", profileResult.reason);
-        posthog.capture("auth_error", { method: "gh_cli" });
         setAuthError(profileResult.reason instanceof Error ? profileResult.reason.message : String(profileResult.reason));
         setPhase("splash");
         return;
@@ -122,14 +118,12 @@ const useAuth = (initialPhase: AppPhase): UseAuthReturn => {
       setPhase("dashboard");
     } catch (e) {
       console.error("[connectWithGhCli] auth failed:", e);
-      posthog.capture("auth_error", { method: "gh_cli" });
       setAuthError(e instanceof Error ? e.message : String(e));
       setPhase("splash");
     }
   }, []);
 
   const disconnect = useCallback(() => {
-    posthog.capture("disconnected");
     localStorage.removeItem(LS_TOKEN);
     void deleteKey();
     setToken("");

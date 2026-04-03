@@ -13,7 +13,6 @@ import TableRow from "@mui/material/TableRow";
 import TableSortLabel from "@mui/material/TableSortLabel";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import posthog from "posthog-js";
 import { memo, useMemo, useState } from "react";
 
 import { useColumnResize } from "../hooks/useColumnResize";
@@ -83,8 +82,6 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
   const widths = colWidths.length === defaultWidths.length ? colWidths : defaultWidths;
 
   const handleSort = (col: SortCol) => {
-    const newDir = col === sortCol ? (sortDir === "asc" ? "desc" : "asc") : (col === "wait" ? "desc" : "asc");
-    posthog.capture("table_sorted", { view: "review_wait", column: col, direction: newDir });
     if (col === sortCol) {setSortDir((d) => (d === "asc" ? "desc" : "asc"));}
     else { setSortCol(col); setSortDir(col === "wait" ? "desc" : "asc"); }
   };
