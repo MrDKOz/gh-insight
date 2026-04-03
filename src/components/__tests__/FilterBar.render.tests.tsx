@@ -1,9 +1,7 @@
-import type { Filters } from "../../types/FilterTypes";
 import type { TimelineItem } from "../../types/GitHubTypes";
 import type { ReactElement } from "react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { fireEvent, render } from "@testing-library/react";
-import { useState } from "react";
 import { DEFAULT_FILTERS } from "../../types/FilterTypes";
 import { FilterBar } from "../FilterBar";
 
@@ -30,21 +28,6 @@ const mergedPR: TimelineItem = {
 
 const counts = { openIssues: 0, closedIssues: 1, openPRs: 0, mergedPRs: 1, closedPRs: 0 };
 
-// Controlled wrapper so we can test state changes
-const Controlled = ({ items }: { items: TimelineItem[] }) => {
-  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
-  return (
-    <ThemeProvider theme={theme}>
-      <FilterBar
-        items={items}
-        filters={filters}
-        counts={counts}
-        onChange={setFilters}
-        colorblindMode={false}
-      />
-    </ThemeProvider>
-  );
-};
 
 describe("FilterBar — render smoke", () => {
   it("renders date range filters without crashing", () => {

@@ -10,6 +10,7 @@ const wrap = (ui: ReactElement) =>
 describe("HelpPopover — interaction", () => {
   it("dialog is not visible on initial render", () => {
     const { queryByText } = wrap(<HelpPopover />);
+
     expect(queryByText("How it works")).not.toBeInTheDocument();
   });
 
