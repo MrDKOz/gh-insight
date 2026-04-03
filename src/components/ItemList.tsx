@@ -28,12 +28,12 @@ type Props = {
   colorblindMode: boolean;
 };
 
-type SortCol = "type" | "number" | "title" | "author" | "status" | "milestone" | "changes" | "created" | "closed" | "age" | "days";
+type SortCol = "type" | "number" | "title" | "author" | "status" | "milestone" | "changes" | "created" | "closed" | "days";
 type SortDir = "asc" | "desc";
 
-// Default column widths (px): type, #, title, author, status, [milestone,] changes, created, closed, age, days
-const DEFAULTS_SINGLE = [56, 60, 320, 160, 88,      90, 92, 92, 62, 62] as const;
-const DEFAULTS_MULTI  = [56, 60, 320, 160, 88, 120, 90, 92, 92, 62, 62] as const;
+// Default column widths (px): type, #, title, author, status, [milestone,] changes, created, closed, days
+const DEFAULTS_SINGLE = [56, 60, 320, 160, 88,      90, 92, 92, 62] as const;
+const DEFAULTS_MULTI  = [56, 60, 320, 160, 88, 120, 90, 92, 92, 62] as const;
 
 type ThProps = {
   col: SortCol;
@@ -127,14 +127,11 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
           else {cmp = new Date(ea).getTime() - new Date(eb).getTime();}
           break;
         }
-        case "age":
-          cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-          break;
         case "days": {
           const ea = itemEndDate(a),
             eb = itemEndDate(b);
-          const da = ea ? (new Date(ea).getTime() - new Date(a.createdAt).getTime()) / MS_PER_DAY : Infinity;
-          const db = eb ? (new Date(eb).getTime() - new Date(b.createdAt).getTime()) / MS_PER_DAY : Infinity;
+          const da = ea ? (new Date(ea).getTime() - new Date(a.createdAt).getTime()) / MS_PER_DAY : now - new Date(a.createdAt).getTime();
+          const db = eb ? (new Date(eb).getTime() - new Date(b.createdAt).getTime()) / MS_PER_DAY : now - new Date(b.createdAt).getTime();
           cmp = da - db;
           break;
         }
@@ -170,8 +167,8 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
 
   // Column indices shift when milestone is visible.
   const columnIndices = isMulti
-    ? { type: 0, num: 1, title: 2, author: 3, status: 4, milestone: 5, changes: 6, created: 7, closed: 8, age: 9, days: 10 }
-    : { type: 0, num: 1, title: 2, author: 3, status: 4, milestone: -1, changes: 5, created: 6, closed: 7, age: 8, days: 9 };
+    ? { type: 0, num: 1, title: 2, author: 3, status: 4, milestone: 5, changes: 6, created: 7, closed: 8, days: 9 }
+    : { type: 0, num: 1, title: 2, author: 3, status: 4, milestone: -1, changes: 5, created: 6, closed: 7, days: 8 };
 
   return (
     <TableContainer sx={{ border: 1, borderColor: "divider", borderRadius: 1, overflowX: "auto" }}>
@@ -190,7 +187,6 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
             <Th col="changes"   label="+/−"                sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(columnIndices.changes)} />
             <Th col="created"   label="Created"            sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(columnIndices.created)} />
             <Th col="closed"    label="Closed"             sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(columnIndices.closed)} />
-            <Th col="age"       label="Age"                sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(columnIndices.age)} />
             <Th col="days"      label="Days"               sortCol={sortCol} sortDir={sortDir} onSort={handleSort} onResize={resize(columnIndices.days)} />
           </TableRow>
         </TableHead>
@@ -351,13 +347,7 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                   align="right"
                   sx={{ ...TABULAR_NUMS_SX, overflow: "hidden", whiteSpace: "nowrap", color: "text.secondary", fontSize: FS.base }}
                 >
-                  {isOpen ? age : <Typography component="span" color="divider">—</Typography>}
-                </TableCell>
-                <TableCell
-                  align="right"
-                  sx={{ ...TABULAR_NUMS_SX, overflow: "hidden", whiteSpace: "nowrap", color: "text.secondary", fontSize: FS.base }}
-                >
-                  {days !== null ? days : <Typography component="span" color="divider">—</Typography>}
+                  {isOpen ? age : days}
                 </TableCell>
               </TableRow>
             ))}
