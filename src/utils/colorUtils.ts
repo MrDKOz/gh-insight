@@ -35,6 +35,9 @@ const COLORS = {
   bankHoliday:     "rgba(234,67,53,0.12)",
   /** Neutral fill for the "open" area in CumulativeFlow — same in both colour modes. */
   chartOpenFill:   "rgba(209,213,218,0.35)",
+  /** Open-state tints — match the Gantt tl-bar--issue-open / tl-bar--pr-open CSS colours. */
+  issueOpen: "rgba(9,105,218,0.50)",
+  prOpen:    "rgba(130,80,223,0.50)",
 } as const;
 
 // Okabe-Ito palette — distinguishable for deuteranopia, protanopia and tritanopia.
@@ -62,6 +65,9 @@ const COLORS_CB = {
   bankHoliday:     "rgba(230,159,0,0.18)",
   /** Neutral fill for the "open" area in CumulativeFlow — same in both colour modes. */
   chartOpenFill:   "rgba(209,213,218,0.35)",
+  /** Open-state tints — Okabe-Ito hues, match the Gantt colorblind CSS variants. */
+  issueOpen: "rgba(0,114,178,0.50)",
+  prOpen:    "rgba(0,158,115,0.50)",
 } as const;
 
 /**
@@ -85,6 +91,8 @@ const makeChartColors = (colorblindMode: boolean) => {
     todayLabel:  palette.chartTodayLabel,
     weekendBand: palette.weekendBand,
     bankHoliday: palette.bankHoliday,
+    issueOpen:   palette.issueOpen,
+    prOpen:      palette.prOpen,
   };
 };
 

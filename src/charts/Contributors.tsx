@@ -139,8 +139,8 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
     issues:    chartColors.issue,
     merged:    chartColors.prMerged,
     closed:    chartColors.prClosed,
-    openIssue: chartColors.grid,
-    openPR:    chartColors.mean,
+    openIssue: chartColors.issueOpen,
+    openPR:    chartColors.prOpen,
   };
 
   const maxTotal = Math.max(...rows.map((r) => r.total), 1);
