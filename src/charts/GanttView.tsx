@@ -325,7 +325,7 @@ const GanttView = forwardRef<GanttHandle, Props>(({
               }}
             >
               {bi.isDraft && (
-                <Box component="span" sx={{ fontSize: FS.tiny, fontWeight: 700, color: "text.secondary", bgcolor: "action.selected", borderRadius: "3px", px: "3px", py: "1px", mr: "2px", flexShrink: 0 }}>DRAFT</Box>
+                <Box component="span" sx={{ fontSize: FS.tiny, fontWeight: 700, color: "text.secondary", bgcolor: "action.selected", borderRadius: "100px", px: "5px", py: "1px", mr: "2px", flexShrink: 0 }}>DRAFT</Box>
               )}
               <a
                 href={safeUrl(bi.item.url)}
@@ -465,7 +465,7 @@ const GanttView = forwardRef<GanttHandle, Props>(({
                       <Box
                         component="span"
                         aria-hidden="true"
-                        style={{ position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)", background: bi.reviewBadge.bg, color: labelTextColor(bi.reviewBadge.bg), fontSize: 9, fontWeight: 700, lineHeight: 1, padding: "2px 4px", borderRadius: 3, pointerEvents: "none", userSelect: "none" }}
+                        style={{ position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)", background: bi.reviewBadge.bg, color: labelTextColor(bi.reviewBadge.bg), fontSize: 9, fontWeight: 700, lineHeight: 1, padding: "2px 5px", borderRadius: 100, pointerEvents: "none", userSelect: "none" }}
                       >
                         {bi.reviewBadge.label}
                       </Box>
