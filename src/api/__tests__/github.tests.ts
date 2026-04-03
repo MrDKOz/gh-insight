@@ -324,10 +324,3 @@ describe("fetchMilestoneItems", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// safeUrl (via utils)
-// ---------------------------------------------------------------------------
-
-describe("safeUrl", () => {
-  it("is tested via utils.tests.ts — see that file for coverage");
-});
