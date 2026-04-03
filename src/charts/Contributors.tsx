@@ -265,7 +265,7 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
           return (
             <g key={row.login}>
               {/* Avatar + username — both wrapped in a link to the GitHub profile */}
-              <a href={profileUrl} target="_blank" rel="noreferrer" style={{ cursor: "pointer" }}>
+              <a href={profileUrl} target="_blank" rel="noreferrer" aria-label={`View ${row.login}'s GitHub profile`} style={{ cursor: "pointer" }}>
                 <image
                   href={avatarUrl}
                   x={avatarX.toFixed(1)}

@@ -43,6 +43,26 @@ body.dark {
   border: 0;
 }
 
+/* ── Skip navigation link (WCAG 2.4.1) ── */
+/* Invisible by default; becomes visible on keyboard focus so sighted keyboard users can jump to main content */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  z-index: 9999;
+  padding: 8px 16px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  border: 2px solid #0969da;
+  border-radius: 0 0 4px 0;
+  text-decoration: none;
+}
+.skip-link:focus {
+  top: 0;
+}
+
 /* ── Gantt split layout ── */
 
 .tl-body {

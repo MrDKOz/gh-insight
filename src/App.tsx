@@ -66,6 +66,7 @@ const FetchingProgress: FunctionComponent<FetchingProgressProps> = ({
     <LinearProgress
       variant={totalSelected > 1 ? "determinate" : "indeterminate"}
       value={totalSelected > 1 ? (loadedCount / totalSelected) * 100 : undefined}
+      aria-label={totalSelected > 1 ? `Loading ${loadedCount} of ${totalSelected} items` : "Loading items"}
       sx={{ flexShrink: 0 }}
     />
   );
@@ -282,6 +283,9 @@ const App: FunctionComponent = () => {
     <ThemeProvider theme={dark ? muiDarkTheme : muiLightTheme}>
       <CssBaseline />
 
+      {/* Skip link — visible only on keyboard focus (WCAG 2.4.1) */}
+      <a href="#main-content" className="skip-link">Skip to main content</a>
+
       {auth.phase !== "dashboard" ? (
         <SplashScreen
           onConnect={auth.handleConnect}
@@ -363,7 +367,7 @@ const App: FunctionComponent = () => {
             onImportCode={applySharedCode}
           />
 
-          <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <Box id="main-content" component="main" sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
             {(auth.tokenError || configError || milestones.state.error || milestones.state.emptyMilestoneNums.length > 0 || milestones.state.emptyEpicNums.length > 0) && (
               <Box sx={{ px: 3, pt: 2, display: "flex", flexDirection: "column", gap: 1 }}>

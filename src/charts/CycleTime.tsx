@@ -89,6 +89,16 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
     setHoveredIdx(pointIndex);
   }, []);
 
+  // Show the hover card when a dot receives keyboard focus so keyboard users
+  // get the same detail as mouse users. The card is anchored to the centre of
+  // the SVG container rather than a mouse position.
+  const onFocusDot = useCallback((p: Pt, pointIndex: number) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) {return;}
+    setHover({ x: rect.width / 2, y: rect.height / 2, pt: p, url: p.item.url });
+    setHoveredIdx(pointIndex);
+  }, []);
+
   if (pts.length === 0) {
     return <Typography sx={CHART_EMPTY_STATE_SX}>No completed {includePRs ? "items" : "issues"} to plot cycle times for.</Typography>;
   }
@@ -250,6 +260,8 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
               aria-label={`${p.typeLabel} #${p.item.number}: ${p.item.title} — ${pluralize(p.days, "day")} cycle time`}
               onClick={() => window.open(p.item.url, "_blank", "noreferrer")}
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); window.open(p.item.url, "_blank", "noreferrer"); } }}
+              onFocus={() => onFocusDot(p, i)}
+              onBlur={() => { setHover(null); setHoveredIdx(null); }}
             >
               <circle
                 cx={svgPt.x.toFixed(1)} cy={svgPt.y.toFixed(1)}

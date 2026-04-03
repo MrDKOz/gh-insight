@@ -48,9 +48,10 @@ const SettingsPopover: FunctionComponent<Props> = ({
       onClose={onClose}
       anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       transformOrigin={{ vertical: "top", horizontal: "right" }}
+      aria-labelledby="settings-popover-title"
     >
       <Box sx={{ p: 2, minWidth: 220 }}>
-        <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Settings</Typography>
+        <Typography id="settings-popover-title" variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Settings</Typography>
         <Divider sx={{ mb: 1.5 }} />
         <Stack direction="column" gap={0.5}>
           <FormControlLabel
@@ -106,7 +107,7 @@ const SettingsPopover: FunctionComponent<Props> = ({
         </ButtonGroup>
       </Box>
     </Popover>
-    <input type="file" accept=".json" hidden ref={fileInputRef} onChange={onImportConfig} />
+    <input type="file" accept=".json" hidden ref={fileInputRef} onChange={onImportConfig} aria-label="Import configuration file" />
   </>
 );
 
