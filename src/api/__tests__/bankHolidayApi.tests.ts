@@ -18,13 +18,15 @@ const stubFetch = (...calls: FetchCall[]) => {
   });
 };
 
-// Gov.uk bank-holidays.json shape
+// bank-holidays-uk.json shape: { [region]: { events: [{date, title}] } }
 const ukBody = (region: string, events: Array<{ date: string; title: string }>) => ({
   [region]: { events },
 });
 
-// US Nager public holidays shape
-const usBody = (entries: Array<{ date: string; localName: string; types: string[] }>) => entries;
+// bank-holidays-us.json shape: { [year]: [{date, localName, types}] }
+const usBody = (year: number, entries: Array<{ date: string; localName: string; types: string[] }>) => ({
+  [String(year)]: entries,
+});
 
 // Helper to create a [minTime, maxTime] range covering an entire year
 const yearRange = (year: number) => ({
@@ -46,7 +48,7 @@ const yearRange = (year: number) => ({
 describe("fetchBankHolidays — UK region (england-and-wales)", () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it("parses gov.uk events and returns holidays within the date range", async () => {
+  it("parses bank-holidays-uk.json events and returns holidays within the date range", async () => {
     const { min, max } = yearRange(2030);
     vi.stubGlobal("fetch", stubFetch({
       ok: true,
@@ -79,7 +81,7 @@ describe("fetchBankHolidays — UK region (england-and-wales)", () => {
     expect(result).toHaveLength(0);
   });
 
-  it("throws when the gov.uk API returns a non-ok status", async () => {
+  it("throws when bank-holidays-uk.json returns a non-ok status", async () => {
     vi.stubGlobal("fetch", stubFetch({ ok: false, status: 503, body: {} }));
     const { min, max } = yearRange(2032);
 
@@ -108,11 +110,11 @@ describe("fetchBankHolidays — UK region (england-and-wales)", () => {
 describe("fetchBankHolidays — US region", () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it("parses Nager public holiday entries", async () => {
+  it("parses bank-holidays-us.json entries", async () => {
     const { min, max } = yearRange(2040);
     vi.stubGlobal("fetch", stubFetch({
       ok: true,
-      body: usBody([
+      body: usBody(2040, [
         { date: "2040-01-01", localName: "New Year's Day", types: ["Public"] },
         { date: "2040-07-04", localName: "Independence Day", types: ["Public"] },
       ]),
@@ -129,7 +131,7 @@ describe("fetchBankHolidays — US region", () => {
     const { min, max } = yearRange(2041);
     vi.stubGlobal("fetch", stubFetch({
       ok: true,
-      body: usBody([
+      body: usBody(2041, [
         { date: "2041-02-17", localName: "Presidents Day", types: ["Observance"] },
         { date: "2041-07-04", localName: "Independence Day", types: ["Public"] },
       ]),
@@ -141,9 +143,9 @@ describe("fetchBankHolidays — US region", () => {
     expect(result[0]?.name).toBe("Independence Day");
   });
 
-  it("throws when the US API returns a non-ok status", async () => {
+  it("throws when bank-holidays-us.json returns a non-ok status", async () => {
     const { min, max } = yearRange(2042);
-    vi.stubGlobal("fetch", stubFetch({ ok: false, status: 404, body: [] }));
+    vi.stubGlobal("fetch", stubFetch({ ok: false, status: 404, body: {} }));
 
     await expect(
       fetchBankHolidays(["US"], min, max),
@@ -154,19 +156,21 @@ describe("fetchBankHolidays — US region", () => {
 describe("fetchBankHolidays — multi-year range", () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it("fetches both years when range spans a year boundary", async () => {
+  it("fetches the UK file twice when range spans a year boundary", async () => {
     const fetchMock = stubFetch(
-      // first call: 2050 data
+      // first call: file returned for 2050 year lookup
       {
         ok: true,
         body: ukBody("scotland", [
           { date: "2050-11-30", title: "St Andrew's Day" },
+          { date: "2051-01-02", title: "New Year's Day (observed)" },
         ]),
       },
-      // second call: 2051 data
+      // second call: same file returned for 2051 year lookup
       {
         ok: true,
         body: ukBody("scotland", [
+          { date: "2050-11-30", title: "St Andrew's Day" },
           { date: "2051-01-02", title: "New Year's Day (observed)" },
         ]),
       },
@@ -188,12 +192,9 @@ describe("fetchBankHolidays — multi-region merge", () => {
 
   it("merges holidays from two regions and deduplicates shared dates", async () => {
     const { min, max } = yearRange(2060);
-    // The UK endpoint returns different data per region via the region key.
-    // england-and-wales has Jan 1 + Good Friday; northern-ireland only has Jan 1.
-    const fetchMock = vi.fn((url: string): Promise<Response> => {
-      // Both regions hit the same gov.uk endpoint, so return a body with both region keys.
-      void url;
-      return Promise.resolve({
+    // Both regions hit the same bank-holidays-uk.json endpoint.
+    const fetchMock = vi.fn((): Promise<Response> =>
+      Promise.resolve({
         ok: true,
         json: () => Promise.resolve({
           "england-and-wales": {
@@ -208,8 +209,8 @@ describe("fetchBankHolidays — multi-region merge", () => {
             ],
           },
         }),
-      } as Response);
-    });
+      } as Response),
+    );
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await fetchBankHolidays(["england-and-wales", "northern-ireland"], min, max);
