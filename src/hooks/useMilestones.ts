@@ -6,7 +6,7 @@ import { fetchAllRemainingMilestones, fetchEpicItems, fetchEpics, fetchMilestone
 import { DEMO_DATA_BY_REPO } from "../data/demo";
 import { appReducer, initialState } from "../state/appReducer";
 import { EPIC_COLORS, EPIC_COLORS_CB, MILESTONE_COLORS, MILESTONE_COLORS_CB } from "../utils/colorUtils";
-import { readViewFiltersFromUrl } from "../utils/urlUtils";
+import { readViewFiltersFromUrl, setViewParam, syncFiltersToUrl, syncUrlParams } from "../utils/urlUtils";
 
 /**
  * Shared helper for add-milestone and add-epic: manages the AbortController
@@ -286,6 +286,19 @@ const useMilestones = ({ token, colorblindMode = false }: UseMilestonesOptions):
   const resetMilestones = useCallback(() => {
     dispatch({ type: "RESET" });
   }, []);
+
+  // Keep the URL in sync with the current milestone/epic/view/filter state.
+  // This is a genuine external-system side effect — the URL is not React state.
+  useEffect(() => {
+    syncUrlParams(
+      state.activeRepo,
+      state.selected.map((m) => m.number),
+      state.isDemo,
+      state.selectedEpics.map((e) => e.number),
+    );
+    setViewParam(state.view);
+    syncFiltersToUrl(state.filters);
+  }, [state.activeRepo, state.selected, state.isDemo, state.view, state.filters, state.selectedEpics]);
 
   const allItems = useMemo(
     () => [

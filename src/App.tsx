@@ -1,5 +1,5 @@
 import type { AppPhase, View } from "./types/AppTypes";
-import type { Repo, UserProfile } from "./types/GitHubTypes";
+import type { Epic, Milestone, Repo, TimelineItem, UserProfile } from "./types/GitHubTypes";
 import type { FunctionComponent } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -7,7 +7,7 @@ import Button from "@mui/material/Button";
 import CssBaseline from "@mui/material/CssBaseline";
 import LinearProgress from "@mui/material/LinearProgress";
 import { ThemeProvider } from "@mui/material/styles";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchUserProfile, fetchUserRepos } from "./api/github";
 import { AppHeader } from "./components/AppHeader";
 import { ContextBar } from "./components/ContextBar";
@@ -28,10 +28,48 @@ import { useSettings } from "./hooks/useSettings";
 import { muiDarkTheme, muiLightTheme } from "./theme";
 import { isElectron } from "./utils/platform";
 import { decryptToken } from "./utils/tokenCrypto";
-import { decodeShareCode, readUrlParams, readViewFiltersFromUrl, setViewParam, syncFiltersToUrl, syncUrlParams } from "./utils/urlUtils";
+import { decodeShareCode, readUrlParams, readViewFiltersFromUrl } from "./utils/urlUtils";
 
 // Evaluated once at module load — stable across the lifetime of the page
 const INITIAL_URL_PARAMS = readUrlParams();
+
+type FetchingProgressProps = {
+  loadingNums:     number[];
+  loadingEpicNums: number[];
+  selected:        Milestone[];
+  selectedEpics:   Epic[];
+  itemsCache:      Record<number, TimelineItem[]>;
+  epicItemsCache:  Record<number, TimelineItem[]>;
+  hasItems:        boolean;
+};
+
+/** Slim progress indicator shown while milestone/epic items are loading. */
+const FetchingProgress: FunctionComponent<FetchingProgressProps> = ({
+  loadingNums, loadingEpicNums, selected, selectedEpics,
+  itemsCache, epicItemsCache, hasItems,
+}) => {
+  const isFetching = loadingNums.length > 0 || loadingEpicNums.length > 0;
+  if (!isFetching) { return null; }
+
+  const fetchItems = [
+    ...selected.map((m) => ({ name: m.title, done: itemsCache[m.number] !== undefined })),
+    ...selectedEpics.map((e) => ({ name: e.title, done: epicItemsCache[e.number] !== undefined })),
+  ];
+  const totalSelected = fetchItems.length;
+  const loadedCount   = fetchItems.filter((i) => i.done).length;
+
+  if (!hasItems) {
+    return <FetchingOverlay items={fetchItems} />;
+  }
+
+  return (
+    <LinearProgress
+      variant={totalSelected > 1 ? "determinate" : "indeterminate"}
+      value={totalSelected > 1 ? (loadedCount / totalSelected) * 100 : undefined}
+      sx={{ flexShrink: 0 }}
+    />
+  );
+};
 
 const App: FunctionComponent = () => {
   const { dark, toggleDark, applyDark } = useDarkMode();
@@ -56,10 +94,17 @@ const App: FunctionComponent = () => {
     colorblindMode: settings.colorblindMode,
   });
 
+  const { minTime, maxTime } = useMemo(() => {
+    if (milestones.allItems.length === 0) { return { minTime: null, maxTime: null }; }
+    const timestamps = milestones.allItems.map((i) => new Date(i.createdAt).getTime());
+    return { minTime: Math.min(...timestamps), maxTime: Math.max(...timestamps, Date.now()) };
+  }, [milestones.allItems]);
+
   const bankHolidays = useBankHolidays({
     enabled: settings.highlightBankHolidays,
     regions: settings.bankHolidayRegions,
-    allItems: milestones.allItems,
+    minTime,
+    maxTime,
   });
 
   // ── Auth orchestration ────────────────────────────────────────────────────
@@ -202,33 +247,15 @@ const App: FunctionComponent = () => {
     }
   }, [auth.repos, milestoneDispatch, loadMilestonesForRepo]);
 
-  // ── URL synchronisation ───────────────────────────────────────────────────
+  // ── Document title — derived from state, set synchronously ───────────────
 
-  useEffect(() => {
-    syncUrlParams(
-      milestones.state.activeRepo,
-      milestones.state.selected.map((m) => m.number),
-      milestones.state.isDemo,
-      milestones.state.selectedEpics.map((e) => e.number),
-    );
-    setViewParam(milestones.state.view);
-    syncFiltersToUrl(milestones.state.filters);
-  }, [milestones.state.activeRepo, milestones.state.selected, milestones.state.isDemo, milestones.state.view, milestones.state.filters, milestones.state.selectedEpics]);
-
-  useEffect(() => {
-    document.body.classList.toggle("colorblind", settings.colorblindMode);
-  }, [settings.colorblindMode]);
-
-  useEffect(() => {
-    const activeRepo = milestones.state.activeRepo;
-    const selected   = milestones.state.selected;
-    const base = "GH Insight";
-    if (!activeRepo) { document.title = base; return; }
-    const repo = `${activeRepo.owner}/${activeRepo.name}`;
-    if (selected.length === 0) { document.title = `${repo} — ${base}`; return; }
-    const label = selected.length === 1 && selected[0] ? selected[0].title : `${selected.length} milestones`;
-    document.title = `${label} — ${repo} — ${base}`;
-  }, [milestones.state.activeRepo, milestones.state.selected]);
+  const { activeRepo, selected } = milestones.state;
+  const BASE_TITLE = "GH Insight";
+  document.title = !activeRepo
+    ? BASE_TITLE
+    : selected.length === 0
+    ? `${activeRepo.owner}/${activeRepo.name} — ${BASE_TITLE}`
+    : `${selected.length === 1 && selected[0] ? selected[0].title : `${selected.length} milestones`} — ${activeRepo.owner}/${activeRepo.name} — ${BASE_TITLE}`;
 
   // ── View navigation ───────────────────────────────────────────────────────
 
@@ -373,41 +400,15 @@ const App: FunctionComponent = () => {
               </Box>
             )}
 
-            {(() => {
-              const isFetching =
-                milestones.state.loadingNums.length > 0 ||
-                milestones.state.loadingEpicNums.length > 0;
-              if (!isFetching) { return null; }
-
-              const fetchItems = [
-                ...milestones.state.selected.map((m) => ({
-                  name: m.title,
-                  done: milestones.state.itemsCache[m.number] !== undefined,
-                })),
-                ...milestones.state.selectedEpics.map((e) => ({
-                  name: e.title,
-                  done: milestones.state.epicItemsCache[e.number] !== undefined,
-                })),
-              ];
-              const totalSelected = fetchItems.length;
-              const loadedCount   = fetchItems.filter((i) => i.done).length;
-
-              // No data yet — show full centered overlay
-              if (milestones.allItems.length === 0) {
-                return (
-                  <FetchingOverlay items={fetchItems} />
-                );
-              }
-
-              // Already have some data — show slim progress bar at top so existing content stays visible
-              return (
-                <LinearProgress
-                  variant={totalSelected > 1 ? "determinate" : "indeterminate"}
-                  value={totalSelected > 1 ? (loadedCount / totalSelected) * 100 : undefined}
-                  sx={{ flexShrink: 0 }}
-                />
-              );
-            })()}
+            <FetchingProgress
+              loadingNums={milestones.state.loadingNums}
+              loadingEpicNums={milestones.state.loadingEpicNums}
+              selected={milestones.state.selected}
+              selectedEpics={milestones.state.selectedEpics}
+              itemsCache={milestones.state.itemsCache}
+              epicItemsCache={milestones.state.epicItemsCache}
+              hasItems={milestones.allItems.length > 0}
+            />
 
             {auth.repos.length === 0 && !milestones.state.isDemo && (
               <EmptyState
