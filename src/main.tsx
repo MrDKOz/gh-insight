@@ -7,6 +7,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { isElectron } from "./utils/platform";
 
 const isPrPreview = /\/pr-\d+\//.test(window.location.pathname);
+const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
 const platform = isElectron() ? "electron" : "web";
 
 posthog.init("phc_xEKzVGincEBYoURACTWeCF9AVxJ6f9dtVDMT5w3Zgev8", {
@@ -16,7 +17,7 @@ posthog.init("phc_xEKzVGincEBYoURACTWeCF9AVxJ6f9dtVDMT5w3Zgev8", {
   capture_pageleave: true,
   autocapture: false,
   loaded: (ph) => {
-    if (isPrPreview) { ph.opt_out_capturing(); return; }
+    if (isPrPreview || isLocalhost) { ph.opt_out_capturing(); return; }
     ph.register({ platform });
   },
 });
