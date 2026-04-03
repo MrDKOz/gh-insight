@@ -120,11 +120,15 @@ jobs:
         with:
           github-token: ${{ secrets.ENVIRONMENTS_TOKEN }}
           script: |
-            await github.rest.repos.deleteAnEnvironment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              environment_name: `pr-${{ github.event.number }}`,
-            });
+            try {
+              await github.rest.repos.deleteAnEnvironment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                environment_name: `pr-${{ github.event.number }}`,
+              });
+            } catch (e) {
+              if (e.status !== 404) throw e;
+            }
 
       - name: Remove preview directory
         run: |
