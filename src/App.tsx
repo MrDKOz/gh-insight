@@ -7,6 +7,7 @@ import Button from "@mui/material/Button";
 import CssBaseline from "@mui/material/CssBaseline";
 import LinearProgress from "@mui/material/LinearProgress";
 import { ThemeProvider } from "@mui/material/styles";
+import posthog from "posthog-js";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchUserProfile, fetchUserRepos } from "./api/github";
 import { AppHeader } from "./components/AppHeader";
@@ -84,6 +85,7 @@ const App: FunctionComponent = () => {
       milestoneDispatch({ type: "SET_REPO", repo: autoRepo });
     }
     setPhase("dashboard");
+    posthog.capture("auth", { method: "token" });
     if (autoRepo) {
       void loadMilestonesForRepo(autoRepo, {
         autoSelectNums:     INITIAL_URL_PARAMS.milestoneNums,
@@ -98,6 +100,7 @@ const App: FunctionComponent = () => {
     setUserProfile(DEMO_USER);
     setRepos(DEMO_REPOS);
     setPhase("dashboard");
+    posthog.capture("auth", { method: "demo" });
     if (firstRepo) {
       milestoneDispatch({ type: "SET_REPO", repo: firstRepo });
       loadDemoForRepo(firstRepo, INITIAL_URL_PARAMS.milestoneNums);
@@ -234,6 +237,7 @@ const App: FunctionComponent = () => {
 
   const handleViewChange = useCallback((v: View) => {
     milestones.dispatch({ type: "SET_VIEW", view: v });
+    posthog.capture("view_change", { view: v });
   }, [milestones]);
 
   // ── Config import / export ────────────────────────────────────────────────
