@@ -235,6 +235,7 @@ const useMilestones = ({ token, colorblindMode = false }: UseMilestonesOptions):
 
   const loadMoreMilestones = useCallback(async () => {
     if (!state.activeRepo || state.loadingMoreMilestones || !state.milestonesHasMore) { return; }
+    posthog.capture("load_more_triggered", { item_type: "milestone" });
     dispatch({ type: "FETCH_MORE_MILESTONES_START" });
     try {
       const remaining = await fetchAllRemainingMilestones(
@@ -249,6 +250,7 @@ const useMilestones = ({ token, colorblindMode = false }: UseMilestonesOptions):
 
   const loadMoreEpics = useCallback(async () => {
     if (!state.activeRepo || state.loadingMoreEpics || !state.epicsHasMore) { return; }
+    posthog.capture("load_more_triggered", { item_type: "epic" });
     dispatch({ type: "FETCH_MORE_EPICS_START" });
     try {
       const { items } = await fetchEpics(state.activeRepo.owner, state.activeRepo.name, token, undefined, ["CLOSED"]);
@@ -261,6 +263,7 @@ const useMilestones = ({ token, colorblindMode = false }: UseMilestonesOptions):
 
   const refreshMilestones = useCallback(async () => {
     if (state.selected.length === 0 || !state.activeRepo) { return; }
+    posthog.capture("data_refreshed", { milestones_count: state.selected.length });
     refreshAbortRef.current?.abort();
     const ac = new AbortController();
     refreshAbortRef.current = ac;

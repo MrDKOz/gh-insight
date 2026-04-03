@@ -147,14 +147,14 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
           label="Created"
           startValue={filters.createdStart}
           endValue={filters.createdEnd}
-          onStartChange={(v) => patchFilters({ createdStart: v })}
+          onStartChange={(v) => { posthog.capture("filter_date_set", { type: "created", field: "start" }); patchFilters({ createdStart: v }); }}
           onStartClear={() => patchFilters({ createdStart: "" })}
-          onEndChange={(v) => patchFilters({ createdEnd: v })}
+          onEndChange={(v) => { posthog.capture("filter_date_set", { type: "created", field: "end" }); patchFilters({ createdEnd: v }); }}
           onEndClear={() => patchFilters({ createdEnd: "" })}
         />
         {hasCreated && (
           <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-            <Button size="small" sx={{ fontSize: FS.sm }} onClick={() => patchFilters({ createdStart: "", createdEnd: "" })}>Clear</Button>
+            <Button size="small" sx={{ fontSize: FS.sm }} onClick={() => { posthog.capture("filter_date_cleared", { type: "created" }); patchFilters({ createdStart: "", createdEnd: "" }); }}>Clear</Button>
           </Box>
         )}
       </Popover>
@@ -178,14 +178,14 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
           label="Closed"
           startValue={filters.closedStart}
           endValue={filters.closedEnd}
-          onStartChange={(v) => patchFilters({ closedStart: v })}
+          onStartChange={(v) => { posthog.capture("filter_date_set", { type: "closed", field: "start" }); patchFilters({ closedStart: v }); }}
           onStartClear={() => patchFilters({ closedStart: "" })}
-          onEndChange={(v) => patchFilters({ closedEnd: v })}
+          onEndChange={(v) => { posthog.capture("filter_date_set", { type: "closed", field: "end" }); patchFilters({ closedEnd: v }); }}
           onEndClear={() => patchFilters({ closedEnd: "" })}
         />
         {hasClosed && (
           <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-            <Button size="small" sx={{ fontSize: FS.sm }} onClick={() => patchFilters({ closedStart: "", closedEnd: "" })}>Clear</Button>
+            <Button size="small" sx={{ fontSize: FS.sm }} onClick={() => { posthog.capture("filter_date_cleared", { type: "closed" }); patchFilters({ closedStart: "", closedEnd: "" }); }}>Clear</Button>
           </Box>
         )}
       </Popover>

@@ -11,6 +11,7 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import TableSortLabel from "@mui/material/TableSortLabel";
 import Typography from "@mui/material/Typography";
+import posthog from "posthog-js";
 import { memo, useCallback, useMemo, useState } from "react";
 
 import { useColumnResize } from "../hooks/useColumnResize";
@@ -76,13 +77,15 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
   const widths = colWidths.length === defaultWidths.length ? colWidths : defaultWidths;
 
   const handleSort = useCallback((col: SortCol) => {
+    const newDir = col === sortCol ? (sortDir === "asc" ? "desc" : "asc") : "asc";
+    posthog.capture("table_sorted", { view: "list", column: col, direction: newDir });
     if (col === sortCol) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     } else {
       setSortCol(col);
       setSortDir("asc");
     }
-  }, [sortCol]);
+  }, [sortCol, sortDir]);
 
   const sorted = useMemo(() => {
     const now = Date.now();

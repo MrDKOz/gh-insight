@@ -9,6 +9,7 @@ import IconButton from "@mui/material/IconButton";
 import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import posthog from "posthog-js";
 import { useState } from "react";
 import { useGitHubReleaseCheck } from "../hooks/useGitHubReleaseCheck";
 
@@ -74,7 +75,7 @@ const HelpPopover: FunctionComponent = () => {
         <IconButton
           size="small"
           aria-label="About this app"
-          onClick={() => setOpen(true)}
+          onClick={() => { posthog.capture("help_opened"); setOpen(true); }}
         >
           <HelpCircleIcon />
         </IconButton>
