@@ -25,17 +25,17 @@ const stripDevCspPlugin: Plugin = {
 
 // Writes dist/version.json at the end of each production build so the running
 // app can poll it to detect when a new deployment has been pushed.
+const BUILD_TIME = Date.now();
+
 const writeVersionJsonPlugin: Plugin = {
   name: "write-version-json",
   closeBundle() {
     writeFileSync(
       resolve(__dirname, "dist/version.json"),
-      JSON.stringify({ buildTime: Date.now() }),
+      JSON.stringify({ buildTime: BUILD_TIME }),
     );
   },
 };
-
-const BUILD_TIME = Date.now();
 
 export default defineConfig(async () => {
   // Dynamically import the Electron plugin only when ELECTRON=true so that
