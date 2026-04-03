@@ -10,8 +10,8 @@ const isPrPreview = /\/pr-\d+\//.test(window.location.pathname);
 const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
 const platform = isElectron() ? "electron" : "web";
 
-posthog.init("phc_xEKzVGincEBYoURACTWeCF9AVxJ6f9dtVDMT5w3Zgev8", {
-  api_host: "https://eu.i.posthog.com",
+posthog.init(import.meta.env.VITE_POSTHOG_KEY as string, {
+  api_host: import.meta.env.VITE_POSTHOG_HOST as string,
   person_profiles: "never",
   capture_pageview: true,
   capture_pageleave: true,
