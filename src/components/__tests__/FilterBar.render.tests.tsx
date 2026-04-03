@@ -95,20 +95,50 @@ describe("FilterBar — render smoke", () => {
   });
 
   it("calls onChange when a toggle chip is clicked", () => {
-    const { getByText, rerender } = render(<Controlled items={[closedIssue, mergedPR]} />);
+    const onChange = vi.fn();
+    const { getByText } = wrap(
+      <FilterBar
+        items={[closedIssue, mergedPR]}
+        filters={DEFAULT_FILTERS}
+        counts={counts}
+        onChange={onChange}
+        colorblindMode={false}
+      />,
+    );
 
     fireEvent.click(getByText("Closed issues"));
 
-    // After toggling off, the chip should still be in the DOM (chip is always rendered while count > 0)
-    // but the filter state changed — verify by checking the chip is still present
-    expect(getByText("Closed issues")).toBeInTheDocument();
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ showClosedIssues: false }));
+  });
 
-    // Toggling again re-enables
-    fireEvent.click(getByText("Closed issues"));
+  it("reset button is absent when no filters are active", () => {
+    const { queryByRole } = wrap(
+      <FilterBar
+        items={[closedIssue, mergedPR]}
+        filters={DEFAULT_FILTERS}
+        counts={counts}
+        onChange={() => {}}
+        colorblindMode={false}
+      />,
+    );
 
-    expect(getByText("Closed issues")).toBeInTheDocument();
+    expect(queryByRole("button", { name: "Reset all filters" })).not.toBeInTheDocument();
+  });
 
-    // suppress unused warning
-    void rerender;
+  it("reset button appears when a filter is active and resets to defaults on click", () => {
+    const onChange = vi.fn();
+    const { getByRole } = wrap(
+      <FilterBar
+        items={[closedIssue, mergedPR]}
+        filters={{ ...DEFAULT_FILTERS, showClosedIssues: false }}
+        counts={counts}
+        onChange={onChange}
+        colorblindMode={false}
+      />,
+    );
+
+    fireEvent.click(getByRole("button", { name: "Reset all filters" }));
+
+    expect(onChange).toHaveBeenCalledWith(DEFAULT_FILTERS);
   });
 });
