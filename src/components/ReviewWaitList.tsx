@@ -145,7 +145,36 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
             <Th col="firstReview" label="First Review"       active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(COLUMN_INDICES.firstReview)} />
             <Th col="wait"        label="Wait"               active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(COLUMN_INDICES.wait)} align="right" />
             <TableCell sx={TABLE_HEADER_CELL_SX}>
-              Wait vs Total
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                Wait vs Total
+                <Tooltip
+                  title={
+                    <Box component="span" sx={{ display: "block", maxWidth: 260 }}>
+                      Each bar is split into two segments:<br />
+                      <Box component="span" sx={{ display: "inline-block", width: 8, height: 8, borderRadius: 0.5, bgcolor: barWait, mr: 0.5, verticalAlign: "middle" }} />
+                      <strong>Amber</strong> — days waiting for first review<br />
+                      <Box component="span" sx={{ display: "inline-block", width: 8, height: 8, borderRadius: 0.5, bgcolor: barDone, mr: 0.5, verticalAlign: "middle" }} />
+                      <strong>Grey</strong> — days from first review to close<br /><br />
+                      Bar width is proportional to the longest PR in the current view, so you can compare durations at a glance.
+                    </Box>
+                  }
+                  placement="bottom-start"
+                >
+                  <Box
+                    component="span"
+                    sx={{
+                      display: "inline-flex", alignItems: "center", justifyContent: "center",
+                      width: 14, height: 14, borderRadius: "50%",
+                      border: 1, borderColor: "text.disabled",
+                      fontSize: 9, fontWeight: 700, color: "text.disabled",
+                      cursor: "default", flexShrink: 0, lineHeight: 1,
+                    }}
+                    aria-label="Bar column explanation"
+                  >
+                    ?
+                  </Box>
+                </Tooltip>
+              </Box>
               <Box onMouseDown={resize(COLUMN_INDICES.bar)} sx={RESIZE_HANDLE_SX} />
             </TableCell>
             <Th col="total"       label="Total"              active={sortCol} dir={sortDir} onSort={handleSort} onResize={resize(COLUMN_INDICES.total)} align="right" />
