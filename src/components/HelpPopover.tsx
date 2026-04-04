@@ -137,15 +137,8 @@ const HelpPopover: FunctionComponent = () => {
           </Stack>
 
           <Divider sx={{ mt: 2 }} />
-          <Box sx={{ mt: 1.5, display: "flex", flexDirection: "column", gap: 0.5 }}>
-            <Typography variant="caption" color="text.secondary">
-              v{__APP_VERSION__} · Made by{" "}
-              <Link href="https://github.com/MrDKOz" target="_blank" rel="noreferrer" variant="caption">
-                @MrDKOz
-              </Link>
-            </Typography>
-
-            {!isElectron() && (
+          <Box sx={{ mt: 1.5, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 0.5 }}>
+            {!isElectron() ? (
               <Link
                 href="https://github.com/MrDKOz/gh-insight/releases/latest"
                 target="_blank"
@@ -155,20 +148,26 @@ const HelpPopover: FunctionComponent = () => {
               >
                 Desktop app available →
               </Link>
-            )}
-
-            {updateRelease && (
-              <Link
-                href={updateRelease.releasesUrl}
-                target="_blank"
-                rel="noreferrer"
-                variant="caption"
-                sx={{ fontWeight: 600, color: "error.main" }}
-              >
-                Update available (v{updateRelease.version}) →
+            ) : <Box />}
+            <Typography variant="caption" color="text.secondary">
+              v{__APP_VERSION__} · Made by{" "}
+              <Link href="https://github.com/MrDKOz" target="_blank" rel="noreferrer" variant="caption">
+                @MrDKOz
               </Link>
-            )}
+            </Typography>
           </Box>
+
+          {updateRelease && (
+            <Link
+              href={updateRelease.releasesUrl}
+              target="_blank"
+              rel="noreferrer"
+              variant="caption"
+              sx={{ display: "block", mt: 0.5, fontWeight: 600, color: "error.main" }}
+            >
+              Update available (v{updateRelease.version}) →
+            </Link>
+          )}
         </DialogContent>
       </Dialog>
     </>
