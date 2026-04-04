@@ -2,6 +2,8 @@ import type { BankHoliday } from "../api/bankHolidayApi";
 import type { MilestoneMeta, TimelineItem } from "../types/GitHubTypes";
 import type { FunctionComponent, MouseEvent } from "react";
 import Box from "@mui/material/Box";
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 
@@ -61,6 +63,7 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
   const containerRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<Hover | null>(null);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [showPercentiles, setShowPercentiles] = useState(false);
 
   const pts: Pt[] = useMemo(() => filteredItems.flatMap((item) => {
     const endDate = itemEndDate(item);
@@ -123,6 +126,10 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
   const mean   = Math.round(sorted.reduce((s, d) => s + d, 0) / sorted.length);
   const showMean = mean !== median && Math.abs(toSvgY(mean) - toSvgY(median)) > 16;
 
+  const pct = (p: number) => sorted[Math.floor(p * (sorted.length - 1))] ?? 0;
+  const p75 = pct(0.75);
+  const p90 = pct(0.90);
+
   const numXLabels = Math.min(8, pts.length);
   const xTimes = Array.from({ length: numXLabels }, (_, i) =>
     minTime + (totalMs * i) / Math.max(numXLabels - 1, 1),
@@ -162,6 +169,11 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
 
   return (
     <Box className="chart-wrap" ref={containerRef} role="presentation" style={{ position: "relative" }}>
+      <FormControlLabel
+        control={<Checkbox size="small" checked={showPercentiles} onChange={() => setShowPercentiles((v) => !v)} />}
+        label="Show percentiles (p75 / p90)"
+        sx={{ alignSelf: "flex-start", ml: 0 }}
+      />
       {hover && (
         <ItemHoverCard
           item={hover.pt.item}
@@ -243,6 +255,25 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
             <text x={PADDING_LEFT + 4} y={toSvgY(mean) - 4} textAnchor="start"
               fill={chartColors.mean} fontSize={9} fontFamily="inherit">
               mean {mean}d
+            </text>
+          </>
+        )}
+
+        {showPercentiles && (
+          <>
+            <line
+              x1={PADDING_LEFT} y1={toSvgY(p75).toFixed(1)} x2={PADDING_LEFT + CHART_WIDTH} y2={toSvgY(p75).toFixed(1)}
+              stroke={chartColors.p75} strokeWidth={1.5} strokeDasharray="6 4" />
+            <text x={PADDING_LEFT + 4} y={toSvgY(p75) - 4} textAnchor="start"
+              fill={chartColors.p75} fontSize={9} fontFamily="inherit">
+              p75 {p75}d
+            </text>
+            <line
+              x1={PADDING_LEFT} y1={toSvgY(p90).toFixed(1)} x2={PADDING_LEFT + CHART_WIDTH} y2={toSvgY(p90).toFixed(1)}
+              stroke={chartColors.p90} strokeWidth={1.5} strokeDasharray="6 4" />
+            <text x={PADDING_LEFT + 4} y={toSvgY(p90) - 4} textAnchor="start"
+              fill={chartColors.p90} fontSize={9} fontFamily="inherit">
+              p90 {p90}d
             </text>
           </>
         )}
