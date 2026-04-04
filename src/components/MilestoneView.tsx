@@ -68,6 +68,8 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
   const [exportAnchor, setExportAnchor] = useState<HTMLElement | null>(null);
   const [exporting, setExporting] = useState<ExportFormat | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [viewOptionsAnchor, setViewOptionsAnchor] = useState<HTMLElement | null>(null);
+  const [showPercentiles, setShowPercentiles] = useState(false);
 
   const [toolbarSlot, setToolbarSlot] = useState<Element | null>(null);
   const [filterSlot, setFilterSlot]   = useState<Element | null>(null);
@@ -176,8 +178,33 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
 
   const noFilteredItems = filteredItems.length === 0;
 
+  const viewOptionsItems: { label: string; checked: boolean; onChange: () => void }[] = [];
+  if (view === "Burndown")        { viewOptionsItems.push({ label: "Include PRs", checked: includePRs.burndown,       onChange: toggleBurndownPRs }); }
+  if (view === "Cycle Time")      { viewOptionsItems.push({ label: "Include PRs", checked: includePRs.cycleTime,      onChange: toggleCycleTimePRs },
+                                                          { label: "Show percentiles (p75 / p90)", checked: showPercentiles, onChange: () => setShowPercentiles((v) => !v) }); }
+  if (view === "Velocity")        { viewOptionsItems.push({ label: "Include PRs", checked: includePRs.velocity,       onChange: toggleVelocityPRs }); }
+  if (view === "Cumulative Flow") { viewOptionsItems.push({ label: "Include PRs", checked: includePRs.cumulativeFlow, onChange: toggleCumulativeFlowPRs }); }
+
   const toolbar = (
     <Stack direction="row" gap={1} alignItems="center" data-export-exclude>
+      {viewOptionsItems.length > 0 && (
+        <>
+          <Button variant="outlined" size="small" onClick={(e) => setViewOptionsAnchor(e.currentTarget)}>
+            View options ▾
+          </Button>
+          <Menu anchorEl={viewOptionsAnchor} open={Boolean(viewOptionsAnchor)} onClose={() => setViewOptionsAnchor(null)}>
+            {viewOptionsItems.map(({ label, checked, onChange }) => (
+              <MenuItem key={label} dense disableRipple sx={{ px: 1 }}>
+                <FormControlLabel
+                  control={<Checkbox size="small" checked={checked} onChange={onChange} />}
+                  label={label}
+                  sx={{ m: 0 }}
+                />
+              </MenuItem>
+            ))}
+          </Menu>
+        </>
+      )}
       <Button
         variant="outlined"
         size="small"
@@ -219,28 +246,16 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
         </Typography>
       )}
       {!noFilteredItems && view === "Burndown" && (
-        <>
-          <FormControlLabel control={<Checkbox size="small" checked={includePRs.burndown} onChange={toggleBurndownPRs} />} label="Include PRs" sx={{ alignSelf: "flex-start", ml: 0 }} />
-          <Burndown items={filteredItems} milestones={milestones} highlightWeekends={highlightWeekends} bankHolidays={bankHolidays} colorblindMode={colorblindMode} includePRs={includePRs.burndown} />
-        </>
+        <Burndown items={filteredItems} milestones={milestones} highlightWeekends={highlightWeekends} bankHolidays={bankHolidays} colorblindMode={colorblindMode} includePRs={includePRs.burndown} />
       )}
       {!noFilteredItems && view === "Cycle Time" && (
-        <>
-          <FormControlLabel control={<Checkbox size="small" checked={includePRs.cycleTime} onChange={toggleCycleTimePRs} />} label="Include PRs" sx={{ alignSelf: "flex-start", ml: 0 }} />
-          <CycleTime items={filteredItems} milestones={milestones} highlightWeekends={highlightWeekends} bankHolidays={bankHolidays} colorblindMode={colorblindMode} includePRs={includePRs.cycleTime} />
-        </>
+        <CycleTime items={filteredItems} milestones={milestones} highlightWeekends={highlightWeekends} bankHolidays={bankHolidays} colorblindMode={colorblindMode} includePRs={includePRs.cycleTime} showPercentiles={showPercentiles} />
       )}
       {!noFilteredItems && view === "Velocity" && (
-        <>
-          <FormControlLabel control={<Checkbox size="small" checked={includePRs.velocity} onChange={toggleVelocityPRs} />} label="Include PRs" sx={{ alignSelf: "flex-start", ml: 0 }} />
-          <Velocity items={filteredItems} milestones={milestones} colorblindMode={colorblindMode} includePRs={includePRs.velocity} />
-        </>
+        <Velocity items={filteredItems} milestones={milestones} colorblindMode={colorblindMode} includePRs={includePRs.velocity} />
       )}
       {!noFilteredItems && view === "Cumulative Flow" && (
-        <>
-          <FormControlLabel control={<Checkbox size="small" checked={includePRs.cumulativeFlow} onChange={toggleCumulativeFlowPRs} />} label="Include PRs" sx={{ alignSelf: "flex-start", ml: 0 }} />
-          <CumulativeFlow items={filteredItems} highlightWeekends={highlightWeekends} bankHolidays={bankHolidays} colorblindMode={colorblindMode} includePRs={includePRs.cumulativeFlow} />
-        </>
+        <CumulativeFlow items={filteredItems} highlightWeekends={highlightWeekends} bankHolidays={bankHolidays} colorblindMode={colorblindMode} includePRs={includePRs.cumulativeFlow} />
       )}
       {!noFilteredItems && view === "Contributors" && <Contributors items={filteredItems} colorblindMode={colorblindMode} />}
       {!noFilteredItems && view === "Review Wait" && <ReviewWaitList items={filteredItems} milestones={milestones} colorblindMode={colorblindMode} />}
