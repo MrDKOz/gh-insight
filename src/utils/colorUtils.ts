@@ -30,6 +30,8 @@ const COLORS = {
   chartToday:      "rgba(248,81,73,0.7)",
   chartTodayLabel: "rgba(248,81,73,0.9)",
   chartCursor:     "rgba(87,96,106,0.5)",
+  /** Hover column highlight band behind the cursor line. */
+  chartCursorBand: "rgba(87,96,106,0.12)",
   weekendBand:     "rgba(0,0,0,0.04)",
   /** Bank holiday band — red tint (SVG fill / Gantt band background, light mode). */
   bankHoliday:     "rgba(234,67,53,0.12)",
@@ -60,6 +62,7 @@ const COLORS_CB = {
   chartToday:      "rgba(213,94,0,0.7)",
   chartTodayLabel: "rgba(213,94,0,0.9)",
   chartCursor:     "rgba(87,96,106,0.5)",
+  chartCursorBand: "rgba(87,96,106,0.12)",
   weekendBand:     "rgba(0,0,0,0.04)",
   /** Bank holiday band — Okabe-Ito amber (distinguishable for red-green colorblindness). */
   bankHoliday:     "rgba(230,159,0,0.18)",
@@ -84,6 +87,7 @@ const makeChartColors = (colorblindMode: boolean) => {
     grid:        palette.chartGrid,
     label:       palette.chartAxis,
     cursor:      palette.chartCursor,
+    cursorBand:  palette.chartCursorBand,
     openFill:    palette.chartOpenFill,
     median:      palette.success,
     mean:        palette.warning,
