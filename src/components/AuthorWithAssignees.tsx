@@ -1,7 +1,7 @@
 import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
-import Tooltip from "@mui/material/Tooltip";
-import { assigneesOtherThanAuthor } from "../utils/displayUtils";
+import Typography from "@mui/material/Typography";
+import { FS, assigneesOtherThanAuthor } from "../utils/displayUtils";
 import { AuthorTag } from "./AuthorTag";
 
 type Props = {
@@ -11,11 +11,17 @@ type Props = {
   assigneeSize?: number;
 };
 
+const RowLabel: FunctionComponent<{ text: string }> = ({ text }) => (
+  <Typography component="span" sx={{ fontSize: FS.tiny, color: "text.disabled", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", mr: 0.75 }}>
+    {text}
+  </Typography>
+);
+
 const AuthorWithAssignees: FunctionComponent<Props> = ({
   author,
   assignees,
   authorSize = 18,
-  assigneeSize = 15,
+  assigneeSize = 16,
 }) => {
   const others = assigneesOtherThanAuthor(assignees, author);
 
@@ -24,15 +30,15 @@ const AuthorWithAssignees: FunctionComponent<Props> = ({
   }
 
   return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 1, overflow: "hidden" }}>
-      <AuthorTag login={author} size={authorSize} />
-      <Box sx={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
-        {others.map((a, i) => (
-          <Tooltip key={a} title={a} placement="top">
-            <Box component="span" sx={{ ml: i === 0 ? 0 : "-6px", display: "inline-flex" }}>
-              <AuthorTag login={a} size={assigneeSize} showName={false} />
-            </Box>
-          </Tooltip>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+      <Box sx={{ display: "flex", alignItems: "center" }}>
+        <RowLabel text="By" />
+        <AuthorTag login={author} size={authorSize} />
+      </Box>
+      <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "4px" }}>
+        <RowLabel text="Assigned" />
+        {others.map((a) => (
+          <AuthorTag key={a} login={a} size={assigneeSize} />
         ))}
       </Box>
     </Box>
