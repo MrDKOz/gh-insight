@@ -1,9 +1,10 @@
-import type { FunctionComponent } from "react";
+import type { FunctionComponent, MouseEvent } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
+import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
 import LinearProgress from "@mui/material/LinearProgress";
 import Link from "@mui/material/Link";
@@ -12,6 +13,8 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useEffect, useState } from "react";
+import { GearIcon } from "./GearIcon";
+import { HelpPopover } from "./HelpPopover";
 
 type GhCliStatus = "checking" | "available" | "unavailable";
 
@@ -20,6 +23,7 @@ type Props = {
   onConnectWithGhCli?: () => Promise<void>;
   onCheckGhCli?: () => Promise<boolean>;
   onDemo: () => void;
+  onSettingsClick: (e: MouseEvent<HTMLElement>) => void;
   loading: boolean;
   error: string | null;
 };
@@ -61,7 +65,7 @@ const GH_CLI_STATUS_LABEL: Record<GhCliStatus, string> = {
 };
 
 const SplashScreen: FunctionComponent<Props> = ({
-  onConnect, onConnectWithGhCli, onCheckGhCli, onDemo, loading, error,
+  onConnect, onConnectWithGhCli, onCheckGhCli, onDemo, onSettingsClick, loading, error,
 }) => {
   const [token, setToken]               = useState("");
   const [ghCliStatus, setGhCliStatus]   = useState<GhCliStatus>("checking");
@@ -102,6 +106,12 @@ const SplashScreen: FunctionComponent<Props> = ({
         ? "radial-gradient(ellipse at 50% 0%, rgba(9,105,218,0.12) 0%, transparent 65%)"
         : "radial-gradient(ellipse at 50% 0%, rgba(9,105,218,0.07) 0%, transparent 65%)",
     }}>
+      <Stack direction="row" gap={0.25} sx={{ position: "fixed", top: 8, right: 12 }}>
+        <HelpPopover />
+        <IconButton size="small" onClick={onSettingsClick} aria-label="Settings">
+          <GearIcon />
+        </IconButton>
+      </Stack>
       <Box sx={{ width: "100%", maxWidth: 420 }}>
 
         {/* Brand */}
