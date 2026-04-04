@@ -1,8 +1,10 @@
 import { _electron as electron, expect, test } from "@playwright/test";
-import { join } from "path";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 
 // Resolve path to the compiled Electron main process.
 // vite-plugin-electron outputs to dist-electron/main.js.
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const MAIN_JS = join(__dirname, "../dist-electron/main.js");
 
 // URL params that skip the splash screen and load demo data immediately.
