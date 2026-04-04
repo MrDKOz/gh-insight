@@ -231,7 +231,7 @@ const CumulativeFlowInner: FunctionComponent<Props> = ({ items, highlightWeekend
             <rect
               x={hoverSvgX.toFixed(1)} y={PADDING_TOP}
               width={(CHART_WIDTH / totalDays).toFixed(1)} height={CHART_HEIGHT}
-              fill="rgba(87,96,106,0.12)" className="chart-cursor-band"
+              fill={chartColors.cursorBand} className="chart-cursor-band"
               style={{ pointerEvents: "none" }}
             />
             <circle cx={hoverSvgX.toFixed(1)} cy={toSvgY(hovered.closed).toFixed(1)} r={4} fill={closedLine} style={{ pointerEvents: "none" }} />

@@ -310,7 +310,7 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
             <rect
               x={hover.svgX.toFixed(1)} y={PADDING_TOP}
               width={(CHART_WIDTH / totalDays).toFixed(1)} height={CHART_HEIGHT}
-              fill="rgba(87,96,106,0.12)" className="chart-cursor-band"
+              fill={chartColors.cursorBand} className="chart-cursor-band"
               style={{ pointerEvents: "none" }}
             />
             {hover.series

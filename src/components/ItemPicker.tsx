@@ -95,11 +95,11 @@ const ItemPicker = <T extends BaseItem,>({
             size="small"
             sx={{
               bgcolor: colorFor(item.number),
-              color: "#fff",
+              color: "common.white",
               fontWeight: 500,
               "& .MuiChip-deleteIcon": {
                 color: "rgba(255,255,255,0.7)",
-                "&:hover": { color: "#fff" },
+                "&:hover": { color: "common.white" },
               },
             }}
           />
