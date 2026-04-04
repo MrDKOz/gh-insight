@@ -2,7 +2,7 @@
 
 ## Project overview
 
-React 19 + TypeScript + Vite single-page app that fetches GitHub milestone data via the GitHub GraphQL API and renders it as a Gantt chart with supporting analytics views. Styled with MUI v7 and the Redgate Honeycomb theme.
+React 19 + TypeScript + Vite single-page app that fetches GitHub milestone data via the GitHub GraphQL API and renders it as a Gantt chart with supporting analytics views. Styled with MUI v7 with a custom light/dark theme.
 
 **Run:** `npm run dev`
 **Test:** `npm test`
@@ -18,6 +18,18 @@ React 19 + TypeScript + Vite single-page app that fetches GitHub milestone data 
 **All changes must be delivered via a pull request — never push directly to `main`.**
 
 `gh` CLI is available and should be used for all GitHub operations (creating PRs, viewing CI status, managing releases, etc.).
+
+### Copilot code review
+
+Copilot is enabled on this repo and will post automated review comments on PRs. Treat its feedback as a second opinion, not an instruction:
+
+- **Act on it** when the comment identifies a genuine gap (missing test coverage, a real bug, an overlooked edge case).
+- **Dismiss it** when the suggestion conflicts with a deliberate project convention (palette system, hover card patterns, export implementation choices, etc.) or would add speculative complexity. Close the comment with a brief explanation of why it doesn't apply.
+- **My judgement is final.** Never apply a Copilot suggestion solely because it was raised — evaluate it against the project's own guidelines first.
+
+When posting any GitHub comment (replies to Copilot, PR comments, etc.), always sign off with:
+
+> *— 🤖 Claude Code*
 
 ---
 
