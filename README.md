@@ -61,11 +61,11 @@ npm run build:electron # type-check, build renderer, and package the app
 
 Every push and pull request runs **lint**, **type-check** (renderer + Electron main), **unit tests**, and a **dependency audit**. Playwright end-to-end tests run in a second job after CI passes.
 
-A separate **Electron CI** workflow runs on PRs that touch Electron-related paths — it builds the renderer in Electron mode and runs Playwright tests against the packaged app.
+A separate **Electron CI** workflow runs on PRs that touch Electron-related paths — it builds the renderer in Electron mode and runs Playwright tests against the built, unpackaged Electron app.
 
 ### Web deployment and PR previews
 
-Every push to `main` automatically deploys to GitHub Pages. Opening or updating a PR triggers a preview build at `/gh-insight/pr-{N}/`; a bot comments the URL on the PR and the preview is removed when the PR closes.
+After CI passes on `main`, the site is deployed to GitHub Pages. Opening or updating a PR triggers a preview build at `/gh-insight/pr-{N}/`; a bot comments the URL on the PR and the preview is removed when the PR closes.
 
 ### Releasing (Electron builds)
 

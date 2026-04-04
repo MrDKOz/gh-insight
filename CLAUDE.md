@@ -2,7 +2,7 @@
 
 ## Project overview
 
-React 19 + TypeScript + Vite single-page app that fetches GitHub milestone data via the GitHub GraphQL API and renders it as a Gantt chart with supporting analytics views. Styled with MUI v7 with a custom light/dark theme.
+React 19 + TypeScript + Vite single-page app that fetches GitHub milestone data via the GitHub GraphQL API and renders it as a Gantt chart with supporting analytics views. Styled with MUI v7 using a custom light/dark theme.
 
 **Run:** `npm run dev`
 **Test:** `npm test`
