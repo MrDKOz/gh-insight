@@ -15,7 +15,7 @@ import Paper from "@mui/material/Paper";
 import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Burndown } from "../charts/Burndown";
 import { Contributors } from "../charts/Contributors";
@@ -113,6 +113,10 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
   const toggleCycleTimePRs      = useCallback(() => { dispatch({ type: "SET_INCLUDE_PRS", chart: "cycleTime",      value: !includePRs.cycleTime      }); }, [dispatch, includePRs.cycleTime]);
   const toggleVelocityPRs       = useCallback(() => { dispatch({ type: "SET_INCLUDE_PRS", chart: "velocity",       value: !includePRs.velocity       }); }, [dispatch, includePRs.velocity]);
   const toggleCumulativeFlowPRs = useCallback(() => { dispatch({ type: "SET_INCLUDE_PRS", chart: "cumulativeFlow", value: !includePRs.cumulativeFlow }); }, [dispatch, includePRs.cumulativeFlow]);
+
+  // Close the View options menu when switching views — the button unmounts so
+  // the anchor would reference a detached DOM node if left non-null.
+  useEffect(() => { setViewOptionsAnchor(null); }, [view]);
 
   // Read portal target nodes after mount — querying the DOM inline during
   // render returns null on first paint because sibling components haven't
