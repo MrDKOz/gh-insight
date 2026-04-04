@@ -1,7 +1,8 @@
 import type { FunctionComponent } from "react";
 import Box from "@mui/material/Box";
+import Tooltip from "@mui/material/Tooltip";
 import { assigneesOtherThanAuthor } from "../utils/displayUtils";
-import { AuthorTag, RoleLabel } from "./AuthorTag";
+import { AuthorTag } from "./AuthorTag";
 
 type Props = {
   author: string;
@@ -14,7 +15,7 @@ const AuthorWithAssignees: FunctionComponent<Props> = ({
   author,
   assignees,
   authorSize = 18,
-  assigneeSize = 16,
+  assigneeSize = 15,
 }) => {
   const others = assigneesOtherThanAuthor(assignees, author);
 
@@ -23,18 +24,16 @@ const AuthorWithAssignees: FunctionComponent<Props> = ({
   }
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: "5px" }}>
-      <Box>
-        <RoleLabel text="by" />
-        <AuthorTag login={author} size={authorSize} />
-      </Box>
-      <Box>
-        <RoleLabel text="assigned" />
-        <Box sx={{ display: "flex", flexDirection: "column", gap: "3px" }}>
-          {others.map((a) => (
-            <AuthorTag key={a} login={a} size={assigneeSize} />
-          ))}
-        </Box>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1, overflow: "hidden" }}>
+      <AuthorTag login={author} size={authorSize} />
+      <Box sx={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+        {others.map((a, i) => (
+          <Tooltip key={a} title={a} placement="top">
+            <Box component="span" sx={{ ml: i === 0 ? 0 : "-6px", display: "inline-flex" }}>
+              <AuthorTag login={a} size={assigneeSize} showName={false} />
+            </Box>
+          </Tooltip>
+        ))}
       </Box>
     </Box>
   );

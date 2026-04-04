@@ -2,7 +2,6 @@ import type { CSSProperties, FunctionComponent, MouseEvent } from "react";
 import Box from "@mui/material/Box";
 import Link from "@mui/material/Link";
 import Paper from "@mui/material/Paper";
-import Typography from "@mui/material/Typography";
 import { FS, safeUrl } from "../utils/displayUtils";
 
 type TagProps = {
@@ -91,21 +90,4 @@ const AuthorCard: FunctionComponent<CardProps> = ({ login, style, onMouseEnter, 
   </Paper>
 );
 
-/** Micro-label ("by" / "assigned") shown above an AuthorTag when both author and assignees are present. */
-const RoleLabel: FunctionComponent<{ text: string }> = ({ text }) => (
-  <Typography
-    sx={{
-      fontSize: FS.tiny,
-      color: "text.disabled",
-      fontWeight: 600,
-      lineHeight: 1,
-      mb: "2px",
-      textTransform: "uppercase",
-      letterSpacing: "0.04em",
-    }}
-  >
-    {text}
-  </Typography>
-);
-
-export { AuthorCard, AuthorTag, RoleLabel };
+export { AuthorCard, AuthorTag };
