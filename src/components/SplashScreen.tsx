@@ -1,4 +1,4 @@
-import type { FunctionComponent, MouseEvent } from "react";
+import type { FunctionComponent, MouseEvent, ReactNode } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -11,6 +11,7 @@ import Link from "@mui/material/Link";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useEffect, useState } from "react";
 import { GearIcon } from "./GearIcon";
@@ -49,6 +50,44 @@ const KeyIcon: FunctionComponent = () => (
     <path d="m21 2-9.6 9.6"/>
     <path d="m15.5 7.5 3 3L22 7l-3-3"/>
   </svg>
+);
+
+const LockIcon: FunctionComponent = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+  </svg>
+);
+
+const CloudIcon: FunctionComponent = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+  </svg>
+);
+
+const DesktopIcon: FunctionComponent = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="2" y="3" width="20" height="14" rx="2"/>
+    <path d="M8 21h8M12 17v4"/>
+  </svg>
+);
+
+type TrustItemProps = { icon: ReactNode; label: string; tooltip: string; href?: string };
+
+const TrustItem: FunctionComponent<TrustItemProps> = ({ icon, label, tooltip, href }) => (
+  <Tooltip title={tooltip} placement="top" arrow>
+    <Stack
+      direction="row"
+      alignItems="center"
+      gap={0.5}
+      component={href ? Link : "span"}
+      {...(href ? { href, target: "_blank", rel: "noreferrer", underline: "none" } : {})}
+      sx={{ color: "text.disabled", cursor: href ? "pointer" : "default", "&:hover": href ? { color: "text.secondary" } : {} }}
+    >
+      {icon}
+      <Typography variant="caption" color="inherit" sx={{ lineHeight: 1 }}>{label}</Typography>
+    </Stack>
+  </Tooltip>
 );
 
 
@@ -232,31 +271,32 @@ const SplashScreen: FunctionComponent<Props> = ({
 
         </Paper>
 
-        <Stack gap={0.5} sx={{ mt: 2, textAlign: "center" }}>
-          <Typography variant="caption" color="text.disabled">
-            Your token is encrypted locally and never sent anywhere other than api.github.com
-          </Typography>
+        <Stack
+          direction="row"
+          justifyContent="center"
+          alignItems="center"
+          gap={2}
+          sx={{ mt: 2, flexWrap: "wrap" }}
+        >
+          <TrustItem
+            icon={<LockIcon />}
+            label="Encrypted locally"
+            tooltip="Your token is encrypted with AES-GCM and never leaves your browser except to api.github.com"
+          />
+          <TrustItem
+            icon={<CloudIcon />}
+            label="GitHub API only"
+            tooltip="The only outbound connection this app makes is directly to api.github.com — no backend, no tracking"
+          />
           {!onConnectWithGhCli && (
-            <Typography variant="caption" color="text.disabled">
-              Also available as a{" "}
-              <Link
-                href="https://github.com/MrDKOz/gh-insight/releases"
-                target="_blank"
-                rel="noreferrer"
-                variant="caption"
-                color="text.disabled"
-                sx={{ textDecorationColor: "text.disabled" }}
-              >
-                desktop app
-              </Link>
-              {" "}— no token needed, sign in with GitHub CLI.
-            </Typography>
+            <TrustItem
+              icon={<DesktopIcon />}
+              label="Desktop app"
+              tooltip="Also available as a desktop app — sign in with GitHub CLI, no token needed"
+              href="https://github.com/MrDKOz/gh-insight/releases/latest"
+            />
           )}
         </Stack>
-
-        <Typography variant="caption" color="text.disabled" sx={{ position: "fixed", bottom: 12, right: 16 }}>
-          v{__APP_VERSION__}
-        </Typography>
       </Box>
     </Box>
   );
