@@ -29,16 +29,16 @@ const AuthorWithAssignees: FunctionComponent<Props> = ({
     <Box sx={{ display: "grid", gridTemplateColumns: "max-content 1fr", alignItems: "center", gap: "4px 6px" }}>
       <RowLabel text="By" />
       <AuthorTag login={author} size={authorSize} />
-      {others.length > 0 && (
-        <>
-          <RowLabel text="Assigned" />
-          <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "4px" }}>
-            {others.map((a) => (
-              <AuthorTag key={a} login={a} size={assigneeSize} />
-            ))}
-          </Box>
-        </>
-      )}
+      {/* Always render the Assigned row so the label column is consistently sized.
+          When there are no assignees the row collapses to zero height. */}
+      <Box sx={{ height: others.length === 0 ? 0 : "auto", overflow: "hidden" }}>
+        <RowLabel text="Assigned" aria-hidden={others.length === 0} />
+      </Box>
+      <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "4px", height: others.length === 0 ? 0 : "auto", overflow: "hidden" }}>
+        {others.map((a) => (
+          <AuthorTag key={a} login={a} size={assigneeSize} />
+        ))}
+      </Box>
     </Box>
   );
 };
