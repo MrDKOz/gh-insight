@@ -23,11 +23,79 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Type-check
+      - name: Type-check (renderer)
         run: npx tsc --noEmit
+
+      - name: Type-check (electron main)
+        run: npx tsc -p tsconfig.electron.json --noEmit
 
       - name: Test
         run: npm test
+
+  electron-build:
+    needs: check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (Electron mode)
+        env:
+          ELECTRON: "true"
+        run: npx vite build
+
+      - name: Upload Electron build
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-dist
+          path: |
+            dist/
+            dist-electron/
+          retention-days: 1
+
+  electron-e2e:
+    needs: electron-build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download Electron build
+        uses: actions/download-artifact@v4
+        with:
+          name: electron-dist
+
+      - name: Install Playwright and Electron deps
+        run: |
+          npx playwright install --with-deps chromium
+          npx electron --version  # smoke-test the binary is present
+
+      - name: Run Electron e2e tests
+        run: xvfb-run --auto-servernum npm run test:e2e:electron
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-electron-report
+          path: playwright-report/
+          retention-days: 7
 
   e2e:
     needs: check

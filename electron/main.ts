@@ -102,11 +102,11 @@ function createWindow(): void {
             "script-src 'self'; " +
             "style-src 'self' 'unsafe-inline'; " +
             "img-src 'self' https://github.com https://avatars.githubusercontent.com data:; " +
+            "font-src 'self' data:; " +
             "connect-src https://api.github.com https://github.com " +
               "https://avatars.githubusercontent.com " +
               "https://objects.githubusercontent.com " +
-              "https://github-releases.githubusercontent.com " +
-              "https://www.gov.uk https://date.nager.at; " +
+              "https://github-releases.githubusercontent.com; " +
             "worker-src blob:; " +
             "object-src 'none'; " +
             "base-uri 'self';",
