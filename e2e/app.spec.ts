@@ -48,7 +48,7 @@ test.describe("demo mode with data loaded", () => {
   test("about button opens the help dialog from the app header", async ({ page }) => {
     await page.getByRole("button", { name: "About this app" }).click();
     await expect(page.getByText("How it works")).toBeVisible();
-    await expect(page.getByText("Everything stays local")).toBeVisible();
+    await expect(page.getByText("Privacy — no tracking")).toBeVisible();
   });
 
   test("filter reset button resets active filters", async ({ page }) => {
