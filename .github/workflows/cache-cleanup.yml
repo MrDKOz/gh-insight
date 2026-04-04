@@ -1,0 +1,21 @@
+name: Cache cleanup
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete branch caches
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="${{ github.event.pull_request.head.ref }}"
+          REPO="${{ github.repository }}"
+          echo "Deleting caches for branch: $BRANCH"
+          gh cache list --repo "$REPO" --ref "refs/pull/${{ github.event.pull_request.number }}/merge" --limit 100 \
+            | awk '{print $1}' \
+            | xargs -r -I{} gh cache delete --repo "$REPO" {}
+          echo "Done"
