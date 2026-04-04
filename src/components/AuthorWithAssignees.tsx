@@ -12,7 +12,7 @@ type Props = {
 };
 
 const RowLabel: FunctionComponent<{ text: string }> = ({ text }) => (
-  <Typography component="span" sx={{ fontSize: FS.tiny, color: "text.disabled", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", mr: 0.75 }}>
+  <Typography component="span" sx={{ fontSize: FS.tiny, color: "text.disabled", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", minWidth: 56, flexShrink: 0 }}>
     {text}
   </Typography>
 );
