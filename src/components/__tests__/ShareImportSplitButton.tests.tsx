@@ -35,4 +35,17 @@ describe("ShareImportSplitButton — interaction", () => {
 
     await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledTimes(1));
   });
+
+  it("copies window.location.href when 'Copy link' is clicked", async () => {
+    const { getByRole, getByText } = wrap(
+      <ShareImportSplitButton onImportCode={async () => {}} />,
+    );
+
+    fireEvent.click(getByRole("button", { name: "Share options" }));
+    fireEvent.click(getByText("Copy link"));
+
+    await waitFor(() =>
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(window.location.href),
+    );
+  });
 });

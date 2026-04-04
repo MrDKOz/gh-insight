@@ -274,6 +274,7 @@ const App: FunctionComponent = () => {
     const handler = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) { return; }
+      if (e.ctrlKey || e.metaKey || e.altKey) { return; }
       const idx = parseInt(e.key, 10) - 1;
       if (idx >= 0 && idx < VIEWS.length) { handleViewChange(VIEWS[idx] as View); }
     };
