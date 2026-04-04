@@ -14,6 +14,7 @@ import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useEffect, useState } from "react";
+import { COLORS, COLORS_CB } from "../utils/colorUtils";
 import { GearIcon } from "./GearIcon";
 import { HelpPopover } from "./HelpPopover";
 
@@ -27,6 +28,7 @@ type Props = {
   onSettingsClick: (e: MouseEvent<HTMLElement>) => void;
   loading: boolean;
   error: string | null;
+  colorblindMode?: boolean;
 };
 
 const GanttIcon: FunctionComponent = () => (
@@ -91,12 +93,6 @@ const TrustItem: FunctionComponent<TrustItemProps> = ({ icon, label, tooltip, hr
 );
 
 
-const GH_CLI_STATUS_COLOR: Record<GhCliStatus, string> = {
-  checking:    "default",
-  available:   "success",
-  unavailable: "error",
-} as const;
-
 const GH_CLI_STATUS_LABEL: Record<GhCliStatus, string> = {
   checking:    "Checking…",
   available:   "Available",
@@ -105,6 +101,7 @@ const GH_CLI_STATUS_LABEL: Record<GhCliStatus, string> = {
 
 const SplashScreen: FunctionComponent<Props> = ({
   onConnect, onConnectWithGhCli, onCheckGhCli, onDemo, onSettingsClick, loading, error,
+  colorblindMode = false,
 }) => {
   const [token, setToken]               = useState("");
   const [ghCliStatus, setGhCliStatus]   = useState<GhCliStatus>("checking");
@@ -133,6 +130,12 @@ const SplashScreen: FunctionComponent<Props> = ({
   };
 
   const busy = loading || ghCliLoading;
+  const palette = colorblindMode ? COLORS_CB : COLORS;
+  const ghCliChipSx: Record<GhCliStatus, object> = {
+    checking:    { borderColor: "divider", color: "text.disabled" },
+    available:   { borderColor: palette.success,   color: palette.success,   bgcolor: `${palette.success}1a` },
+    unavailable: { borderColor: palette.prClosed,  color: palette.prClosed,  bgcolor: `${palette.prClosed}1a` },
+  };
 
   return (
     <Box sx={{
@@ -202,10 +205,9 @@ const SplashScreen: FunctionComponent<Props> = ({
                 <Stack direction="row" alignItems="center" justifyContent="center" gap={1} sx={{ mt: 1.25 }}>
                   <Chip
                     label={`GitHub CLI ${GH_CLI_STATUS_LABEL[ghCliStatus]}`}
-                    color={GH_CLI_STATUS_COLOR[ghCliStatus] as "default" | "success" | "error"}
                     size="small"
                     variant="outlined"
-                    sx={{ fontSize: "0.7rem", height: 22 }}
+                    sx={{ fontSize: "0.7rem", height: 22, ...ghCliChipSx[ghCliStatus] }}
                   />
                 </Stack>
               </Box>

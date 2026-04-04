@@ -315,6 +315,7 @@ const App: FunctionComponent = () => {
           onSettingsClick={(e) => setSettingsAnchor(e.currentTarget)}
           loading={auth.phase === "authenticating"}
           error={auth.authError}
+          colorblindMode={settings.colorblindMode}
         />
       ) : (
         <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
