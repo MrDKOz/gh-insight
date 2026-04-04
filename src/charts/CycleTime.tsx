@@ -2,8 +2,6 @@ import type { BankHoliday } from "../api/bankHolidayApi";
 import type { MilestoneMeta, TimelineItem } from "../types/GitHubTypes";
 import type { FunctionComponent, MouseEvent } from "react";
 import Box from "@mui/material/Box";
-import Checkbox from "@mui/material/Checkbox";
-import FormControlLabel from "@mui/material/FormControlLabel";
 import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 
@@ -21,6 +19,7 @@ type Props = {
   bankHolidays: BankHoliday[];
   colorblindMode: boolean;
   includePRs: boolean;
+  showPercentiles: boolean;
 };
 
 const PADDING_LEFT   = 56;
@@ -49,7 +48,7 @@ type Hover = {
   url: string;
 };
 
-const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, bankHolidays, colorblindMode, includePRs }) => {
+const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, bankHolidays, colorblindMode, includePRs, showPercentiles }) => {
   const filteredItems = useMemo(
     () => includePRs ? items : items.filter((i) => i.type === "issue"),
     [items, includePRs],
@@ -63,7 +62,6 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
   const containerRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<Hover | null>(null);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
-  const [showPercentiles, setShowPercentiles] = useState(false);
 
   const pts: Pt[] = useMemo(() => filteredItems.flatMap((item) => {
     const endDate = itemEndDate(item);
@@ -169,11 +167,6 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
 
   return (
     <Box className="chart-wrap" ref={containerRef} role="presentation" style={{ position: "relative" }}>
-      <FormControlLabel
-        control={<Checkbox size="small" checked={showPercentiles} onChange={() => setShowPercentiles((v) => !v)} />}
-        label="Show percentiles (p75 / p90)"
-        sx={{ alignSelf: "flex-start", ml: 0 }}
-      />
       {hover && (
         <ItemHoverCard
           item={hover.pt.item}
