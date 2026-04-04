@@ -23,26 +23,34 @@ const AuthorTag: FunctionComponent<TagProps> = ({
 }) => (
   <Box
     component="span"
-    style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: FS.base, color: "inherit" }}
+    style={{ display: "inline-flex", alignItems: "center", fontSize: FS.base, color: "inherit" }}
     onMouseEnter={onMouseEnter}
     onMouseLeave={onMouseLeave}
   >
-    <Box
-      component="img"
-      src={`https://github.com/${login}.png?size=${size * 2}`}
-      alt={showName ? "" : login}
-      aria-hidden={showName ? true : undefined}
-      style={{
-        width: size,
-        height: size,
-        borderRadius: "50%",
-        objectFit: "cover",
-        border: "1.5px solid var(--border)",
-        flexShrink: 0,
-        cursor: "pointer",
-      }}
-    />
-    {showName && `${prefix}${login}`}
+    <Link
+      href={safeUrl(`https://github.com/${login}`)}
+      target="_blank"
+      rel="noreferrer"
+      underline="hover"
+      color="inherit"
+      style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+    >
+      <Box
+        component="img"
+        src={`https://github.com/${login}.png?size=${size * 2}`}
+        alt={showName ? "" : login}
+        aria-hidden={showName ? true : undefined}
+        style={{
+          width: size,
+          height: size,
+          borderRadius: "50%",
+          objectFit: "cover",
+          border: "1.5px solid var(--border)",
+          flexShrink: 0,
+        }}
+      />
+      {showName && `${prefix}${login}`}
+    </Link>
   </Box>
 );
 
