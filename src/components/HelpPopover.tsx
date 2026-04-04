@@ -11,6 +11,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
 import { useGitHubReleaseCheck } from "../hooks/useGitHubReleaseCheck";
+import { isElectron } from "../utils/platform";
 
 const HelpCircleIcon: FunctionComponent = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
@@ -22,7 +23,14 @@ const HelpCircleIcon: FunctionComponent = () => (
   </svg>
 );
 
-type Section = { heading: string; points: (string | { text: string; href: string })[] };
+type TextPoint   = string;
+type LinkPoint   = { text: string; href: string };
+type BulletPoint = { bullets: string[] };
+type Point = TextPoint | LinkPoint | BulletPoint;
+type Section = { heading: string; points: Point[] };
+
+const isBullet = (p: Point): p is BulletPoint => typeof p === "object" && "bullets" in p;
+const isLink   = (p: Point): p is LinkPoint   => typeof p === "object" && "text" in p;
 
 const SECTIONS: Section[] = [
   {
@@ -53,8 +61,8 @@ const SECTIONS: Section[] = [
   {
     heading: "Recommended token setup",
     points: [
-      "Use a fine-grained Personal Access Token scoped to only the repos you need.",
-      "Required permissions: Metadata (read) · Contents (read) · Issues (read) · Pull requests (read).",
+      "Use a fine-grained Personal Access Token scoped to only the repos you need. Required permissions:",
+      { bullets: ["Metadata — read", "Contents — read", "Issues — read", "Pull requests — read"] },
       { text: "Create a fine-grained PAT on GitHub →", href: "https://github.com/settings/personal-access-tokens/new" },
     ],
   },
@@ -92,26 +100,34 @@ const HelpPopover: FunctionComponent = () => {
           About GH Insight
         </DialogTitle>
 
-        <DialogContent sx={{ pt: 1.5 }}>
-          <Stack gap={1.5}>
+        <DialogContent sx={{ pt: 2 }}>
+          <Stack gap={2}>
             {SECTIONS.map((section, i) => (
               <Box key={section.heading}>
-                {i > 0 && <Divider sx={{ mb: 1.5 }} />}
+                {i > 0 && <Divider sx={{ mb: 2 }} />}
                 <Typography variant="caption" fontWeight={700} color="text.secondary"
-                  sx={{ textTransform: "uppercase", letterSpacing: "0.06em", display: "block", mb: 0.75 }}>
+                  sx={{ textTransform: "uppercase", letterSpacing: "0.06em", display: "block", mb: 1 }}>
                   {section.heading}
                 </Typography>
-                <Stack gap={0.5}>
+                <Stack gap={1}>
                   {section.points.map((point, j) =>
-                    typeof point === "string" ? (
-                      <Typography key={j} variant="body2" color="text.primary" sx={{ lineHeight: 1.5 }}>
-                        {point}
-                      </Typography>
-                    ) : (
+                    isBullet(point) ? (
+                      <Box component="ul" key={j} sx={{ m: 0, pl: 2.5, display: "flex", flexDirection: "column", gap: 0.5 }}>
+                        {point.bullets.map((b) => (
+                          <Typography key={b} component="li" variant="body2" color="text.primary" sx={{ lineHeight: 1.6 }}>
+                            {b}
+                          </Typography>
+                        ))}
+                      </Box>
+                    ) : isLink(point) ? (
                       <Link key={j} href={point.href} target="_blank" rel="noreferrer"
-                        variant="body2" sx={{ lineHeight: 1.5 }}>
+                        variant="body2" sx={{ lineHeight: 1.6 }}>
                         {point.text}
                       </Link>
+                    ) : (
+                      <Typography key={j} variant="body2" color="text.primary" sx={{ lineHeight: 1.6 }}>
+                        {point}
+                      </Typography>
                     )
                   )}
                 </Stack>
@@ -119,25 +135,38 @@ const HelpPopover: FunctionComponent = () => {
             ))}
           </Stack>
 
-          <Divider sx={{ mt: 1.5 }} />
-          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1.5 }}>
-            v{__APP_VERSION__} · Made by{" "}
-            <Link href="https://github.com/MrDKOz" target="_blank" rel="noreferrer" variant="caption">
-              @MrDKOz
-            </Link>
-          </Typography>
+          <Divider sx={{ mt: 2 }} />
+          <Box sx={{ mt: 1.5, display: "flex", flexDirection: "column", gap: 0.5 }}>
+            <Typography variant="caption" color="text.secondary">
+              v{__APP_VERSION__} · Made by{" "}
+              <Link href="https://github.com/MrDKOz" target="_blank" rel="noreferrer" variant="caption">
+                @MrDKOz
+              </Link>
+            </Typography>
 
-          {updateRelease && (
-            <Link
-              href={updateRelease.releasesUrl}
-              target="_blank"
-              rel="noreferrer"
-              variant="caption"
-              sx={{ display: "block", mt: 0.75, fontWeight: 600, color: "error.main" }}
-            >
-              Update available (v{updateRelease.version}) →
-            </Link>
-          )}
+            {!isElectron() && (
+              <Link
+                href="https://github.com/MrDKOz/gh-insight/releases/latest"
+                target="_blank"
+                rel="noreferrer"
+                variant="caption"
+              >
+                Desktop app available for Windows, macOS and Linux →
+              </Link>
+            )}
+
+            {updateRelease && (
+              <Link
+                href={updateRelease.releasesUrl}
+                target="_blank"
+                rel="noreferrer"
+                variant="caption"
+                sx={{ fontWeight: 600, color: "error.main" }}
+              >
+                Update available (v{updateRelease.version}) →
+              </Link>
+            )}
+          </Box>
         </DialogContent>
       </Dialog>
     </>
