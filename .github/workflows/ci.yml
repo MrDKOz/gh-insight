@@ -84,7 +84,7 @@ jobs:
       - name: Install Playwright and Electron deps
         run: |
           npx playwright install --with-deps chromium
-          npx electron --version  # smoke-test the binary is present
+          node -e "console.log('electron', require('./node_modules/electron/package.json').version)"
 
       - name: Run Electron e2e tests
         run: xvfb-run --auto-servernum npm run test:e2e:electron
