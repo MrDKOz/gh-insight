@@ -128,6 +128,15 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
   const p75 = pct(0.75);
   const p90 = pct(0.90);
 
+  // Suppress a percentile line if its value or pixel position is too close to an
+  // already-rendered reference line (median, mean, or the other percentile).
+  const MIN_LINE_GAP = 16;
+  const renderedRefYs = [toSvgY(median), ...(showMean ? [toSvgY(mean)] : [])];
+  const tooClose = (val: number, alreadyRendered: number[]) =>
+    alreadyRendered.some((y) => Math.abs(toSvgY(val) - y) < MIN_LINE_GAP);
+  const showP75 = !tooClose(p75, renderedRefYs);
+  const showP90 = !tooClose(p90, [...renderedRefYs, ...(showP75 ? [toSvgY(p75)] : [])]);
+
   const numXLabels = Math.min(8, pts.length);
   const xTimes = Array.from({ length: numXLabels }, (_, i) =>
     minTime + (totalMs * i) / Math.max(numXLabels - 1, 1),
@@ -252,7 +261,7 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
           </>
         )}
 
-        {showPercentiles && (
+        {showPercentiles && showP75 && (
           <>
             <line
               x1={PADDING_LEFT} y1={toSvgY(p75).toFixed(1)} x2={PADDING_LEFT + CHART_WIDTH} y2={toSvgY(p75).toFixed(1)}
@@ -261,6 +270,10 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
               fill={chartColors.p75} fontSize={9} fontFamily="inherit">
               p75 {p75}d
             </text>
+          </>
+        )}
+        {showPercentiles && showP90 && (
+          <>
             <line
               x1={PADDING_LEFT} y1={toSvgY(p90).toFixed(1)} x2={PADDING_LEFT + CHART_WIDTH} y2={toSvgY(p90).toFixed(1)}
               stroke={chartColors.p90} strokeWidth={1.5} strokeDasharray="6 4" />
