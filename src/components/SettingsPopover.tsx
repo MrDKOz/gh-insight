@@ -34,12 +34,15 @@ type Props = {
   onExportConfig: () => void;
   fileInputRef: RefObject<HTMLInputElement | null>;
   onImportConfig: (e: ChangeEvent<HTMLInputElement>) => void;
+  /** When true, hides Gantt-specific and config options not relevant before sign-in */
+  splashMode?: boolean;
 };
 
 const SettingsPopover: FunctionComponent<Props> = ({
   anchor, onClose, settings, updateSetting,
   dark, onToggleDark,
   onExportConfig, fileInputRef, onImportConfig,
+  splashMode = false,
 }) => (
   <>
     <Popover
@@ -58,53 +61,61 @@ const SettingsPopover: FunctionComponent<Props> = ({
             control={<Switch size="small" checked={dark} onChange={onToggleDark} />}
             label={<Typography variant="body2">Dark mode</Typography>}
           />
-          <FormControlLabel
-            control={<Switch size="small" checked={settings.highlightWeekends} onChange={(e) => updateSetting("highlightWeekends", e.target.checked)} />}
-            label={<Typography variant="body2">Highlight weekends</Typography>}
-          />
-          <FormControlLabel
-            control={<Switch size="small" checked={settings.highlightBankHolidays} onChange={(e) => updateSetting("highlightBankHolidays", e.target.checked)} />}
-            label={<Typography variant="body2">Highlight bank holidays</Typography>}
-          />
-          {settings.highlightBankHolidays && (
-            <Box sx={{ pl: 4.5, pb: 0.5 }}>
-              <Select
-                multiple
-                size="small"
-                displayEmpty
-                value={settings.bankHolidayRegions}
-                onChange={(e) => updateSetting("bankHolidayRegions", e.target.value as Region[])}
-                renderValue={(sel) => {
-                  const selectedRegions = sel as string[];
-                  if (selectedRegions.length === 0) { return <em style={{ opacity: 0.5 }}>None</em>; }
-                  if (selectedRegions.length === 1) { return REGION_LABELS[selectedRegions[0] as Region] ?? selectedRegions[0]; }
-                  return `${selectedRegions.length} regions`;
-                }}
-                sx={{ width: "100%", fontSize: "0.8rem" }}
-              >
-                {ALL_REGIONS.map((r) => (
-                  <MenuItem key={r} value={r} dense>
-                    <Checkbox size="small" checked={settings.bankHolidayRegions.includes(r)} sx={{ py: 0 }} />
-                    <ListItemText primary={REGION_LABELS[r]} slotProps={{ primary: { variant: "body2" } }} />
-                  </MenuItem>
-                ))}
-              </Select>
-            </Box>
+          {!splashMode && (
+            <>
+              <FormControlLabel
+                control={<Switch size="small" checked={settings.highlightWeekends} onChange={(e) => updateSetting("highlightWeekends", e.target.checked)} />}
+                label={<Typography variant="body2">Highlight weekends</Typography>}
+              />
+              <FormControlLabel
+                control={<Switch size="small" checked={settings.highlightBankHolidays} onChange={(e) => updateSetting("highlightBankHolidays", e.target.checked)} />}
+                label={<Typography variant="body2">Highlight bank holidays</Typography>}
+              />
+              {settings.highlightBankHolidays && (
+                <Box sx={{ pl: 4.5, pb: 0.5 }}>
+                  <Select
+                    multiple
+                    size="small"
+                    displayEmpty
+                    value={settings.bankHolidayRegions}
+                    onChange={(e) => updateSetting("bankHolidayRegions", e.target.value as Region[])}
+                    renderValue={(sel) => {
+                      const selectedRegions = sel as string[];
+                      if (selectedRegions.length === 0) { return <em style={{ opacity: 0.5 }}>None</em>; }
+                      if (selectedRegions.length === 1) { return REGION_LABELS[selectedRegions[0] as Region] ?? selectedRegions[0]; }
+                      return `${selectedRegions.length} regions`;
+                    }}
+                    sx={{ width: "100%", fontSize: "0.8rem" }}
+                  >
+                    {ALL_REGIONS.map((r) => (
+                      <MenuItem key={r} value={r} dense>
+                        <Checkbox size="small" checked={settings.bankHolidayRegions.includes(r)} sx={{ py: 0 }} />
+                        <ListItemText primary={REGION_LABELS[r]} slotProps={{ primary: { variant: "body2" } }} />
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </Box>
+              )}
+            </>
           )}
           <FormControlLabel
             control={<Switch size="small" checked={settings.colorblindMode} onChange={(e) => updateSetting("colorblindMode", e.target.checked)} />}
             label={<Typography variant="body2">Colorblind-friendly palette</Typography>}
           />
         </Stack>
-        <Divider sx={{ my: 1.5 }} />
-        <Typography variant="caption" fontWeight={700} color="text.secondary"
-          sx={{ textTransform: "uppercase", letterSpacing: "0.06em", display: "block", mb: 1 }}>
-          Config
-        </Typography>
-        <ButtonGroup size="small" variant="outlined" fullWidth>
-          <Button onClick={onExportConfig}>Export</Button>
-          <Button onClick={() => fileInputRef.current?.click()}>Import</Button>
-        </ButtonGroup>
+        {!splashMode && (
+          <>
+            <Divider sx={{ my: 1.5 }} />
+            <Typography variant="caption" fontWeight={700} color="text.secondary"
+              sx={{ textTransform: "uppercase", letterSpacing: "0.06em", display: "block", mb: 1 }}>
+              Config
+            </Typography>
+            <ButtonGroup size="small" variant="outlined" fullWidth>
+              <Button onClick={onExportConfig}>Export</Button>
+              <Button onClick={() => fileInputRef.current?.click()}>Import</Button>
+            </ButtonGroup>
+          </>
+        )}
       </Box>
     </Popover>
     <input type="file" accept=".json" hidden ref={fileInputRef} onChange={onImportConfig} aria-label="Import configuration file" />

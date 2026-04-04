@@ -288,6 +288,20 @@ const App: FunctionComponent = () => {
       {/* Skip link — visible only on keyboard focus (WCAG 2.4.1) */}
       <a href="#main-content" className="skip-link">Skip to main content</a>
 
+      {/* SettingsPopover is shared across splash and dashboard phases */}
+      <SettingsPopover
+        anchor={settingsAnchor}
+        onClose={() => setSettingsAnchor(null)}
+        settings={settings}
+        updateSetting={updateSetting}
+        dark={dark}
+        onToggleDark={toggleDark}
+        onExportConfig={handleExportConfig}
+        fileInputRef={fileInputRef}
+        onImportConfig={handleImportConfig}
+        splashMode={auth.phase !== "dashboard"}
+      />
+
       {auth.phase !== "dashboard" ? (
         <SplashScreen
           onConnect={auth.handleConnect}
@@ -298,6 +312,7 @@ const App: FunctionComponent = () => {
             onCheckGhCli: auth.checkGhCli,
           } : {})}
           onDemo={handleDemo}
+          onSettingsClick={(e) => setSettingsAnchor(e.currentTarget)}
           loading={auth.phase === "authenticating"}
           error={auth.authError}
         />
@@ -338,18 +353,6 @@ const App: FunctionComponent = () => {
             userProfile={auth.userProfile ?? DEMO_USER}
             onSettingsClick={(e) => setSettingsAnchor(e.currentTarget)}
             onSignOut={handleDisconnect}
-          />
-
-          <SettingsPopover
-            anchor={settingsAnchor}
-            onClose={() => setSettingsAnchor(null)}
-            settings={settings}
-            updateSetting={updateSetting}
-            dark={dark}
-            onToggleDark={toggleDark}
-            onExportConfig={handleExportConfig}
-            fileInputRef={fileInputRef}
-            onImportConfig={handleImportConfig}
           />
 
           <ContextBar
