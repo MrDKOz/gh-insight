@@ -1,12 +1,28 @@
-name: CI
+name: Electron CI
 
 on:
   push:
     branches: [main]
+    paths:
+      - "electron/**"
+      - "e2e/electron.spec.ts"
+      - "playwright.electron.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.electron.json"
+      - "vite.config.ts"
   pull_request:
+    paths:
+      - "electron/**"
+      - "e2e/electron.spec.ts"
+      - "playwright.electron.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.electron.json"
+      - "vite.config.ts"
 
 jobs:
-  check:
+  electron-build:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,23 +36,22 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint
-        run: npm run lint
+      - name: Build (Electron mode)
+        env:
+          ELECTRON: "true"
+        run: npx vite build
 
-      - name: Type-check (renderer)
-        run: npx tsc --noEmit
+      - name: Upload Electron build
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-dist
+          path: |
+            dist/
+            dist-electron/
+          retention-days: 1
 
-      - name: Type-check (electron main)
-        run: npx tsc -p tsconfig.electron.json --noEmit
-
-      - name: Test
-        run: npm test
-
-      - name: Audit dependencies
-        run: npm audit --audit-level=moderate
-
-  e2e:
-    needs: check
+  electron-e2e:
+    needs: electron-build
     runs-on: ubuntu-latest
 
     steps:
@@ -49,6 +64,11 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Download Electron build
+        uses: actions/download-artifact@v4
+        with:
+          name: electron-dist
 
       - name: Cache Playwright browsers
         uses: actions/cache@v4
@@ -65,13 +85,13 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
 
-      - name: Run Playwright tests
-        run: npm run test:e2e
+      - name: Run Electron e2e tests
+        run: xvfb-run --auto-servernum npm run test:e2e:electron
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-report
+          name: playwright-electron-report
           path: playwright-report/
           retention-days: 7
