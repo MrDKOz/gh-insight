@@ -1,0 +1,1 @@
+var e=(e,t)=>Promise.reject(Error(`html2canvas is not available in this build`));export{e as default};
