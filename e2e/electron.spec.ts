@@ -7,12 +7,18 @@ import { fileURLToPath } from "url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const MAIN_JS = join(__dirname, "../dist-electron/main.js");
 
+// --no-sandbox is required on Linux CI (GitHub Actions) where chrome-sandbox
+// cannot be granted the setuid root permissions Electron expects.
+const LAUNCH_ARGS = process.platform === "linux"
+  ? ["--no-sandbox", MAIN_JS]
+  : [MAIN_JS];
+
 // URL params that skip the splash screen and load demo data immediately.
 const DEMO_PARAMS = "?demo=1&milestones=1";
 
 test.describe("Electron app", () => {
   test("window opens and renders the splash screen", async () => {
-    const app = await electron.launch({ args: [MAIN_JS] });
+    const app = await electron.launch({ args: LAUNCH_ARGS });
     try {
       const win = await app.firstWindow();
       await win.waitForLoadState("domcontentloaded");
@@ -25,10 +31,7 @@ test.describe("Electron app", () => {
   });
 
   test("demo mode loads all view tabs", async () => {
-    const app = await electron.launch({
-      args: [MAIN_JS],
-      env: { ...process.env, VITE_DEV_SERVER_URL: undefined },
-    });
+    const app = await electron.launch({ args: LAUNCH_ARGS });
     try {
       const win = await app.firstWindow();
       await win.waitForLoadState("domcontentloaded");
@@ -56,7 +59,7 @@ test.describe("Electron app", () => {
   });
 
   test("view tabs are navigable", async () => {
-    const app = await electron.launch({ args: [MAIN_JS] });
+    const app = await electron.launch({ args: LAUNCH_ARGS });
     try {
       const win = await app.firstWindow();
       await win.waitForLoadState("domcontentloaded");
