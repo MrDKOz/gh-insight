@@ -194,11 +194,11 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
           </Button>
           <Menu anchorEl={viewOptionsAnchor} open={Boolean(viewOptionsAnchor)} onClose={() => setViewOptionsAnchor(null)}>
             {viewOptionsItems.map(({ label, checked, onChange }) => (
-              <MenuItem key={label} dense disableRipple sx={{ px: 1 }}>
+              <MenuItem key={label} dense disableRipple sx={{ py: 0, px: 0.5 }}>
                 <FormControlLabel
-                  control={<Checkbox size="small" checked={checked} onChange={onChange} />}
+                  control={<Checkbox size="small" checked={checked} onChange={onChange} sx={{ py: 0.5 }} />}
                   label={label}
-                  sx={{ m: 0 }}
+                  sx={{ m: 0, pr: 1, "& .MuiFormControlLabel-label": { fontSize: "0.8125rem" } }}
                 />
               </MenuItem>
             ))}
