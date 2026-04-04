@@ -17,6 +17,12 @@ React 19 + TypeScript + Vite single-page app that fetches GitHub milestone data 
 
 **All changes must be delivered via a pull request — never push directly to `main`.**
 
+**Before creating a new branch, always sync local `main` first:**
+```bash
+git checkout main && git pull
+```
+Then branch from that updated `main`. Never branch from a stale local `main` or from another feature branch.
+
 `gh` CLI is available and should be used for all GitHub operations (creating PRs, viewing CI status, managing releases, etc.).
 
 ### Copilot code review
