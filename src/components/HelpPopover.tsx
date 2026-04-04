@@ -85,7 +85,7 @@ const HelpPopover: FunctionComponent = () => {
       <Dialog
         open={open}
         onClose={() => setOpen(false)}
-        maxWidth="xs"
+        maxWidth="sm"
         fullWidth
       >
         <DialogTitle sx={{ fontWeight: 700, pb: 0 }}>
