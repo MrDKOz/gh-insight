@@ -157,17 +157,6 @@ const HelpPopover: FunctionComponent = () => {
             </Typography>
           </Box>
 
-          {updateRelease && (
-            <Link
-              href={updateRelease.releasesUrl}
-              target="_blank"
-              rel="noreferrer"
-              variant="caption"
-              sx={{ display: "block", mt: 0.5, fontWeight: 600, color: "error.main" }}
-            >
-              Update available (v{updateRelease.version}) →
-            </Link>
-          )}
         </DialogContent>
       </Dialog>
     </>
