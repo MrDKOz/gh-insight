@@ -25,12 +25,12 @@ const HelpCircleIcon: FunctionComponent = () => (
 
 type TextPoint   = string;
 type LinkPoint   = { text: string; href: string };
-type BulletPoint = { bullets: string[] };
-type Point = TextPoint | LinkPoint | BulletPoint;
+type TablePoint  = { rows: [string, string][] };
+type Point = TextPoint | LinkPoint | TablePoint;
 type Section = { heading: string; points: Point[] };
 
-const isBullet = (p: Point): p is BulletPoint => typeof p === "object" && "bullets" in p;
-const isLink   = (p: Point): p is LinkPoint   => typeof p === "object" && "text" in p;
+const isTable = (p: Point): p is TablePoint => typeof p === "object" && "rows" in p;
+const isLink  = (p: Point): p is LinkPoint  => typeof p === "object" && "text" in p;
 
 const SECTIONS: Section[] = [
   {
@@ -61,8 +61,8 @@ const SECTIONS: Section[] = [
   {
     heading: "Recommended token setup",
     points: [
-      "Use a fine-grained Personal Access Token scoped to only the repos you need. Required permissions:",
-      { bullets: ["Metadata — read", "Contents — read", "Issues — read", "Pull requests — read"] },
+      "Use a fine-grained Personal Access Token scoped to only the repos you need.",
+      { rows: [["Metadata", "Read"], ["Contents", "Read"], ["Issues", "Read"], ["Pull requests", "Read"]] },
       { text: "Create a fine-grained PAT on GitHub →", href: "https://github.com/settings/personal-access-tokens/new" },
     ],
   },
@@ -111,12 +111,13 @@ const HelpPopover: FunctionComponent = () => {
                 </Typography>
                 <Stack gap={1}>
                   {section.points.map((point, j) =>
-                    isBullet(point) ? (
-                      <Box component="ul" key={j} sx={{ m: 0, pl: 2.5, display: "flex", flexDirection: "column", gap: 0.5 }}>
-                        {point.bullets.map((b) => (
-                          <Typography key={b} component="li" variant="body2" color="text.primary" sx={{ lineHeight: 1.6 }}>
-                            {b}
-                          </Typography>
+                    isTable(point) ? (
+                      <Box key={j} sx={{ display: "grid", gridTemplateColumns: "max-content 1fr", gap: "2px 16px" }}>
+                        {point.rows.map(([label, value]) => (
+                          <>
+                            <Typography key={`${label}-l`} variant="body2" color="text.primary" sx={{ lineHeight: 1.6 }}>{label}</Typography>
+                            <Typography key={`${label}-v`} variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>{value}</Typography>
+                          </>
                         ))}
                       </Box>
                     ) : isLink(point) ? (
@@ -150,8 +151,9 @@ const HelpPopover: FunctionComponent = () => {
                 target="_blank"
                 rel="noreferrer"
                 variant="caption"
+                sx={{ color: "text.disabled" }}
               >
-                Desktop app available for Windows, macOS and Linux →
+                Desktop app available →
               </Link>
             )}
 
