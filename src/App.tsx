@@ -22,6 +22,7 @@ import { LS_TOKEN, useAuth } from "./hooks/useAuth";
 import { useBankHolidays } from "./hooks/useBankHolidays";
 import { useConfigImportExport } from "./hooks/useConfigImportExport";
 import { useDarkMode } from "./hooks/useDarkMode";
+import { useGitHubReleaseCheck } from "./hooks/useGitHubReleaseCheck";
 import { useMilestones } from "./hooks/useMilestones";
 import { useNewVersionAvailable } from "./hooks/useNewVersionAvailable";
 import { useSettings } from "./hooks/useSettings";
@@ -75,7 +76,8 @@ const FetchingProgress: FunctionComponent<FetchingProgressProps> = ({
 const App: FunctionComponent = () => {
   const { dark, toggleDark, applyDark } = useDarkMode();
   const { settings, updateSetting }     = useSettings();
-  const newVersionAvailable = useNewVersionAvailable();
+  const webUpdate        = useNewVersionAvailable();
+  const electronRelease  = useGitHubReleaseCheck();
 
   const initialPhase: AppPhase = localStorage.getItem(LS_TOKEN) || INITIAL_URL_PARAMS.demo || INITIAL_URL_PARAMS.previewNoRepos
     ? "authenticating"
@@ -302,17 +304,32 @@ const App: FunctionComponent = () => {
       ) : (
         <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
 
-          {newVersionAvailable && (
+          {(webUpdate || electronRelease) && (
             <Alert
               severity="info"
               sx={{ borderRadius: 0 }}
               action={
-                <Button size="small" color="inherit" onClick={() => window.location.reload()}>
-                  Reload
-                </Button>
+                electronRelease ? (
+                  <Button
+                    size="small"
+                    color="inherit"
+                    href={electronRelease.releasesUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    component="a"
+                  >
+                    Download v{electronRelease.version}
+                  </Button>
+                ) : (
+                  <Button size="small" color="inherit" onClick={() => window.location.reload()}>
+                    Reload
+                  </Button>
+                )
               }
             >
-              A new version is available.
+              {electronRelease
+                ? `A new version (${electronRelease.version}) is available to download.`
+                : "A new version is available."}
             </Alert>
           )}
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { isElectron } from "../utils/platform";
 
 type ReleaseInfo = { version: string; releasesUrl: string } | null;
 
@@ -21,7 +22,7 @@ const useGitHubReleaseCheck = (): ReleaseInfo => {
   const [release, setRelease] = useState<ReleaseInfo>(null);
 
   useEffect(() => {
-    if (import.meta.env.DEV) { return; }
+    if (!isElectron()) { return; }
 
     fetch("https://api.github.com/repos/MrDKOz/gh-insight/releases/latest", {
       headers: { Accept: "application/vnd.github+json" },
