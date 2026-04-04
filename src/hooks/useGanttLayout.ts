@@ -25,12 +25,12 @@ type GanttLayout = {
 
 const useGanttLayout = (items: TimelineItem[], filteredItems: TimelineItem[]): GanttLayout => {
   const [labelWidth, setLabelWidth] = useState(() => {
-    const saved = localStorage.getItem("gantt_label_width");
-    return saved ? Math.max(120, Math.min(800, Number(saved))) : 400;
+    const n = Number(localStorage.getItem("gantt_label_width"));
+    return Number.isFinite(n) ? Math.max(200, Math.min(800, n)) : 400;
   });
   const [pixelsPerDay, setPixelsPerDay] = useState(() => {
-    const saved = localStorage.getItem("gantt_zoom");
-    return saved ? Math.max(4, Math.min(200, Number(saved))) : 30;
+    const n = Number(localStorage.getItem("gantt_zoom"));
+    return Number.isFinite(n) ? Math.max(4, Math.min(200, n)) : 30;
   });
   const [axisHeight, setAxisHeight] = useState(36);
   const [snapMode, setSnapMode] = useState<"day" | "hour">(() =>
@@ -104,6 +104,8 @@ const useGanttLayout = (items: TimelineItem[], filteredItems: TimelineItem[]): G
   }, []);
 
   useEffect(() => {
+    // Skip auto-fit when the user has a saved zoom preference — respect their setting.
+    if (localStorage.getItem("gantt_zoom") !== null) { return; }
     if (!trackColRef.current || items.length === 0) { setPixelsPerDay(30); return; }
     const allTs = items.flatMap((item) => {
       const end = itemEndDate(item);
