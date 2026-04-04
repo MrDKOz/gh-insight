@@ -24,8 +24,14 @@ type GanttLayout = {
 };
 
 const useGanttLayout = (items: TimelineItem[], filteredItems: TimelineItem[]): GanttLayout => {
-  const [labelWidth, setLabelWidth] = useState(400);
-  const [pixelsPerDay, setPixelsPerDay] = useState(30);
+  const [labelWidth, setLabelWidth] = useState(() => {
+    const saved = localStorage.getItem("gantt_label_width");
+    return saved ? Math.max(120, Math.min(800, Number(saved))) : 400;
+  });
+  const [pixelsPerDay, setPixelsPerDay] = useState(() => {
+    const saved = localStorage.getItem("gantt_zoom");
+    return saved ? Math.max(4, Math.min(200, Number(saved))) : 30;
+  });
   const [axisHeight, setAxisHeight] = useState(36);
   const [snapMode, setSnapMode] = useState<"day" | "hour">(() =>
     new URLSearchParams(window.location.search).get("snap") === "hour" ? "hour" : "day",
@@ -39,6 +45,9 @@ const useGanttLayout = (items: TimelineItem[], filteredItems: TimelineItem[]): G
   const labelWidthRef = useRef(labelWidth);
 
   useLayoutEffect(() => { labelWidthRef.current = labelWidth; }, [labelWidth]);
+
+  useEffect(() => { localStorage.setItem("gantt_label_width", String(labelWidth)); }, [labelWidth]);
+  useEffect(() => { localStorage.setItem("gantt_zoom", String(pixelsPerDay)); }, [pixelsPerDay]);
 
   const handleFitToScreen = useCallback(() => {
     if (!trackColRef.current) { return; }

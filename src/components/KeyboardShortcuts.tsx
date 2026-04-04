@@ -14,6 +14,7 @@ type ShortcutRow = {
 
 const SHORTCUTS: ShortcutRow[] = [
   { keys: ["?"],              description: "Show keyboard shortcuts" },
+  { keys: ["1–8"],            description: "Switch view (Gantt, Burndown, Cycle Time…)" },
   { keys: ["Scroll wheel"],   description: "Zoom in / out (Gantt view)" },
   { keys: ["Enter", "Space"], description: "Open in GitHub (focused chart dot or Gantt bar)" },
   { keys: ["↑", "↓"],         description: "Navigate list rows" },
