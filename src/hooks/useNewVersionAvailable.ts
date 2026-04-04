@@ -1,6 +1,7 @@
 import * as t from "io-ts";
 import { useEffect, useState } from "react";
 import { decodeSafe } from "../utils/iotsUtils";
+import { isElectron } from "../utils/platform";
 
 const VersionFileCodec = t.type({ buildTime: t.number });
 
@@ -15,7 +16,7 @@ const useNewVersionAvailable = (): boolean => {
   const [available, setAvailable] = useState(false);
 
   useEffect(() => {
-    if (import.meta.env.DEV) { return; }
+    if (import.meta.env.DEV || isElectron()) { return; }
 
     const check = async () => {
       try {
