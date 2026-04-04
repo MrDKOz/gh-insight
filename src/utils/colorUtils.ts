@@ -40,6 +40,9 @@ const COLORS = {
   /** Open-state tints — match the Gantt tl-bar--issue-open / tl-bar--pr-open CSS colours. */
   issueOpen: "rgba(9,105,218,0.50)",
   prOpen:    "rgba(130,80,223,0.50)",
+  /** Cycle time percentile reference lines. */
+  p75: "#0891b2",
+  p90: "#be185d",
 } as const;
 
 // Okabe-Ito palette — distinguishable for deuteranopia, protanopia and tritanopia.
@@ -71,6 +74,9 @@ const COLORS_CB = {
   /** Open-state tints — Okabe-Ito hues, match the Gantt colorblind CSS variants. */
   issueOpen: "rgba(0,114,178,0.50)",
   prOpen:    "rgba(0,158,115,0.50)",
+  /** Cycle time percentile reference lines — Okabe-Ito safe alternatives. */
+  p75: "#56B4E9",
+  p90: "#CC79A7",
 } as const;
 
 /**
@@ -97,6 +103,8 @@ const makeChartColors = (colorblindMode: boolean) => {
     bankHoliday: palette.bankHoliday,
     issueOpen:   palette.issueOpen,
     prOpen:      palette.prOpen,
+    p75:         palette.p75,
+    p90:         palette.p90,
   };
 };
 

@@ -320,7 +320,7 @@ describe("makeChartColors", () => {
 
   it("exposes all expected keys", () => {
     const c = makeChartColors(false);
-    const expectedKeys = ["issue", "prMerged", "prClosed", "axis", "grid", "label", "cursor", "cursorBand", "openFill", "median", "mean", "today", "todayLabel", "weekendBand"];
+    const expectedKeys = ["issue", "prMerged", "prClosed", "axis", "grid", "label", "cursor", "cursorBand", "openFill", "median", "mean", "today", "todayLabel", "weekendBand", "p75", "p90"];
     for (const key of expectedKeys) {
       expect(c).toHaveProperty(key);
     }
