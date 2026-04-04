@@ -6,9 +6,7 @@
 
 A browser-based dashboard for analysing GitHub milestone progress. Point it at any public or private repository, select one or more milestones, and explore the data across seven interactive views — then export what you need in the format you need it.
 
-## What can it do?
-
-### Seven views
+## Features
 
 - **Gantt** — interactive horizontal bar timeline for every issue and PR, with scroll-wheel zoom and resizable labels
 - **Burndown** — daily open issue count plotted over the milestone's lifetime
@@ -17,17 +15,11 @@ A browser-based dashboard for analysing GitHub milestone progress. Point it at a
 - **Cumulative Flow** — running totals of created vs completed items over time
 - **Contributors** — per-author breakdown of issues and pull requests
 - **List** — sortable table of all items with status, dates, labels, assignees, and duration
-
-### Export everything
-
-Every view can be exported. Data exports: **CSV**, **Excel (XLSX)**, **Markdown**, and **PDF**. Visual exports: **PNG** of the current view, or a full-resolution PNG of the entire Gantt timeline.
-
-### More features
-
-- **Multi-milestone** — load several milestones at once and view them together, colour-coded by milestone
-- **Filters** — show/hide by type and status; date range filters on creation and close date
-- **Shareable URLs** — current milestone selection, active view, and all filters are encoded in the URL; the token is never included
-- **Colorblind mode** — alternative Okabe-Ito colour palette across all charts and views
+- **Export** — CSV, Excel (XLSX), Markdown, and PDF for data; PNG for charts and the full Gantt timeline
+- **Multi-milestone** — load several milestones at once, colour-coded by milestone
+- **Filters** — by type, status, and date range
+- **Shareable URLs** — milestone selection, active view, and filters encoded in the URL (token never included)
+- **Colorblind mode** — Okabe-Ito colour palette across all charts and views
 - **Demo mode** — try the app without a token using built-in sample data
 - **Desktop app** — available for Windows, macOS, and Linux via Electron
 
@@ -35,14 +27,7 @@ Every view can be exported. Data exports: **CSV**, **Excel (XLSX)**, **Markdown*
 
 Visit **[dkoz.me/gh-insight](https://dkoz.me/gh-insight/)** — no installation needed.
 
-You will need a GitHub Personal Access Token to load real data. A fine-grained token with the following read-only permissions is recommended:
-
-| Permission | Level |
-|---|---|
-| Metadata | Read |
-| Contents | Read |
-| Issues | Read |
-| Pull requests | Read |
+You will need a GitHub Personal Access Token to load real data. A fine-grained token with read-only permissions on **Metadata**, **Contents**, **Issues**, and **Pull requests** is recommended.
 
 [Create a fine-grained PAT on GitHub](https://github.com/settings/personal-access-tokens/new)
 
@@ -51,26 +36,6 @@ You will need a GitHub Personal Access Token to load real data. A fine-grained t
 - Your token is encrypted with AES-GCM (256-bit, Web Crypto API). The ciphertext is stored in `localStorage`; the encryption key lives in IndexedDB and never leaves your browser.
 - All API calls go directly from your browser to `api.github.com` over HTTPS. No data passes through any third-party server.
 - The token is never written to the URL. Clearing your browser storage removes everything.
-
-## Common questions
-
-**How do I create a Gantt chart from GitHub milestones?**
-Enter your GitHub token, select a repository, choose one or more milestones, and switch to the Gantt view. Each issue and PR appears as a horizontal bar spanning its creation to close date. Zoom with the scroll wheel, resize the label column, and export to PNG or PDF when you're done.
-
-**How do I export GitHub milestone data to Excel or CSV?**
-Open the List view or any chart view, click the export button in the toolbar, and choose your format — CSV, Excel (XLSX), Markdown, or PDF. The Gantt view additionally supports full-timeline PNG export.
-
-**Can I track sprint velocity from GitHub issues?**
-Yes. The Velocity view shows a weekly stacked bar chart of closed issues and merged/closed pull requests, giving you a clear picture of throughput over time.
-
-**Can I see cycle time for GitHub issues?**
-Yes. The Cycle Time view plots each closed item as a dot at its days-from-creation-to-close, with median and mean reference lines overlaid.
-
-**Does it support multiple milestones at once?**
-Yes. Select any number of milestones from the same repository and all seven views update to show the combined data, with each milestone colour-coded so you can compare sprints or releases side by side.
-
-**Does it work with private repositories?**
-Yes. Use a fine-grained GitHub PAT with read-only permissions on Issues, Pull Requests, Contents, and Metadata. The token is encrypted in your browser and never sent anywhere except directly to `api.github.com`.
 
 ## Local development
 
@@ -94,51 +59,17 @@ npm run build:electron # type-check, build renderer, and package the app
 
 ### Continuous integration
 
-Every push and pull request runs **lint**, **type-check** (renderer + Electron main), **unit tests**, and a **dependency audit** via the CI workflow. All must pass before a PR can be merged.
+Every push and pull request runs **lint**, **type-check** (renderer + Electron main), **unit tests**, and a **dependency audit**. Playwright end-to-end tests run in a second job after CI passes.
 
-Playwright end-to-end tests run in a second job after CI passes, using a headless Chromium browser.
+A separate **Electron CI** workflow runs on PRs that touch Electron-related paths — it builds the renderer in Electron mode and runs Playwright tests against the packaged app.
 
-A separate **Electron CI** workflow runs on pull requests that touch Electron-related paths (`electron/**`, `package.json`, etc.). It builds the renderer in Electron mode, then runs Playwright end-to-end tests against the packaged app to verify nothing is broken at the desktop layer.
+### Web deployment and PR previews
 
-### Caching
-
-CI caches two things to keep runs fast:
-
-- **npm modules** (~160 MB) — keyed on `package-lock.json`; any PR with unchanged deps skips the install entirely
-- **Playwright browsers** (~250 MB) — keyed on `package-lock.json`; skipped until the Playwright version changes
-
-Caches are scoped by branch. Main branch caches are accessible to all PRs, so a new PR typically gets cache hits immediately. When a PR is merged or closed, a cleanup workflow deletes its branch-specific cache entries automatically — this prevents the 10 GB GitHub Actions cache limit from filling up with stale per-branch data.
-
-### Web deployment (GitHub Pages)
-
-Every push to `main` automatically builds and deploys the web app to GitHub Pages. No version bump is involved — the live site always reflects the latest state of `main`.
-
-### PR previews
-
-Opening or updating a pull request triggers a preview build deployed to a dedicated subdirectory (`/gh-insight/pr-{N}/`). A bot comments on the PR with the preview URL. The preview is removed automatically when the PR closes.
+Every push to `main` automatically deploys to GitHub Pages. Opening or updating a PR triggers a preview build at `/gh-insight/pr-{N}/`; a bot comments the URL on the PR and the preview is removed when the PR closes.
 
 ### Releasing (Electron builds)
 
-To cut a release, include the version bump in your PR:
-
-1. Run `npm version patch`, `npm version minor`, or `npm version major` locally — this updates `package.json` and `package-lock.json`
-2. Commit the version bump as part of your PR
-3. Add the matching label to the PR before merging:
-
-| Label | Version change |
-|---|---|
-| `release:patch` | e.g. 2.0.21 → 2.0.22 |
-| `release:minor` | e.g. 2.0.21 → 2.1.0 |
-| `release:major` | e.g. 2.0.21 → 3.0.0 |
-
-When the labelled PR is merged into `main`, the release workflow:
-
-1. Runs lint, type-check, and tests as a final gate
-2. Reads the version from `package.json` and pushes a `vX.Y.Z` tag
-3. Builds the Electron app in parallel for macOS, Windows, and Linux
-4. Publishes a draft GitHub release with the built artefacts attached — review the assets before publishing
-
-PRs without a release label merge normally with no Electron build.
+Run `npm version patch|minor|major` locally, commit the bump as part of your PR, and add the matching `release:patch`, `release:minor`, or `release:major` label before merging. When the labelled PR merges, the release workflow tags the commit, builds the Electron app for macOS, Windows, and Linux, and publishes a draft GitHub release with the artefacts attached.
 
 ### Project structure
 
@@ -151,11 +82,11 @@ src/
   hooks/        Shared React hooks (useSettings)
   state/        Milestone reducer
   utils/        Shared utilities, token encryption, export functions
-  types.ts      Shared TypeScript types
+  types/        Shared TypeScript types (GitHubTypes, AppTypes, SettingsTypes, FilterTypes)
 ```
 
 ### Tech stack
 
 - React 19 + TypeScript + Vite
-- MUI v7 with the Redgate Honeycomb theme
+- MUI v7 with a custom light/dark theme
 - Vitest + Testing Library for unit tests
