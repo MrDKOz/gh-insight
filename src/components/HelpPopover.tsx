@@ -9,7 +9,7 @@ import IconButton from "@mui/material/IconButton";
 import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useGitHubReleaseCheck } from "../hooks/useGitHubReleaseCheck";
 import { isElectron } from "../utils/platform";
 
@@ -114,10 +114,10 @@ const HelpPopover: FunctionComponent = () => {
                     isTable(point) ? (
                       <Box key={j} sx={{ display: "grid", gridTemplateColumns: "max-content 1fr", gap: "2px 16px" }}>
                         {point.rows.map(([label, value]) => (
-                          <>
-                            <Typography key={`${label}-l`} variant="body2" color="text.primary" sx={{ lineHeight: 1.6 }}>{label}</Typography>
-                            <Typography key={`${label}-v`} variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>{value}</Typography>
-                          </>
+                          <Fragment key={label}>
+                            <Typography variant="body2" color="text.primary" sx={{ lineHeight: 1.6 }}>{label}</Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>{value}</Typography>
+                          </Fragment>
                         ))}
                       </Box>
                     ) : isLink(point) ? (
