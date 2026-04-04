@@ -25,22 +25,20 @@ const AuthorWithAssignees: FunctionComponent<Props> = ({
 }) => {
   const others = assigneesOtherThanAuthor(assignees, author);
 
-  if (others.length === 0) {
-    return <AuthorTag login={author} size={authorSize} />;
-  }
-
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: "4px" }}>
       <Box sx={{ display: "flex", alignItems: "center" }}>
         <RowLabel text="By" />
         <AuthorTag login={author} size={authorSize} />
       </Box>
-      <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "4px" }}>
-        <RowLabel text="Assigned" />
-        {others.map((a) => (
-          <AuthorTag key={a} login={a} size={assigneeSize} />
-        ))}
-      </Box>
+      {others.length > 0 && (
+        <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "4px" }}>
+          <RowLabel text="Assigned" />
+          {others.map((a) => (
+            <AuthorTag key={a} login={a} size={assigneeSize} />
+          ))}
+        </Box>
+      )}
     </Box>
   );
 };
