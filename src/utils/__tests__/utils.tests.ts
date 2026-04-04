@@ -307,6 +307,7 @@ describe("makeChartColors", () => {
     expect(c.grid).toBe(COLORS.chartGrid);
     expect(c.median).toBe(COLORS.success);
     expect(c.mean).toBe(COLORS.warning);
+    expect(c.cursorBand).toBe(COLORS.chartCursorBand);
   });
 
   it("returns the colorblind palette when colorblind mode is on", () => {
@@ -319,7 +320,7 @@ describe("makeChartColors", () => {
 
   it("exposes all expected keys", () => {
     const c = makeChartColors(false);
-    const expectedKeys = ["issue", "prMerged", "prClosed", "axis", "grid", "label", "cursor", "openFill", "median", "mean", "today", "todayLabel", "weekendBand"];
+    const expectedKeys = ["issue", "prMerged", "prClosed", "axis", "grid", "label", "cursor", "cursorBand", "openFill", "median", "mean", "today", "todayLabel", "weekendBand"];
     for (const key of expectedKeys) {
       expect(c).toHaveProperty(key);
     }
