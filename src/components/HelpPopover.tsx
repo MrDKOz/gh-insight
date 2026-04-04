@@ -34,10 +34,12 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    heading: "Everything stays local",
+    heading: "Privacy — no tracking",
     points: [
-      "Your token and preferences are stored only in your browser — nothing is sent to any server other than GitHub's API (api.github.com).",
+      "This app has no analytics, no telemetry, and no user tracking of any kind.",
+      "Your GitHub token, repository data, and preferences never leave your browser. The only outbound connection the app makes is directly to api.github.com.",
       "There is no backend. Clearing your browser storage removes everything.",
+      "The site domain is served via Cloudflare, which may collect anonymised performance metrics (page load times, country). Cloudflare has no access to your token or any GitHub data.",
     ],
   },
   {
