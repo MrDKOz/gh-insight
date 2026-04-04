@@ -1,16 +1,6 @@
 name: Electron CI
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "electron/**"
-      - "e2e/electron.spec.ts"
-      - "playwright.electron.config.ts"
-      - "package.json"
-      - "package-lock.json"
-      - "tsconfig.electron.json"
-      - "vite.config.ts"
   pull_request:
     paths:
       - "electron/**"
