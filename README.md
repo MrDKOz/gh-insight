@@ -94,11 +94,28 @@ npm run build:electron # type-check, build renderer, and package the app
 
 ### Continuous integration
 
-Every push and pull request runs **lint**, **type-check**, and **tests** via the CI workflow. All three must pass before a PR can be merged.
+Every push and pull request runs **lint**, **type-check** (renderer + Electron main), **unit tests**, and a **dependency audit** via the CI workflow. All must pass before a PR can be merged.
+
+Playwright end-to-end tests run in a second job after CI passes, using a headless Chromium browser.
+
+A separate **Electron CI** workflow runs on pull requests that touch Electron-related paths (`electron/**`, `package.json`, etc.). It builds the renderer in Electron mode, then runs Playwright end-to-end tests against the packaged app to verify nothing is broken at the desktop layer.
+
+### Caching
+
+CI caches two things to keep runs fast:
+
+- **npm modules** (~160 MB) — keyed on `package-lock.json`; any PR with unchanged deps skips the install entirely
+- **Playwright browsers** (~250 MB) — keyed on `package-lock.json`; skipped until the Playwright version changes
+
+Caches are scoped by branch. Main branch caches are accessible to all PRs, so a new PR typically gets cache hits immediately. When a PR is merged or closed, a cleanup workflow deletes its branch-specific cache entries automatically — this prevents the 10 GB GitHub Actions cache limit from filling up with stale per-branch data.
 
 ### Web deployment (GitHub Pages)
 
 Every push to `main` automatically builds and deploys the web app to GitHub Pages. No version bump is involved — the live site always reflects the latest state of `main`.
+
+### PR previews
+
+Opening or updating a pull request triggers a preview build deployed to a dedicated subdirectory (`/gh-insight/pr-{N}/`). A bot comments on the PR with the preview URL. The preview is removed automatically when the PR closes.
 
 ### Releasing (Electron builds)
 
@@ -116,10 +133,10 @@ To cut a release, include the version bump in your PR:
 
 When the labelled PR is merged into `main`, the release workflow:
 
-1. Runs tests as a final gate
+1. Runs lint, type-check, and tests as a final gate
 2. Reads the version from `package.json` and pushes a `vX.Y.Z` tag
 3. Builds the Electron app in parallel for macOS, Windows, and Linux
-4. Publishes a GitHub release with the built artefacts attached
+4. Publishes a draft GitHub release with the built artefacts attached — review the assets before publishing
 
 PRs without a release label merge normally with no Electron build.
 
