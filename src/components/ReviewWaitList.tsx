@@ -89,29 +89,30 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
   const rows = useMemo(() => buildRows(items), [items]);
   const sorted = useMemo(() => sortRows(rows, sortCol, sortDir), [rows, sortCol, sortDir]);
 
-  const maxWait = useMemo(
-    () => Math.max(1, ...rows.map((r) => r.reviewWaitDays ?? 0)),
+  // Scale all bars against the longest PR so widths are comparable across rows.
+  const maxTotal = useMemo(
+    () => Math.max(1, ...rows.map((r) => r.totalDays ?? 0)),
     [rows],
   );
 
   // Pre-compute all per-row display values so the render loop stays thin
   const displayRows = useMemo(() => sorted.map((row) => {
-    const waitPct =
-      row.reviewWaitDays !== null && row.totalDays !== null && row.totalDays > 0
-        ? Math.min(100, (row.reviewWaitDays / row.totalDays) * 100)
-        : row.reviewWaitDays !== null
-          ? Math.min(100, (row.reviewWaitDays / maxWait) * 100)
-          : 0;
+    const waitPct = row.reviewWaitDays !== null
+      ? Math.min(100, (row.reviewWaitDays / maxTotal) * 100)
+      : 0;
+    const donePct = row.totalDays !== null && row.totalDays > 0
+      ? Math.min(100 - waitPct, ((row.totalDays - (row.reviewWaitDays ?? 0)) / maxTotal) * 100)
+      : 0;
     return {
       row,
       milestoneMeta: isMulti ? milestoneMap.get(row.milestoneNumber) : undefined,
       waitPct,
-      donePct:    row.totalDays !== null && row.totalDays > 0 ? Math.max(0, 100 - waitPct) : 0,
+      donePct,
       isOpen:     row.status === "Open",
       waitLabel:  row.reviewWaitDays === null ? "—" : row.reviewWaitDays === 0 ? "same day" : `${row.reviewWaitDays}d`,
       totalLabel: row.totalDays === null ? "open" : row.totalDays === 0 ? "same day" : `${row.totalDays}d`,
     };
-  }), [sorted, maxWait, isMulti, milestoneMap]);
+  }), [sorted, maxTotal, isMulti, milestoneMap]);
 
   // Helper to build the onResize handler for a given column index.
   const resize = (i: number) => (e: MouseEvent) => startResize(i, e, widths[i] ?? 0);
@@ -128,6 +129,7 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
   }
 
   return (
+    <>
     <TableContainer sx={{ border: 1, borderColor: "divider", borderRadius: 1, overflowX: "auto" }}>
       <Table size="small" aria-label="Review wait time per pull request" sx={{ tableLayout: "fixed", minWidth: widths.reduce((sum, w) => sum + w, 0) }}>
         <colgroup>
@@ -279,6 +281,18 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
         </TableBody>
       </Table>
     </TableContainer>
+    <Box sx={{ display: "flex", gap: 2.5, px: 0.5, pt: 1, alignItems: "center", flexWrap: "wrap" }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+        <Box sx={{ width: 10, height: 10, borderRadius: 0.5, bgcolor: barWait, flexShrink: 0 }} />
+        <Typography variant="caption" color="text.secondary">Waiting for first review</Typography>
+      </Box>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+        <Box sx={{ width: 10, height: 10, borderRadius: 0.5, bgcolor: barDone, flexShrink: 0 }} />
+        <Typography variant="caption" color="text.secondary">Post-review</Typography>
+      </Box>
+      <Typography variant="caption" color="text.disabled">Bar width proportional to longest PR</Typography>
+    </Box>
+    </>
   );
 };
 
