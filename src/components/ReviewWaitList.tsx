@@ -129,7 +129,6 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
   }
 
   return (
-    <>
     <TableContainer sx={{ border: 1, borderColor: "divider", borderRadius: 1, overflowX: "auto" }}>
       <Table size="small" aria-label="Review wait time per pull request" sx={{ tableLayout: "fixed", minWidth: widths.reduce((sum, w) => sum + w, 0) }}>
         <colgroup>
@@ -310,18 +309,6 @@ const ReviewWaitListInner: FunctionComponent<Props> = ({ items, milestones, colo
         </TableBody>
       </Table>
     </TableContainer>
-    <Box sx={{ display: "flex", gap: 2.5, px: 0.5, pt: 1, alignItems: "center", flexWrap: "wrap" }}>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-        <Box sx={{ width: 10, height: 10, borderRadius: 0.5, bgcolor: barWait, flexShrink: 0 }} />
-        <Typography variant="caption" color="text.secondary">Waiting for first review</Typography>
-      </Box>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-        <Box sx={{ width: 10, height: 10, borderRadius: 0.5, bgcolor: barDone, flexShrink: 0 }} />
-        <Typography variant="caption" color="text.secondary">Post-review</Typography>
-      </Box>
-      <Typography variant="caption" color="text.disabled">Bar width proportional to longest PR</Typography>
-    </Box>
-    </>
   );
 };
 
