@@ -68,6 +68,14 @@ const ShareImportSplitButton: FunctionComponent<Props> = ({ onImportCode }) => {
         open={Boolean(shareMenuAnchor)}
         onClose={() => setShareMenuAnchor(null)}
       >
+        <MenuItem dense onClick={() => {
+          setShareMenuAnchor(null);
+          void navigator.clipboard
+            .writeText(window.location.href)
+            .catch(() => { setClipboardError("Could not copy — please copy the URL manually."); });
+        }}>
+          Copy link
+        </MenuItem>
         <MenuItem dense onClick={() => { setShareMenuAnchor(null); setImportOpen(true); }}>
           Import code…
         </MenuItem>

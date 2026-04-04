@@ -1,4 +1,5 @@
 import type { AppPhase, View } from "./types/AppTypes";
+
 import type { Epic, Milestone, Repo, TimelineItem, UserProfile } from "./types/GitHubTypes";
 import type { FunctionComponent } from "react";
 import Alert from "@mui/material/Alert";
@@ -27,6 +28,7 @@ import { useMilestones } from "./hooks/useMilestones";
 import { useNewVersionAvailable } from "./hooks/useNewVersionAvailable";
 import { useSettings } from "./hooks/useSettings";
 import { muiDarkTheme, muiLightTheme } from "./theme";
+import { VIEWS } from "./types/AppTypes";
 import { isElectron } from "./utils/platform";
 import { decryptToken } from "./utils/tokenCrypto";
 import { decodeShareCode, readUrlParams, readViewFiltersFromUrl } from "./utils/urlUtils";
@@ -265,6 +267,19 @@ const App: FunctionComponent = () => {
   const handleViewChange = useCallback((v: View) => {
     milestones.dispatch({ type: "SET_VIEW", view: v });
   }, [milestones]);
+
+  // Keyboard shortcut: 1–8 switches views (dashboard only, not when typing in an input)
+  useEffect(() => {
+    if (auth.phase !== "dashboard") { return; }
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) { return; }
+      const idx = parseInt(e.key, 10) - 1;
+      if (idx >= 0 && idx < VIEWS.length) { handleViewChange(VIEWS[idx] as View); }
+    };
+    window.addEventListener("keydown", handler);
+    return () => { window.removeEventListener("keydown", handler); };
+  }, [auth.phase, handleViewChange]);
 
   // ── Config import / export ────────────────────────────────────────────────
 
