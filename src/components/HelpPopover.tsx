@@ -144,7 +144,7 @@ const HelpPopover: FunctionComponent = () => {
                 target="_blank"
                 rel="noreferrer"
                 variant="caption"
-                sx={{ color: "text.disabled" }}
+                sx={{ color: "text.secondary" }}
               >
                 Desktop app available →
               </Link>
