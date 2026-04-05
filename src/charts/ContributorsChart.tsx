@@ -1,5 +1,5 @@
 import type { TimelineItem } from "../types/GitHubTypes";
-import type { FunctionComponent, MouseEvent } from "react";
+import type { CSSProperties, FunctionComponent, MouseEvent } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
@@ -58,6 +58,20 @@ const BAR_H = 22;
 const AVATAR_SIZE = 18;
 const AVATAR_R_GAP = 6;   // px between avatar right edge and y-axis line
 const AVATAR_T_GAP = 5;   // px between text right edge and avatar left edge
+
+/** SVG path for a rect with rounded right corners only. */
+const roundedRight = (x: number, y: number, w: number, h: number, r: number): string => {
+  const r2 = Math.min(r, w, h / 2);
+  return [
+    `M ${x},${y}`,
+    `L ${x + w - r2},${y}`,
+    `Q ${x + w},${y} ${x + w},${y + r2}`,
+    `L ${x + w},${y + h - r2}`,
+    `Q ${x + w},${y + h} ${x + w - r2},${y + h}`,
+    `L ${x},${y + h}`,
+    "Z",
+  ].join(" ");
+};
 
 const ContributorsChartInner: FunctionComponent<Props> = ({ items, colorblindMode }) => {
   const chartColors = makeChartColors(colorblindMode);
@@ -288,26 +302,36 @@ const ContributorsChartInner: FunctionComponent<Props> = ({ items, colorblindMod
               </a>
 
               {/* Stacked segments */}
-              {segments.map(({ seg, count }) => {
-                if (count === 0) {return null;}
-                const x = getBarX(offset);
-                const barWidth = getBarWidth(count);
-                offset += count;
-                return (
-                  <rect
-                    key={seg}
-                    x={x.toFixed(1)}
-                    y={cy.toFixed(1)}
-                    width={barWidth.toFixed(1)}
-                    height={BAR_H}
-                    fill={segColors[seg]}
-                    opacity={0.88}
-                    rx={2}
-                    style={{ cursor: "pointer" }}
-                    onMouseEnter={(e) => onEnter(e, row, seg, count)}
-                  />
-                );
-              })}
+              {(() => {
+                const visible = segments.filter(({ count }) => count > 0);
+                return visible.map(({ seg, count }, i) => {
+                  const x = getBarX(offset);
+                  const barWidth = getBarWidth(count);
+                  offset += count;
+                  const isLast = i === visible.length - 1;
+                  const shared = {
+                    key: seg,
+                    fill: segColors[seg],
+                    opacity: 0.88,
+                    style: { cursor: "pointer" } as CSSProperties,
+                    onMouseEnter: (e: MouseEvent<SVGElement>) => onEnter(e, row, seg, count),
+                  };
+                  return isLast ? (
+                    <path
+                      {...shared}
+                      d={roundedRight(x, cy, barWidth, BAR_H, 3)}
+                    />
+                  ) : (
+                    <rect
+                      {...shared}
+                      x={x.toFixed(1)}
+                      y={cy.toFixed(1)}
+                      width={barWidth.toFixed(1)}
+                      height={BAR_H}
+                    />
+                  );
+                });
+              })()}
 
               {/* Total label (right of bar) */}
               <text
