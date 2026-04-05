@@ -68,6 +68,21 @@ type MilestoneHover = {
   week: MilestoneWeek;
 };
 
+/** SVG path for a rect with rounded top corners only. */
+const roundedTop = (x: number, y: number, w: number, h: number, r: number): string => {
+  const r2 = Math.min(r, w / 2, h);
+  const f = (n: number) => n.toFixed(1);
+  return [
+    `M ${f(x)},${f(y + h)}`,
+    `L ${f(x)},${f(y + r2)}`,
+    `Q ${f(x)},${f(y)} ${f(x + r2)},${f(y)}`,
+    `L ${f(x + w - r2)},${f(y)}`,
+    `Q ${f(x + w)},${f(y)} ${f(x + w)},${f(y + r2)}`,
+    `L ${f(x + w)},${f(y + h)}`,
+    "Z",
+  ].join(" ");
+};
+
 const VelocityChartInner: FunctionComponent<Props> = ({ items, milestones, colorblindMode, includePRs }) => {
   const filteredItems = useMemo(
     () => includePRs ? items : items.filter((i) => i.type === "issue"),
@@ -263,9 +278,9 @@ const VelocityChartInner: FunctionComponent<Props> = ({ items, milestones, color
 
             return (
               <g key={week.startMs}>
-                {week.issues > 0 && <rect x={bx.toFixed(1)} y={yIssue.toFixed(1)} width={barWidth.toFixed(1)} height={hIssue.toFixed(1)} fill={chartColors.issue} opacity={0.88} rx={2} />}
-                {includePRs && week.merged > 0 && <rect x={bx.toFixed(1)} y={yMerged.toFixed(1)} width={barWidth.toFixed(1)} height={hMerged.toFixed(1)} fill={chartColors.prMerged} opacity={0.88} rx={2} />}
-                {includePRs && week.closed > 0 && <rect x={bx.toFixed(1)} y={yClosed.toFixed(1)} width={barWidth.toFixed(1)} height={hClosed.toFixed(1)} fill={chartColors.prClosed} opacity={0.88} rx={2} />}
+                {week.issues > 0 && <path d={roundedTop(bx, yIssue, barWidth, hIssue, 2)} fill={chartColors.issue} opacity={0.88} />}
+                {includePRs && week.merged > 0 && <path d={roundedTop(bx, yMerged, barWidth, hMerged, 2)} fill={chartColors.prMerged} opacity={0.88} />}
+                {includePRs && week.closed > 0 && <path d={roundedTop(bx, yClosed, barWidth, hClosed, 2)} fill={chartColors.prClosed} opacity={0.88} />}
                 <rect x={bx.toFixed(1)} y={PADDING_TOP} width={barWidth.toFixed(1)} height={CHART_HEIGHT} fill="transparent" className="vel-hover-area" onMouseEnter={(e) => onEnter(e, week)} />
               </g>
             );
@@ -361,11 +376,10 @@ const VelocityChartInner: FunctionComponent<Props> = ({ items, milestones, color
               const barHeight = (week.total / maxTotal) * CHART_HEIGHT;
               const by = PADDING_TOP + CHART_HEIGHT - barHeight;
               return (
-                <rect
+                <path
                   key={milestone.number}
-                  x={bx.toFixed(1)} y={by.toFixed(1)}
-                  width={milestoneBarWidth.toFixed(1)} height={barHeight.toFixed(1)}
-                  fill={milestone.color} opacity={0.88} rx={2}
+                  d={roundedTop(bx, by, milestoneBarWidth, barHeight, 2)}
+                  fill={milestone.color} opacity={0.88}
                   style={{ cursor: "pointer" }}
                   onMouseEnter={(e) => onMsEnter(e, milestone, week)}
                 />
