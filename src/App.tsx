@@ -315,6 +315,8 @@ const App: FunctionComponent = () => {
         splashMode={auth.phase !== "dashboard"}
       />
 
+      <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+
       <UpdateBar />
 
       {auth.phase !== "dashboard" ? (
@@ -333,7 +335,7 @@ const App: FunctionComponent = () => {
           colorblindMode={settings.colorblindMode}
         />
       ) : (
-        <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+        <Box sx={{ display: "flex", flexDirection: "column", flex: 1 }}>
 
           <AppHeader
             userProfile={auth.userProfile ?? DEMO_USER}
@@ -469,6 +471,7 @@ const App: FunctionComponent = () => {
 
         </Box>
       )}
+      </Box>
       <KeyboardShortcuts />
     </ThemeProvider>
   );
