@@ -1,7 +1,7 @@
 import type { AppPhase } from "../types/AppTypes";
 import type { Repo, UserProfile } from "../types/GitHubTypes";
 import { useCallback, useState } from "react";
-import { fetchUserProfile, fetchUserRepos } from "../api/github";
+import { fetchUserProfile, fetchUserRepos } from "../api/githubApi";
 import { EncryptionUnavailableError, deleteKey, encryptToken } from "../utils/tokenCrypto";
 
 const LS_TOKEN = "gmt_token";

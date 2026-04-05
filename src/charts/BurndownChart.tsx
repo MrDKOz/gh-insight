@@ -43,7 +43,7 @@ type HoverInfo = {
   series?: Array<{ color: string; title: string; count: number }>;
 };
 
-const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, bankHolidays, colorblindMode, includePRs }) => {
+const BurndownChartInner: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, bankHolidays, colorblindMode, includePRs }) => {
   const chartColors = makeChartColors(colorblindMode);
   const isMulti = milestones.length > 1;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -395,6 +395,6 @@ const BurndownInner: FunctionComponent<Props> = ({ items, milestones, highlightW
   );
 };
 
-const Burndown = memo(BurndownInner);
+const BurndownChart = memo(BurndownChartInner);
 
-export { Burndown };
+export { BurndownChart };

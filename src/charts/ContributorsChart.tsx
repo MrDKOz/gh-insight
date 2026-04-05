@@ -59,7 +59,7 @@ const AVATAR_SIZE = 18;
 const AVATAR_R_GAP = 6;   // px between avatar right edge and y-axis line
 const AVATAR_T_GAP = 5;   // px between text right edge and avatar left edge
 
-const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) => {
+const ContributorsChartInner: FunctionComponent<Props> = ({ items, colorblindMode }) => {
   const chartColors = makeChartColors(colorblindMode);
   const containerRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<Hover | null>(null);
@@ -354,6 +354,6 @@ const ContributorsInner: FunctionComponent<Props> = ({ items, colorblindMode }) 
   );
 };
 
-const Contributors = memo(ContributorsInner);
+const ContributorsChart = memo(ContributorsChartInner);
 
-export { Contributors };
+export { ContributorsChart };

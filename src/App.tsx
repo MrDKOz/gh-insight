@@ -9,7 +9,7 @@ import CssBaseline from "@mui/material/CssBaseline";
 import LinearProgress from "@mui/material/LinearProgress";
 import { ThemeProvider } from "@mui/material/styles";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { fetchUserProfile, fetchUserRepos } from "./api/github";
+import { fetchUserProfile, fetchUserRepos } from "./api/githubApi";
 import { AppHeader } from "./components/AppHeader";
 import { ContextBar } from "./components/ContextBar";
 import { EmptyState } from "./components/EmptyState";

@@ -68,7 +68,7 @@ type MilestoneHover = {
   week: MilestoneWeek;
 };
 
-const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblindMode, includePRs }) => {
+const VelocityChartInner: FunctionComponent<Props> = ({ items, milestones, colorblindMode, includePRs }) => {
   const filteredItems = useMemo(
     () => includePRs ? items : items.filter((i) => i.type === "issue"),
     [items, includePRs],
@@ -405,6 +405,6 @@ const VelocityInner: FunctionComponent<Props> = ({ items, milestones, colorblind
   );
 };
 
-const Velocity = memo(VelocityInner);
+const VelocityChart = memo(VelocityChartInner);
 
-export { Velocity };
+export { VelocityChart };
