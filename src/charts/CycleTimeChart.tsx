@@ -48,7 +48,7 @@ type Hover = {
   url: string;
 };
 
-const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, bankHolidays, colorblindMode, includePRs, showPercentiles }) => {
+const CycleTimeChartInner: FunctionComponent<Props> = ({ items, milestones, highlightWeekends, bankHolidays, colorblindMode, includePRs, showPercentiles }) => {
   const filteredItems = useMemo(
     () => includePRs ? items : items.filter((i) => i.type === "issue"),
     [items, includePRs],
@@ -354,6 +354,6 @@ const CycleTimeInner: FunctionComponent<Props> = ({ items, milestones, highlight
   );
 };
 
-const CycleTime = memo(CycleTimeInner);
+const CycleTimeChart = memo(CycleTimeChartInner);
 
-export { CycleTime };
+export { CycleTimeChart };

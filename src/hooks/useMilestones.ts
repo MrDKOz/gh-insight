@@ -2,7 +2,7 @@ import type { Action, AppState } from "../state/appReducer";
 import type { Epic, Milestone, MilestoneMeta, Repo, TimelineItem } from "../types/GitHubTypes";
 import type { Dispatch } from "react";
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
-import { fetchAllRemainingMilestones, fetchEpicItems, fetchEpics, fetchMilestoneItems, fetchMilestonesInitial } from "../api/github";
+import { fetchAllRemainingMilestones, fetchEpicItems, fetchEpics, fetchMilestoneItems, fetchMilestonesInitial } from "../api/githubApi";
 import { DEMO_DATA_BY_REPO } from "../data/demo";
 import { appReducer, initialState } from "../state/appReducer";
 import { EPIC_COLORS, EPIC_COLORS_CB, MILESTONE_COLORS, MILESTONE_COLORS_CB } from "../utils/colorUtils";

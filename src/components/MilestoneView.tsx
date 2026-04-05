@@ -17,18 +17,18 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Burndown } from "../charts/Burndown";
-import { Contributors } from "../charts/Contributors";
-import { CumulativeFlow } from "../charts/CumulativeFlow";
-import { CycleTime } from "../charts/CycleTime";
-import { GanttView } from "../charts/GanttView";
-import { Velocity } from "../charts/Velocity";
+import { BurndownChart } from "../charts/BurndownChart";
+import { ContributorsChart } from "../charts/ContributorsChart";
+import { CumulativeFlowChart } from "../charts/CumulativeFlowChart";
+import { CycleTimeChart } from "../charts/CycleTimeChart";
+import { VelocityChart } from "../charts/VelocityChart";
 import { useAvatarPreload } from "../hooks/useAvatarPreload";
 
 import { applyFilters } from "../types/FilterTypes";
 import { partitionItems } from "../utils/displayUtils";
 import { exportCSV, exportChartPDF, exportGanttPDF, exportMarkdown, exportPDF, exportPNG, exportReviewWaitCSV, exportReviewWaitMarkdown, exportReviewWaitPDF, exportReviewWaitXLSX, exportSVG, exportXLSX } from "../utils/export";
 import { FilterBar } from "./FilterBar";
+import { GanttView } from "./GanttView";
 import { ItemList } from "./ItemList";
 import { ReviewWaitList } from "./ReviewWaitList";
 import { StatsBar } from "./StatsBar";
@@ -250,18 +250,18 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
         </Typography>
       )}
       {!noFilteredItems && view === "Burndown" && (
-        <Burndown items={filteredItems} milestones={milestones} highlightWeekends={highlightWeekends} bankHolidays={bankHolidays} colorblindMode={colorblindMode} includePRs={includePRs.burndown} />
+        <BurndownChart items={filteredItems} milestones={milestones} highlightWeekends={highlightWeekends} bankHolidays={bankHolidays} colorblindMode={colorblindMode} includePRs={includePRs.burndown} />
       )}
       {!noFilteredItems && view === "Cycle Time" && (
-        <CycleTime items={filteredItems} milestones={milestones} highlightWeekends={highlightWeekends} bankHolidays={bankHolidays} colorblindMode={colorblindMode} includePRs={includePRs.cycleTime} showPercentiles={showPercentiles} />
+        <CycleTimeChart items={filteredItems} milestones={milestones} highlightWeekends={highlightWeekends} bankHolidays={bankHolidays} colorblindMode={colorblindMode} includePRs={includePRs.cycleTime} showPercentiles={showPercentiles} />
       )}
       {!noFilteredItems && view === "Velocity" && (
-        <Velocity items={filteredItems} milestones={milestones} colorblindMode={colorblindMode} includePRs={includePRs.velocity} />
+        <VelocityChart items={filteredItems} milestones={milestones} colorblindMode={colorblindMode} includePRs={includePRs.velocity} />
       )}
       {!noFilteredItems && view === "Cumulative Flow" && (
-        <CumulativeFlow items={filteredItems} highlightWeekends={highlightWeekends} bankHolidays={bankHolidays} colorblindMode={colorblindMode} includePRs={includePRs.cumulativeFlow} />
+        <CumulativeFlowChart items={filteredItems} highlightWeekends={highlightWeekends} bankHolidays={bankHolidays} colorblindMode={colorblindMode} includePRs={includePRs.cumulativeFlow} />
       )}
-      {!noFilteredItems && view === "Contributors" && <Contributors items={filteredItems} colorblindMode={colorblindMode} />}
+      {!noFilteredItems && view === "Contributors" && <ContributorsChart items={filteredItems} colorblindMode={colorblindMode} />}
       {!noFilteredItems && view === "Review Wait" && <ReviewWaitList items={filteredItems} milestones={milestones} colorblindMode={colorblindMode} />}
       {!noFilteredItems && view === "List" && <ItemList items={filteredItems} milestones={milestones} colorblindMode={colorblindMode} />}
 

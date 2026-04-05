@@ -44,7 +44,7 @@ type HoverState = {
   holidayName?: string | undefined;
 };
 
-const CumulativeFlowInner: FunctionComponent<Props> = ({ items, highlightWeekends, bankHolidays, colorblindMode, includePRs }) => {
+const CumulativeFlowChartInner: FunctionComponent<Props> = ({ items, highlightWeekends, bankHolidays, colorblindMode, includePRs }) => {
   const chartColors = makeChartColors(colorblindMode);
   // chart-specific derived colours not in the shared factory
   const closedFill  = `${chartColors.issue}38`; // 0x38 ≈ 22% opacity — derived from palette so colorblind mode is respected
@@ -272,6 +272,6 @@ const CumulativeFlowInner: FunctionComponent<Props> = ({ items, highlightWeekend
   );
 };
 
-const CumulativeFlow = memo(CumulativeFlowInner);
+const CumulativeFlowChart = memo(CumulativeFlowChartInner);
 
-export { CumulativeFlow };
+export { CumulativeFlowChart };

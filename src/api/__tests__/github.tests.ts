@@ -1,4 +1,4 @@
-import { fetchMilestoneItems, fetchMilestones } from "../github";
+import { fetchMilestoneItems, fetchMilestones } from "../githubApi";
 
 // ---------------------------------------------------------------------------
 // Helpers
