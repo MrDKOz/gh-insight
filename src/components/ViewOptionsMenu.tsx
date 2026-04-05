@@ -7,7 +7,7 @@ import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 type Props = {
   view: View;
@@ -19,6 +19,10 @@ type Props = {
 
 const ViewOptionsMenu: FunctionComponent<Props> = ({ view, includePRs, showPercentiles, onShowPercentilesChange, dispatch }) => {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+
+  // Reset the anchor when the view changes so the menu doesn't reopen
+  // against a detached DOM node if options reappear on a later view switch.
+  useEffect(() => { setAnchor(null); }, [view]);
 
   const toggleBurndownPRs       = useCallback(() => { dispatch({ type: "SET_INCLUDE_PRS", chart: "burndown",       value: !includePRs.burndown       }); }, [dispatch, includePRs.burndown]);
   const toggleCycleTimePRs      = useCallback(() => { dispatch({ type: "SET_INCLUDE_PRS", chart: "cycleTime",      value: !includePRs.cycleTime      }); }, [dispatch, includePRs.cycleTime]);
