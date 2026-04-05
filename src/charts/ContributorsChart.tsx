@@ -62,13 +62,14 @@ const AVATAR_T_GAP = 5;   // px between text right edge and avatar left edge
 /** SVG path for a rect with rounded right corners only. */
 const roundedRight = (x: number, y: number, w: number, h: number, r: number): string => {
   const r2 = Math.min(r, w, h / 2);
+  const f = (n: number) => n.toFixed(1);
   return [
-    `M ${x},${y}`,
-    `L ${x + w - r2},${y}`,
-    `Q ${x + w},${y} ${x + w},${y + r2}`,
-    `L ${x + w},${y + h - r2}`,
-    `Q ${x + w},${y + h} ${x + w - r2},${y + h}`,
-    `L ${x},${y + h}`,
+    `M ${f(x)},${f(y)}`,
+    `L ${f(x + w - r2)},${f(y)}`,
+    `Q ${f(x + w)},${f(y)} ${f(x + w)},${f(y + r2)}`,
+    `L ${f(x + w)},${f(y + h - r2)}`,
+    `Q ${f(x + w)},${f(y + h)} ${f(x + w - r2)},${f(y + h)}`,
+    `L ${f(x)},${f(y + h)}`,
     "Z",
   ].join(" ");
 };
@@ -319,7 +320,7 @@ const ContributorsChartInner: FunctionComponent<Props> = ({ items, colorblindMod
                   return isLast ? (
                     <path
                       {...shared}
-                      d={roundedRight(x, cy, barWidth, BAR_H, 3)}
+                      d={roundedRight(x, cy, barWidth, BAR_H, 2)}
                     />
                   ) : (
                     <rect
