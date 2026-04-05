@@ -1,6 +1,6 @@
 {
   "name": "ghinsight",
-  "version": "2.2.2",
+  "version": "2.2.3",
   "license": "UNLICENSED",
   "type": "module",
   "main": "dist-electron/main.js",

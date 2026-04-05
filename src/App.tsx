@@ -18,14 +18,13 @@ import { KeyboardShortcuts } from "./components/KeyboardShortcuts";
 import { MilestoneView } from "./components/MilestoneView";
 import { SettingsPopover } from "./components/SettingsPopover";
 import { SplashScreen } from "./components/SplashScreen";
+import { UpdateBar } from "./components/UpdateBar";
 import { DEMO_REPOS, DEMO_USER } from "./data/demo";
 import { LS_TOKEN, useAuth } from "./hooks/useAuth";
 import { useBankHolidays } from "./hooks/useBankHolidays";
 import { useConfigImportExport } from "./hooks/useConfigImportExport";
 import { useDarkMode } from "./hooks/useDarkMode";
-import { useGitHubReleaseCheck } from "./hooks/useGitHubReleaseCheck";
 import { useMilestones } from "./hooks/useMilestones";
-import { useNewVersionAvailable } from "./hooks/useNewVersionAvailable";
 import { useSettings } from "./hooks/useSettings";
 import { muiDarkTheme, muiLightTheme } from "./theme";
 import { VIEWS } from "./types/AppTypes";
@@ -78,8 +77,6 @@ const FetchingProgress: FunctionComponent<FetchingProgressProps> = ({
 const App: FunctionComponent = () => {
   const { dark, toggleDark, applyDark } = useDarkMode();
   const { settings, updateSetting }     = useSettings();
-  const webUpdate        = useNewVersionAvailable();
-  const electronRelease  = useGitHubReleaseCheck();
 
   const initialPhase: AppPhase = localStorage.getItem(LS_TOKEN) || INITIAL_URL_PARAMS.demo || INITIAL_URL_PARAMS.previewNoRepos
     ? "authenticating"
@@ -318,6 +315,8 @@ const App: FunctionComponent = () => {
         splashMode={auth.phase !== "dashboard"}
       />
 
+      <UpdateBar />
+
       {auth.phase !== "dashboard" ? (
         <SplashScreen
           onConnect={auth.handleConnect}
@@ -335,36 +334,6 @@ const App: FunctionComponent = () => {
         />
       ) : (
         <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-
-          {(webUpdate || electronRelease) && (
-            <Alert
-              severity="info"
-              sx={{ borderRadius: 0 }}
-              action={
-                electronRelease ? (
-                  <Button
-                    size="small"
-                    color="inherit"
-                    href={electronRelease.releasesUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    component="a"
-                  >
-                    Download v{electronRelease.version}
-                  </Button>
-                ) : (
-                  <Button size="small" color="inherit" onClick={() => window.location.reload()}>
-                    Reload
-                  </Button>
-                )
-              }
-            >
-              {electronRelease
-                ? `A new version (${electronRelease.version}) is available to download.`
-                : "A new version is available."}
-            </Alert>
-          )}
-
 
           <AppHeader
             userProfile={auth.userProfile ?? DEMO_USER}
