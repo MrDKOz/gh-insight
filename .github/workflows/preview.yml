@@ -51,23 +51,30 @@ jobs:
           DEPLOY_BASE: /gh-insight/pr-${{ github.event.number }}/
         run: npm run build
 
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: gh-pages
+          path: _site
+          fetch-depth: 1
+
       - name: Deploy preview
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git clone --depth=1 --branch=gh-pages \
-            "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
-            _site
+          git config -C _site user.name "github-actions[bot]"
+          git config -C _site user.email "41898282+github-actions[bot]@users.noreply.github.com"
           mkdir -p "_site/pr-${{ github.event.number }}"
           rsync -a --delete dist/ "_site/pr-${{ github.event.number }}/"
           cd _site
           git add -A
           if ! git diff --staged --quiet; then
             git commit -m "chore: deploy preview for PR ${{ github.event.number }}"
-            git pull --rebase origin gh-pages
-            git push
+            for attempt in 1 2 3 4 5; do
+              git pull --rebase origin gh-pages
+              if git push; then break; fi
+              if [ "$attempt" -eq 5 ]; then echo "Failed to push after 5 attempts" && exit 1; fi
+              echo "Push raced with another gh-pages writer; retrying ($attempt/5)..."
+              sleep $((attempt * 2))
+            done
           fi
 
       - name: Mark deployment success

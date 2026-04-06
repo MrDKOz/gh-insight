@@ -35,21 +35,28 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: gh-pages
+          path: _site
+          fetch-depth: 1
+
       - name: Deploy to GitHub Pages
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git clone --depth=1 --branch=gh-pages \
-            "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
-            _site
-          # Sync main site files; exclude pr-*/ so active PR previews are preserved.
-          rsync -a --delete --exclude='pr-*/' dist/ _site/
+          git config -C _site user.name "github-actions[bot]"
+          git config -C _site user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Sync main site; exclude .git/ and pr-*/ so repo metadata and active
+          # PR previews are preserved.
+          rsync -a --delete --exclude='.git/' --exclude='pr-*/' dist/ _site/
           cd _site
           git add -A
           if ! git diff --staged --quiet; then
             git commit -m "chore: deploy to GitHub Pages"
-            git pull --rebase origin gh-pages
-            git push
+            for attempt in 1 2 3; do
+              git pull --rebase origin gh-pages
+              if git push; then break; fi
+              if [ "$attempt" -eq 3 ]; then echo "Failed to push after 3 attempts" && exit 1; fi
+              sleep $((attempt * 2))
+            done
           fi
