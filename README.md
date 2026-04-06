@@ -1,5 +1,11 @@
 # GH Insight
 
+[![CI](https://github.com/MrDKOz/gh-insight/actions/workflows/ci.yml/badge.svg)](https://github.com/MrDKOz/gh-insight/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/MrDKOz/gh-insight)](https://github.com/MrDKOz/gh-insight/releases/latest)
+[![macOS (arm64)](https://img.shields.io/badge/macOS_(arm64)-.dmg-black?logo=apple)](https://github.com/MrDKOz/gh-insight/releases/latest)
+[![Windows](https://img.shields.io/badge/Windows-.exe-0078d4?logo=windows)](https://github.com/MrDKOz/gh-insight/releases/latest)
+[![Linux](https://img.shields.io/badge/Linux-.AppImage-e95420?logo=linux&logoColor=white)](https://github.com/MrDKOz/gh-insight/releases/latest)
+
 **Live:** [dkoz.me/gh-insight](https://dkoz.me/gh-insight/)
 
 > **A note on this project:** This is an experiment in AI-driven development, built during my 10% / L&D time at Redgate. The goal was to learn how Claude works by attempting to build a genuinely usable application without writing a single line of code manually — using Claude Code to handle everything from architecture decisions to implementation. The application you see here is the result of that process. I think it's only fair to be upfront about that, both to set expectations and to give an honest account of what AI-assisted development looks like in practice.
