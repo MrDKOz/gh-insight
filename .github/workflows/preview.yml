@@ -52,12 +52,23 @@ jobs:
         run: npm run build
 
       - name: Deploy preview
-        uses: peaceiris/actions-gh-pages@373f7f263a76c20808c831209c920827a82a2847 # v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-          destination_dir: pr-${{ github.event.number }}
-          keep_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git clone --depth=1 --branch=gh-pages \
+            "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            _site
+          mkdir -p "_site/pr-${{ github.event.number }}"
+          rsync -a --delete dist/ "_site/pr-${{ github.event.number }}/"
+          cd _site
+          git add -A
+          if ! git diff --staged --quiet; then
+            git commit -m "chore: deploy preview for PR ${{ github.event.number }}"
+            git pull --rebase origin gh-pages
+            git push
+          fi
 
       - name: Mark deployment success
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0

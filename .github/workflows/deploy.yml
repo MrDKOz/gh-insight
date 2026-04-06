@@ -35,11 +35,21 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Deploy
-        uses: peaceiris/actions-gh-pages@373f7f263a76c20808c831209c920827a82a2847 # v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-          # keep_files preserves PR preview subdirectories (pr-N/) alongside
-          # the main site when redeploying.
-          keep_files: true
+      - name: Deploy to GitHub Pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git clone --depth=1 --branch=gh-pages \
+            "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            _site
+          # Sync main site files; exclude pr-*/ so active PR previews are preserved.
+          rsync -a --delete --exclude='pr-*/' dist/ _site/
+          cd _site
+          git add -A
+          if ! git diff --staged --quiet; then
+            git commit -m "chore: deploy to GitHub Pages"
+            git pull --rebase origin gh-pages
+            git push
+          fi
