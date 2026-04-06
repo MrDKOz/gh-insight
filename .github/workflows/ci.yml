@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  actions: write
 
 jobs:
   check:
@@ -78,3 +79,22 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  cleanup-main-caches:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [check, e2e]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prune stale main branch caches
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPO="${{ github.repository }}"
+          echo "Pruning stale caches on main..."
+          for PATTERN in "node-cache-Linux" "node-cache-macOS" "node-cache-Windows" "Linux-playwright" "codeql-overlay-base-database"; do
+            gh cache list --repo "$REPO" --ref "refs/heads/main" --limit 100 --json id,key,createdAt \
+              | jq -r --arg p "$PATTERN" \
+                  '[.[] | select(.key | startswith($p))] | sort_by(.createdAt) | reverse | .[1:][].id' \
+              | xargs -r -I{} gh cache delete --repo "$REPO" {}
+          done
+          echo "Done"
