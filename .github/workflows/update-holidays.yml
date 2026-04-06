@@ -18,7 +18,7 @@ jobs:
 
       - name: Fetch UK bank holidays
         run: |
-          curl -fsSL "https://www.gov.uk/bank-holidays.json" \
+          curl -fsSL --max-time 30 "https://www.gov.uk/bank-holidays.json" \
             | python3 -m json.tool --no-ensure-ascii \
             > public/bank-holidays-uk.json
 
@@ -39,7 +39,7 @@ jobs:
 
           for year in years:
             url = f"https://date.nager.at/api/v3/PublicHolidays/{year}/US"
-            with urllib.request.urlopen(url) as resp:
+            with urllib.request.urlopen(url, timeout=30) as resp:
               data[str(year)] = json.loads(resp.read())
 
           with open("public/bank-holidays-us.json", "w") as f:
