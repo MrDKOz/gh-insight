@@ -1,10 +1,9 @@
 # GH Insight
 
 [![CI](https://github.com/MrDKOz/gh-insight/actions/workflows/ci.yml/badge.svg)](https://github.com/MrDKOz/gh-insight/actions/workflows/ci.yml)
-[![Latest release](https://img.shields.io/github/v/release/MrDKOz/gh-insight)](https://github.com/MrDKOz/gh-insight/releases/latest)
-[![macOS (arm64)](https://img.shields.io/badge/macOS_(arm64)-.dmg-black?logo=apple)](https://github.com/MrDKOz/gh-insight/releases/latest)
-[![Windows](https://img.shields.io/badge/Windows-.exe-0078d4?logo=windows)](https://github.com/MrDKOz/gh-insight/releases/latest)
-[![Linux](https://img.shields.io/badge/Linux-.AppImage-e95420?logo=linux&logoColor=white)](https://github.com/MrDKOz/gh-insight/releases/latest)
+[![macOS (arm64)](https://img.shields.io/github/v/release/MrDKOz/gh-insight?label=macOS+%28arm64%29&logo=apple&color=black)](https://github.com/MrDKOz/gh-insight/releases/latest)
+[![Windows](https://img.shields.io/github/v/release/MrDKOz/gh-insight?label=Windows&logo=windows&color=0078d4)](https://github.com/MrDKOz/gh-insight/releases/latest)
+[![Linux](https://img.shields.io/github/v/release/MrDKOz/gh-insight?label=Linux&logo=linux&logoColor=white&color=e95420)](https://github.com/MrDKOz/gh-insight/releases/latest)
 
 **Live:** [dkoz.me/gh-insight](https://dkoz.me/gh-insight/)
 
