@@ -9,7 +9,32 @@ permissions:
   contents: read
 
 jobs:
+  filter:
+    runs-on: ubuntu-latest
+    outputs:
+      run-tests: ${{ steps.paths.outputs.run-tests }}
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Check for non-CI changes
+        id: paths
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Always run on push to main
+          if [[ "$GITHUB_EVENT_NAME" != "pull_request" ]]; then
+            echo "run-tests=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # On PRs: skip if only .github/ files changed
+          CHANGED=$(gh api "repos/${{ github.repository }}/pulls/${{ github.event.number }}/files" \
+            --paginate --jq '[.[] | .filename] | map(select(test("^\\.github/")|not)) | length')
+          echo "run-tests=$([ "$CHANGED" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
   check:
+    needs: filter
+    if: needs.filter.outputs.run-tests == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -39,7 +64,8 @@ jobs:
         run: npm audit --audit-level=moderate
 
   e2e:
-    needs: check
+    needs: [filter, check]
+    if: needs.filter.outputs.run-tests == 'true'
     runs-on: ubuntu-latest
 
     steps:
