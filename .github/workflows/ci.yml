@@ -29,7 +29,7 @@ jobs:
           fi
           # On PRs: skip if only .github/ or root-level docs changed
           CHANGED=$(gh api "repos/${{ github.repository }}/pulls/${{ github.event.number }}/files" \
-            --paginate --jq '[.[] | .filename] | map(select(test("^\\.github/") or test("^[^/]+\\.md$"))|not) | length')
+            --paginate --jq '[.[] | .filename] | map(select((test("^\\.github/") or test("^[^/]+\\.md$")) | not)) | length')
           if (( CHANGED > 0 )); then
             echo "run-tests=true" >> "$GITHUB_OUTPUT"
           else
