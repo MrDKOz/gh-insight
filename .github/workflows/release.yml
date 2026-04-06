@@ -118,12 +118,26 @@ jobs:
           ELECTRON: "true"
         run: npx vite build
 
-      - name: Package and publish
+      - name: Package
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Suppress macOS code-signing when no certificate is configured.
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
-          # electron-builder skips publishing when it detects GITHUB_EVENT_NAME=pull_request.
-          # This workflow only runs on merged PRs into a protected branch so it is safe to override.
-          PUBLISH_FOR_PULL_REQUEST: "true"
-        run: npx electron-builder --publish always
+        run: npx electron-builder --publish never
+
+      - name: Upload release asset (macOS)
+        if: matrix.os == 'macos-latest'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ needs.prepare.outputs.tag }}" dist-app/*.dmg
+
+      - name: Upload release asset (Windows)
+        if: matrix.os == 'windows-latest'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ needs.prepare.outputs.tag }}" dist-app/*.exe
+
+      - name: Upload release asset (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ needs.prepare.outputs.tag }}" dist-app/*.AppImage
