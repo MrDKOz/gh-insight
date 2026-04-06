@@ -1,5 +1,7 @@
 # CLAUDE.md — GH Insight
 
+> **This file is the source of truth for how this project works.** Keep it accurate. Any time a workflow, convention, tool, or process changes, update this file in the same PR. An outdated CLAUDE.md is worse than none.
+
 ## Project overview
 
 React 19 + TypeScript + Vite single-page app that fetches GitHub milestone data via the GitHub GraphQL API and renders it as a Gantt chart with supporting analytics views. Styled with MUI v7 using a custom light/dark theme.
@@ -33,6 +35,10 @@ Copilot is enabled on this repo and will post automated review comments on PRs. 
 - **Dismiss it** when the suggestion conflicts with a deliberate project convention (palette system, hover card patterns, export implementation choices, etc.) or would add speculative complexity. Close the comment with a brief explanation of why it doesn't apply.
 - **My judgement is final.** Never apply a Copilot suggestion solely because it was raised — evaluate it against the project's own guidelines first.
 
+When responding to a Copilot review comment, always:
+1. Reply **inline** on the specific comment thread using `gh api repos/OWNER/REPO/pulls/comments/COMMENT_ID/replies -X POST -f body="..."` — not as a general PR comment.
+2. **Resolve the thread** immediately after replying using `gh api graphql -f query='mutation { resolveReviewThread(input: {threadId: "THREAD_ID"}) { thread { isResolved } } }'`.
+
 When posting any GitHub comment (replies to Copilot, PR comments, etc.), always sign off with:
 
 > *— 🤖 Claude Code*
@@ -41,19 +47,48 @@ When posting any GitHub comment (replies to Copilot, PR comments, etc.), always 
 
 ## GitHub Actions
 
-Four workflows live in `.github/workflows/`:
+Seven workflows live in `.github/workflows/`. All actions are pinned to commit SHAs and kept up to date by Dependabot (weekly, Monday 09:00 Europe/London).
 
 ### `ci.yml` — CI
-Runs on every push and pull request. Installs dependencies, runs `npm run lint`, `npx tsc --noEmit`, and `npm test`. All three must pass before a PR can be merged.
+Runs on every push to `main` and every pull request. A `filter` job checks whether the PR touches any files outside `.github/` — if not, `check` and `e2e` are skipped (GitHub treats `if:`-skipped required checks as passing). On push to `main` the full suite always runs.
+
+- `check`: lint, type-check (renderer + electron), unit tests, `npm audit`
+- `e2e`: Playwright tests (needs `check`)
+- `cleanup-main-caches`: prunes stale main-branch caches after CI (needs `check` + `e2e`, push to main only)
 
 ### `deploy.yml` — Deploy to GitHub Pages
-Runs on every push to `main` (and can be triggered manually). Builds the app with `npm run build` and deploys `./dist` to the `gh-pages` branch via `peaceiris/actions-gh-pages`. Uses `keep_files: true` so PR preview subdirectories (`pr-N/`) are preserved alongside the main site. Deployments are serialised (no cancel-in-progress) to avoid leaving the site in a broken state.
+Triggers via `workflow_run` after CI passes on `main` (and can be triggered manually). Builds with `npm run build`, checks out the `gh-pages` branch into `_site/`, then rsyncs `dist/` into it — excluding `.git/` and `pr-*/` so repo metadata and active PR previews are preserved. Pushes with a 3-attempt rebase+retry loop. Serialised via concurrency group `pages` (`cancel-in-progress: false`) to prevent partial deploys.
 
 ### `preview.yml` — PR Preview
-Runs on PR open, sync, reopen, and close events. On open/sync/reopen it builds the app with `DEPLOY_BASE=/gh-insight/pr-{N}/` and deploys to `pr-{N}/` on the `gh-pages` branch, then posts (or updates) a comment on the PR with the preview URL (`https://dkoz.me/gh-insight/pr-{N}/`). On close it removes the preview directory from `gh-pages`. Concurrent builds for the same PR are cancelled in favour of the latest.
+Runs on PR open, sync, reopen, and close. On open/sync/reopen: builds with `DEPLOY_BASE=/gh-insight/pr-{N}/`, deploys to `pr-{N}/` on `gh-pages`, creates a GitHub deployment, and polls the preview URL for up to 4 minutes before marking it success/failure. On close: marks deployments inactive, deletes them and the environment, removes the `pr-{N}/` directory from `gh-pages`. All three git push operations use rebase+retry loops. Concurrent builds for the same PR are cancelled in favour of the latest.
 
 ### `release.yml` — Release
-Runs when a PR labelled `release:patch`, `release:minor`, or `release:major` is merged into `main`. Reads the version from `package.json`, creates and pushes a git tag, then creates a draft GitHub release. A matrix build job then runs in parallel on macOS, Windows, and Linux: it type-checks the Electron main process, builds the renderer in Electron mode, and uploads the packaged binaries to the draft release via `electron-builder --publish always`. The release is left as a draft so assets can be reviewed before publishing.
+Runs when a PR labelled `release:patch`, `release:minor`, or `release:major` is merged into `main`. The `prepare` job reads the version from `package.json` via `jq`, tags the commit, and creates a draft GitHub release. A matrix `build` job then runs in parallel on macOS, Windows, and Linux: type-checks the Electron main process, builds the renderer in Electron mode, packages with `electron-builder --publish never`, and uploads the binaries to the draft release. The release is left as a draft so assets can be reviewed before publishing.
+
+### `electron.yml` — Electron CI
+Runs on PRs that touch `electron/**`, the electron tsconfig, or related build config. Builds in Electron mode and runs `e2e/electron.spec.ts` via Playwright with `xvfb-run`.
+
+### `cache-cleanup.yml` — Cache Cleanup
+Runs on PR close. Deletes all Actions caches scoped to that PR's merge ref so stale caches don't accumulate.
+
+### `update-holidays.yml` — Update Holiday Data
+Runs annually on 1 Jan at 06:00 UTC (and can be triggered manually). Fetches UK bank holidays from gov.uk and US public holidays from nager.at for the current year + 2 ahead, then opens a PR with the updated JSON files. Both fetches have a 30-second timeout.
+
+---
+
+### Dependabot
+
+Dependabot runs weekly (Monday 09:00 Europe/London) for both **GitHub Actions** and **npm** dependencies. When multiple Dependabot PRs are open, process them **one at a time**: wait for the first to go CLEAN, merge it, then trigger `@dependabot rebase` on the next one. Merging all in parallel causes every remaining PR to be rebased multiple times as others land ahead of it.
+
+---
+
+## Release checklist
+
+When preparing a **major or minor** release (e.g. 2.3.0, 3.0.0), update `SECURITY.md` before merging the release PR:
+
+- Update the supported versions table so the new `X.Y.x` row is marked **Yes** and the previous minor is marked **No**
+
+Patch releases (e.g. 2.2.4) do not require a `SECURITY.md` update — only the latest minor is listed.
 
 ---
 
@@ -239,8 +274,8 @@ These upgrades are currently blocked by the plugin ecosystem — do not attempt 
 
 | Package | Current | Blocked by |
 |---|---|---|
-| TypeScript | 5.x | `@typescript-eslint` requires `<6.0.0` |
-| ESLint | 9.x | `eslint-plugin-import` peer range stops at `^9` |
+| TypeScript | 5.9.x | TS 6 treats `moduleResolution: node10` as an error — `tsconfig.electron.json` needs migrating first |
+| ESLint | 9.x | `eslint-plugin-import` peer range stops at `^9` — no ESLint 10 support yet |
 
 ---
 
