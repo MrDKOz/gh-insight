@@ -30,7 +30,11 @@ jobs:
           # On PRs: skip if only .github/ files changed
           CHANGED=$(gh api "repos/${{ github.repository }}/pulls/${{ github.event.number }}/files" \
             --paginate --jq '[.[] | .filename] | map(select(test("^\\.github/")|not)) | length')
-          echo "run-tests=$([ "$CHANGED" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          if (( CHANGED > 0 )); then
+            echo "run-tests=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run-tests=false" >> "$GITHUB_OUTPUT"
+          fi
 
   check:
     needs: filter
