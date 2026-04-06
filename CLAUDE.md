@@ -14,7 +14,7 @@ React 19 + TypeScript + Vite SPA. Fetches GitHub milestone data via the GraphQL 
 | `npm run lint:fix` | Auto-fix import order etc. |
 | `npm run build` | Production build |
 
-**Before committing:** run `npm run lint`, `npx tsc --noEmit`, `npm test`. Fix lint errors first, then `lint:fix` for auto-fixables, then re-run to confirm clean. Avoid `React.X` UMD global references (import named types directly) and throw-inside-catch patterns (use guard clauses instead).
+**Before committing:** run `npm run lint`, `npx tsc --noEmit`, `npx tsc -p tsconfig.electron.json --noEmit`, and `npm test`. Fix lint errors first, then `lint:fix` for auto-fixables, then re-run to confirm clean. Avoid `React.X` UMD global references (import named types directly) and throw-inside-catch patterns (use guard clauses instead).
 
 ---
 
