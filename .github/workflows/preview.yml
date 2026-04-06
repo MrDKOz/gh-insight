@@ -60,8 +60,8 @@ jobs:
 
       - name: Deploy preview
         run: |
-          git config -C _site user.name "github-actions[bot]"
-          git config -C _site user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C _site config user.name "github-actions[bot]"
+          git -C _site config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           mkdir -p "_site/pr-${{ github.event.number }}"
           rsync -a --delete dist/ "_site/pr-${{ github.event.number }}/"
           cd _site
