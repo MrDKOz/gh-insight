@@ -55,7 +55,7 @@ Runs on push to `main` and all PRs. A `filter` job skips `check`/`e2e` when only
 Triggers via `workflow_run` after CI passes on `main` (or manually). Builds, checks out `gh-pages` into `_site/`, rsyncs `dist/` excluding `.git/` and `pr-*/`. Pushes with a 3-attempt rebase+retry loop. Concurrency group `pages` with `cancel-in-progress: false` prevents partial deploys.
 
 ### `preview.yml` — PR Preview
-Runs on PR open/sync/reopen/close. On open/sync/reopen: builds with `DEPLOY_BASE=/gh-insight/pr-{N}/`, deploys to `pr-{N}/` on `gh-pages`, creates a GitHub deployment, polls the preview URL for up to 4 minutes. On close: marks deployments inactive, deletes them and the environment, removes `pr-{N}/` from `gh-pages`. All git pushes use rebase+retry loops. Concurrent builds for the same PR cancel in favour of the latest.
+Runs on PR open/sync/reopen/close. On open/sync/reopen: builds with `DEPLOY_BASE=/gh-insight/pr-{N}/`, deploys to `pr-{N}/` on `gh-pages`, creates a GitHub deployment, polls the preview URL for up to 4 minutes. On close: marks deployments inactive, deletes them and the environment, removes `pr-{N}/` from `gh-pages`. Both git push operations use rebase+retry loops. Concurrent builds for the same PR cancel in favour of the latest.
 
 ### `release.yml` — Release
 Runs when a PR labelled `release:patch/minor/major` is merged to `main`. `prepare` reads version via `jq`, tags and creates a draft release. `build` runs in parallel on macOS/Windows/Linux: type-checks electron, builds renderer in electron mode, packages with `electron-builder --publish never`, uploads binaries to the draft. Release stays draft until manually published.
@@ -276,5 +276,5 @@ Always import from `"write-excel-file/browser"` — v3 removed the root export. 
 
 | Package | Current | Blocker |
 |---|---|---|
-| TypeScript | 5.9.x | TS 6 errors on `moduleResolution: node10` in `tsconfig.electron.json` — needs migration first |
+| TypeScript | 5.9.x | TS 6 errors on `moduleResolution: node` in `tsconfig.electron.json` (`node` maps to `node10` internally) — needs migration to `bundler` or `node16` first |
 | ESLint | 9.x | `eslint-plugin-import` peer range stops at `^9` — no ESLint 10 support yet |
