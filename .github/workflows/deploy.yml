@@ -44,8 +44,8 @@ jobs:
 
       - name: Deploy to GitHub Pages
         run: |
-          git config -C _site user.name "github-actions[bot]"
-          git config -C _site user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C _site config user.name "github-actions[bot]"
+          git -C _site config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # Sync main site; exclude .git/ and pr-*/ so repo metadata and active
           # PR previews are preserved.
           rsync -a --delete --exclude='.git/' --exclude='pr-*/' dist/ _site/
