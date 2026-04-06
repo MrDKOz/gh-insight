@@ -153,5 +153,13 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git rm -rf pr-${{ github.event.number }} 2>/dev/null || true
-          git diff --staged --quiet || git commit -m "chore: remove preview for PR ${{ github.event.number }}"
-          git push
+          if ! git diff --staged --quiet; then
+            git commit -m "chore: remove preview for PR ${{ github.event.number }}"
+            for attempt in 1 2 3; do
+              git pull --rebase origin gh-pages
+              if git push; then break; fi
+              if [ "$attempt" -eq 3 ]; then echo "Failed to push after 3 attempts" && exit 1; fi
+              echo "Push raced with another gh-pages writer; retrying ($attempt/3)..."
+              sleep $((attempt * 2))
+            done
+          fi
