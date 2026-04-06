@@ -36,7 +36,7 @@ Reporters who responsibly disclose a genuine vulnerability will be credited in t
 
 ## Scope
 
-This project handles GitHub Personal Access Tokens (PATs) entered by the user. These are encrypted at rest using SubtleCrypto + IndexedDB (`src/utils/tokenCrypto.ts`) and are never transmitted anywhere other than the GitHub GraphQL API.
+This project handles GitHub Personal Access Tokens (PATs) entered by the user. These are encrypted at rest using SubtleCrypto (`src/utils/tokenCrypto.ts`) — the AES-GCM key is stored in IndexedDB and the encrypted payload is persisted in `localStorage`. Tokens are only ever transmitted to GitHub's APIs (REST and GraphQL at `api.github.com`).
 
 Areas of particular interest:
 
