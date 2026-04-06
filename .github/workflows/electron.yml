@@ -11,6 +11,9 @@ on:
       - "tsconfig.electron.json"
       - "vite.config.ts"
 
+permissions:
+  contents: read
+
 jobs:
   electron-build:
     runs-on: ubuntu-latest
