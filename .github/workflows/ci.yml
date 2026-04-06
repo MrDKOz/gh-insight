@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: read
-  actions: write
 
 jobs:
   check:
@@ -84,6 +83,8 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [check, e2e]
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
     steps:
       - name: Prune stale main branch caches
         env:
