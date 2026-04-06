@@ -118,7 +118,7 @@ const exportCSV = (items: TimelineItem[], title: string, milestones: MilestoneMe
 
 const exportMarkdown = (items: TimelineItem[], title: string, milestones: MilestoneMeta[] = []): void => {
   const rows = buildRows(items, milestones);
-  const pipe = (s: string) => s.replace(/\|/g, "\\|");
+  const pipe = (s: string) => s.replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
   const lines = [
     `# ${title}`,
     "",
@@ -643,7 +643,7 @@ const exportReviewWaitCSV = (items: TimelineItem[], title: string, milestones: M
 
 const exportReviewWaitMarkdown = (items: TimelineItem[], title: string, milestones: MilestoneMeta[] = []): void => {
   const rows = buildReviewWaitRows(items, milestones);
-  const pipe = (s: string) => s.replace(/\|/g, "\\|");
+  const pipe = (s: string) => s.replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
   const lines = [
     `# ${title} — Review Wait`,
     "",
