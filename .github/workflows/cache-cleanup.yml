@@ -3,22 +3,42 @@ name: Cache cleanup
 on:
   pull_request:
     types: [closed]
+  push:
+    branches: [main]
 
 permissions:
   actions: write
 
 jobs:
-  cleanup:
+  cleanup-pr:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Delete branch caches
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          BRANCH="${{ github.event.pull_request.head.ref }}"
           REPO="${{ github.repository }}"
-          echo "Deleting caches for branch: $BRANCH"
+          echo "Deleting caches for PR #${{ github.event.pull_request.number }}"
           gh cache list --repo "$REPO" --ref "refs/pull/${{ github.event.pull_request.number }}/merge" --limit 100 \
             | awk '{print $1}' \
             | xargs -r -I{} gh cache delete --repo "$REPO" {}
+          echo "Done"
+
+  cleanup-main:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete stale main branch caches
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPO="${{ github.repository }}"
+          echo "Pruning stale caches on main..."
+          for PATTERN in "node-cache-Linux" "node-cache-macOS" "node-cache-Windows" "Linux-playwright" "codeql-overlay-base-database"; do
+            gh cache list --repo "$REPO" --ref "refs/heads/main" --limit 100 --json id,key,createdAt \
+              | jq -r --arg p "$PATTERN" \
+                  '[.[] | select(.key | startswith($p))] | sort_by(.createdAt) | reverse | .[1:][].id' \
+              | xargs -r -I{} gh cache delete --repo "$REPO" {}
+          done
           echo "Done"
