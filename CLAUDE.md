@@ -147,6 +147,10 @@ Derive state from other state with `useMemo`, not `useEffect`.
 
 ## Security
 
+### security.txt
+
+`public/.well-known/security.txt` (RFC 9116) is served at `https://dkoz.me/gh-insight/.well-known/security.txt`. Contact is `mailto:hello@dkoz.me`. The `Expires:` field must be updated annually — current expiry is **2027-04-07**.
+
 ### Content Security Policy
 
 CSP lives in `index.html`. `stripDevCspPlugin` in `vite.config.ts` strips dev-only directives at build time.

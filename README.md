@@ -70,7 +70,7 @@ A separate **Electron CI** workflow runs on PRs that touch Electron-related path
 
 ### Web deployment and PR previews
 
-After CI passes on `main`, the site is deployed to GitHub Pages. Opening or updating a PR triggers a preview build at `/gh-insight/pr-{N}/`; a bot comments the URL on the PR and the preview is removed when the PR closes.
+After CI passes on `main`, the site is deployed to GitHub Pages. Opening or updating a PR triggers a preview build at `/gh-insight/pr-{N}/`; a GitHub deployment is created with the preview URL visible in the PR's deployments panel. The preview and its deployment are removed when the PR closes.
 
 ### Releasing (Electron builds)
 
@@ -82,9 +82,9 @@ Run `npm version patch|minor|major` locally, commit the bump as part of your PR,
 src/
   api/          GitHub REST + GraphQL fetch logic
   charts/       SVG chart components (Burndown, CycleTime, Velocity, CumulativeFlow, Contributors)
-  components/   UI components (Timeline, GanttView, FilterBar, StatsBar, ItemList, …)
+  components/   UI components (GanttView, MilestoneView, FilterBar, StatsBar, ItemList, …)
   data/         Demo data
-  hooks/        Shared React hooks (useSettings)
+  hooks/        Shared React hooks (useGanttLayout, useSettings, …)
   state/        Milestone reducer
   utils/        Shared utilities, token encryption, export functions
   types/        Shared TypeScript types (GitHubTypes, AppTypes, SettingsTypes, FilterTypes)
