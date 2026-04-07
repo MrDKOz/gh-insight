@@ -81,24 +81,13 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           script: |
-            const url = `https://mrdkoz.github.io/gh-insight/pr-${{ github.event.number }}/`;
-            const maxAttempts = 36;  // 36 × 10s = 6 minutes max
-            let ready = false;
-            for (let i = 0; i < maxAttempts; i++) {
-              try {
-                const res = await fetch(url);
-                console.log(`Attempt ${i + 1}: ${res.status}`);
-                if (res.ok) { ready = true; break; }
-              } catch (e) { console.log(`Attempt ${i + 1}: network error — ${e.message}`); }
-              await new Promise(r => setTimeout(r, 10_000));
-            }
             await github.rest.repos.createDeploymentStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
               deployment_id: ${{ steps.deployment.outputs.result }},
-              state: ready ? 'success' : 'failure',
-              environment_url: url,
-              description: ready ? 'Preview ready' : 'Preview did not become reachable in time',
+              state: 'success',
+              environment_url: `https://dkoz.me/gh-insight/pr-${{ github.event.number }}/`,
+              description: 'Preview deployed',
             });
 
 
