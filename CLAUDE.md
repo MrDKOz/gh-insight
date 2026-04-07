@@ -22,7 +22,7 @@ React 19 + TypeScript + Vite SPA. Fetches GitHub milestone data via the GraphQL 
 
 - **Never push directly to `main`** — all changes via PR.
 - **Always sync `main` before branching:** `git checkout main && git pull`
-- **Use `gh` CLI** for all GitHub operations (PRs, CI status, releases, etc.).
+- **Prefer the GitHub MCP server** for all GitHub operations (PRs, CI status, comments, reviews, etc.) — use `gh` CLI only when the MCP server lacks a tool for the operation (e.g. resolving review threads via GraphQL mutation).
 
 ### Copilot code review
 
