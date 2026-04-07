@@ -82,7 +82,7 @@ jobs:
         with:
           script: |
             const url = `https://dkoz.me/gh-insight/pr-${{ github.event.number }}/`;
-            const maxAttempts = 24;  // 24 × 10s = 4 minutes max
+            const maxAttempts = 36;  // 36 × 10s = 6 minutes max
             let ready = false;
             for (let i = 0; i < maxAttempts; i++) {
               try {
