@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
-import { act, fireEvent, render } from "@testing-library/react";
+import { fireEvent, render } from "@testing-library/react";
 import { ItemPicker } from "../ItemPicker";
 
 const theme = createTheme();
@@ -130,17 +130,14 @@ describe("ItemPicker — dropdown", () => {
     expect(getByText("Load more")).toBeInTheDocument();
   });
 
-  it("calls onLoadMore when the load-more button is clicked", async () => {
+  it("calls onLoadMore when the load-more button is clicked", () => {
     const onLoadMore = vi.fn();
     const { getByRole, getByText } = wrap(
       <ItemPicker {...defaultProps} hasMore onLoadMore={onLoadMore} />,
     );
 
     fireEvent.focus(getByRole("combobox"));
-    await act(async () => {
-      fireEvent.mouseDown(getByText("Load more"));
-      await Promise.resolve();
-    });
+    fireEvent.click(getByText("Load more"));
 
     expect(onLoadMore).toHaveBeenCalledTimes(1);
   });

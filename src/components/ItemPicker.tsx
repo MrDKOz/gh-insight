@@ -58,9 +58,11 @@ const ItemPickerPaper = ({ children, ...rest }: PaperProps) => {
       {(hasMore || loadingMore) && (
         <Box sx={{ borderTop: 1, borderColor: "divider" }}>
           <ListItemButton
+            component="button"
             disabled={loadingMore}
-            onMouseDown={(e) => { e.preventDefault(); if (!loadingMore) { onLoadMore(); } }}
-            sx={{ gap: 1, fontSize: "0.8125rem" }}
+            onMouseDown={(e) => { e.preventDefault(); }}
+            onClick={onLoadMore}
+            sx={{ gap: 1, fontSize: "0.8125rem", width: "100%" }}
           >
             {loadingMore && <CircularProgress size={12} color="inherit" />}
             {loadingMore ? loadingMoreLabel : loadMoreLabel}
