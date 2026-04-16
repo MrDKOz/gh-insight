@@ -4,7 +4,7 @@ import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
-import MenuItem from "@mui/material/MenuItem";
+import ListItemButton from "@mui/material/ListItemButton";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
@@ -57,14 +57,14 @@ const ItemPickerPaper = ({ children, ...rest }: PaperProps) => {
       {children}
       {(hasMore || loadingMore) && (
         <Box sx={{ borderTop: 1, borderColor: "divider" }}>
-          <MenuItem
+          <ListItemButton
             disabled={loadingMore}
             onMouseDown={(e) => { e.preventDefault(); if (!loadingMore) { onLoadMore(); } }}
             sx={{ gap: 1, fontSize: "0.8125rem" }}
           >
             {loadingMore && <CircularProgress size={12} color="inherit" />}
             {loadingMore ? loadingMoreLabel : loadMoreLabel}
-          </MenuItem>
+          </ListItemButton>
         </Box>
       )}
     </Paper>
