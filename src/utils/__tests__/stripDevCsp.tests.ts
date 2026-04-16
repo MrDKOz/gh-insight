@@ -53,11 +53,25 @@ describe("stripDevCsp — connect-src", () => {
 
     expect(connectSrc).toContain("https://api.github.com");
   });
+
+  it("removes a standalone wss:// entry even without a preceding ws:// entry", () => {
+    const wssOnly = devHtml.replace("ws://localhost:* wss://localhost:*", "wss://localhost:*");
+    const wssResult = stripDevCsp(wssOnly);
+
+    expect(wssResult).not.toContain("wss://localhost");
+  });
 });
 
 describe("stripDevCsp — Cloudflare Rocket Loader mitigation", () => {
   it("adds data-cfasync=\"false\" to type=\"module\" script tags", () => {
     expect(result).toContain('type="module" crossorigin src="/assets/index-abc123.js" data-cfasync="false"');
+  });
+
+  it("does not add a second data-cfasync if the attribute is already present", () => {
+    const alreadyPatched = result; // result already has data-cfasync="false"
+    const doubled = stripDevCsp(alreadyPatched);
+
+    expect(doubled).not.toContain('data-cfasync="false" data-cfasync="false"');
   });
 
   it("does not add data-cfasync to non-module script tags", () => {

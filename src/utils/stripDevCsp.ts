@@ -13,5 +13,6 @@ export const stripDevCsp = (html: string): string => html
     .replace(/'unsafe-eval'\s*/g, "")
     // Remove 'unsafe-inline' from script-src only — style-src keeps it for Emotion
     .replace(/(script-src\s[^;]*?)'unsafe-inline'\s*/g, "$1")
-    .replace(/\s*ws:\/\/localhost:[^;]*;?/g, ";")
-    .replace(/(<script\s[^>]*type="module"[^>]*)>/g, '$1 data-cfasync="false">');
+    .replace(/\s+wss?:\/\/localhost:[^\s;]+/g, "")
+    .replace(/\s+;/g, ";")
+    .replace(/(<script\b(?![^>]*\bdata-cfasync\b)[^>]*\btype="module"[^>]*)>/g, '$1 data-cfasync="false">');
