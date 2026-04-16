@@ -19,7 +19,12 @@ const stripDevCspPlugin: Plugin = {
       .replace(/'unsafe-eval'\s*/g, "")
       // Remove 'unsafe-inline' from script-src only — style-src keeps it for Emotion
       .replace(/(script-src\s[^;]*?)'unsafe-inline'\s*/g, "$1")
-      .replace(/\s*ws:\/\/localhost:[^;]*;?/g, ";");
+      .replace(/\s*ws:\/\/localhost:[^;]*;?/g, ";")
+      // Prevent Cloudflare Rocket Loader from deferring the app's module script.
+      // Rocket Loader changes type="module" to a non-standard type and relies on
+      // an inline script (blocked by our script-src 'self') to re-execute it,
+      // which breaks the app. data-cfasync="false" tells Rocket Loader to skip it.
+      .replace(/(<script\s[^>]*type="module"[^>]*)>/g, '$1 data-cfasync="false">');
   },
 };
 
