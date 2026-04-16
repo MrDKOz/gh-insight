@@ -1,4 +1,0 @@
-Contact: mailto:hello@dkoz.me
-Expires: 2027-04-07T00:00:00.000Z
-Canonical: https://dkoz.me/gh-insight/.well-known/security.txt
-Preferred-Languages: en
