@@ -192,14 +192,14 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
       <Divider orientation="vertical" flexItem />
 
       {/* ── Type toggles ───────────────────────────────────────────────── */}
-      <Stack direction="row" alignItems="center" gap={0.75} flexWrap="wrap">
+      <Stack direction="row" sx={{ alignItems: "center", gap: 0.75, flexWrap: "wrap" }}>
         {toggles.map(({ key, label, count, color }) => (
           <Chip
             key={key}
             role="button"
             aria-pressed={Boolean(filters[key])}
             label={
-              <Stack component="span" direction="row" alignItems="center" gap={0.5}>
+              <Stack component="span" direction="row" sx={{ alignItems: "center", gap: 0.5 }}>
                 {label}
                 <Box component="span" sx={{ fontSize: FS.xs, opacity: 0.7 }}>{count}</Box>
               </Stack>

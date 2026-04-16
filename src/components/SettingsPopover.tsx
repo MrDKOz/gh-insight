@@ -54,9 +54,9 @@ const SettingsPopover: FunctionComponent<Props> = ({
       aria-labelledby="settings-popover-title"
     >
       <Box sx={{ p: 2, minWidth: 220 }}>
-        <Typography id="settings-popover-title" variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Settings</Typography>
+        <Typography id="settings-popover-title" variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Settings</Typography>
         <Divider sx={{ mb: 1.5 }} />
-        <Stack direction="column" gap={0.5}>
+        <Stack direction="column" sx={{ gap: 0.5 }}>
           <FormControlLabel
             control={<Switch size="small" checked={dark} onChange={onToggleDark} />}
             label={<Typography variant="body2">Dark mode</Typography>}
@@ -106,8 +106,8 @@ const SettingsPopover: FunctionComponent<Props> = ({
         {!splashMode && (
           <>
             <Divider sx={{ my: 1.5 }} />
-            <Typography variant="caption" fontWeight={700} color="text.secondary"
-              sx={{ textTransform: "uppercase", letterSpacing: "0.06em", display: "block", mb: 1 }}>
+            <Typography variant="caption" color="text.secondary"
+              sx={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", display: "block", mb: 1 }}>
               Config
             </Typography>
             <ButtonGroup size="small" variant="outlined" fullWidth>

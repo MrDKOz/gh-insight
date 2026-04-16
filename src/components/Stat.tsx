@@ -16,17 +16,15 @@ const Stat: FunctionComponent<StatProps> = ({ value, label, title, lightColor, d
     <Box sx={{ textAlign: "center" }}>
       <Typography
         variant="h6"
-        fontWeight={700}
-        lineHeight={1}
         sx={
           lightColor
-            ? (theme) => ({ color: theme.palette.mode === "dark" ? (darkColor ?? lightColor) : lightColor })
-            : undefined
+            ? (theme) => ({ fontWeight: 700, lineHeight: 1, color: theme.palette.mode === "dark" ? (darkColor ?? lightColor) : lightColor })
+            : { fontWeight: 700, lineHeight: 1 }
         }
       >
         {value}
       </Typography>
-      <Typography variant="caption" color="text.secondary" display="block" sx={{ whiteSpace: "nowrap", mt: 0.25 }}>
+      <Typography variant="caption" color="text.secondary" sx={{ display: "block", whiteSpace: "nowrap", mt: 0.25 }}>
         {label}
       </Typography>
     </Box>

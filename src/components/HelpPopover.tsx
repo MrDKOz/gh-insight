@@ -101,15 +101,15 @@ const HelpPopover: FunctionComponent = () => {
         </DialogTitle>
 
         <DialogContent sx={{ pt: 2 }}>
-          <Stack gap={2}>
+          <Stack sx={{ gap: 2 }}>
             {SECTIONS.map((section, i) => (
               <Box key={section.heading}>
                 {i > 0 && <Divider sx={{ mb: 2 }} />}
-                <Typography variant="caption" fontWeight={700} color="text.secondary"
-                  sx={{ textTransform: "uppercase", letterSpacing: "0.06em", display: "block", mb: 1 }}>
+                <Typography variant="caption" color="text.secondary"
+                  sx={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", display: "block", mb: 1 }}>
                   {section.heading}
                 </Typography>
-                <Stack gap={1}>
+                <Stack sx={{ gap: 1 }}>
                   {section.points.map((point, j) =>
                     isTable(point) ? (
                       <Box key={j} sx={{ display: "grid", gridTemplateColumns: "max-content 1fr", gap: "2px 16px" }}>

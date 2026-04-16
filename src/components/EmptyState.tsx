@@ -12,7 +12,7 @@ type Props = {
 const EmptyState: FunctionComponent<Props> = ({ icon, title, message, actions }) => (
   <Box sx={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1 }}>
     <Box sx={{ color: "text.disabled" }}>{icon}</Box>
-    <Typography variant="body1" fontWeight={500} color="text.secondary">{title}</Typography>
+    <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 500 }}>{title}</Typography>
     <Typography variant="body2" color="text.disabled">{message}</Typography>
     {actions && <Box sx={{ mt: 1, display: "flex", gap: 1 }}>{actions}</Box>}
   </Box>

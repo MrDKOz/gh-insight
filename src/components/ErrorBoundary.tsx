@@ -24,7 +24,7 @@ class ErrorBoundary extends Component<Props, State> {
       return (
         <Box sx={{ maxWidth: 600, mx: "auto", mt: 8, px: 3, display: "flex", flexDirection: "column", gap: 2 }}>
           <Alert severity="error" variant="outlined">
-            <Typography fontWeight={700} sx={{ mb: 0.5 }}>Something went wrong</Typography>
+            <Typography sx={{ fontWeight: 700, mb: 0.5 }}>Something went wrong</Typography>
             <Typography variant="body2" sx={{ fontFamily: "monospace", wordBreak: "break-word" }}>
               {this.state.error.message}
             </Typography>

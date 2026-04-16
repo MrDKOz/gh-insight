@@ -103,10 +103,7 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
     <Box sx={{ borderBottom: 1, borderColor: "divider", pb: 0.25 }}>
       <Stack
         direction="row"
-        alignItems="center"
-        gap={2.5}
-        flexWrap="wrap"
-        sx={{ py: 0.75 }}
+        sx={{ alignItems: "center", gap: 2.5, flexWrap: "wrap", py: 0.75 }}
       >
         {reviewWait ? (
           <>
@@ -191,26 +188,25 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
               {milestoneComparison.map(({ milestone, openCount, closedMergedCount, avgCycle, stale, forecast }) => (
                 <TableRow key={milestone.number} sx={{ "&:last-child td": { border: 0 } }}>
                   <TableCell>
-                    <Stack direction="row" alignItems="center" gap={0.75}>
+                    <Stack direction="row" sx={{ alignItems: "center", gap: 0.75 }}>
                       <Box sx={{
                         width: 8, height: 8, flexShrink: 0, bgcolor: milestone.color,
                         borderRadius: milestone.kind === "epic" ? "1px" : "50%",
                         transform: milestone.kind === "epic" ? "rotate(45deg)" : "none",
                       }} />
-                      <Typography variant="caption" fontWeight={500} sx={{ lineHeight: 1.3 }}>{milestone.title}</Typography>
+                      <Typography variant="caption" sx={{ fontWeight: 500, lineHeight: 1.3 }}>{milestone.title}</Typography>
                     </Stack>
                   </TableCell>
                   <TableCell align="right">
                     <Typography
                       variant="caption"
-                      fontWeight={600}
-                      sx={(theme) => ({ color: openCount > 0 ? (theme.palette.mode === "dark" ? palette.warningDark : palette.warning) : "text.secondary" })}
+                      sx={(theme) => ({ fontWeight: 600, color: openCount > 0 ? (theme.palette.mode === "dark" ? palette.warningDark : palette.warning) : "text.secondary" })}
                     >
                       {openCount}
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
-                    <Typography variant="caption" fontWeight={600}>{closedMergedCount}</Typography>
+                    <Typography variant="caption" sx={{ fontWeight: 600 }}>{closedMergedCount}</Typography>
                   </TableCell>
                   <TableCell align="right">
                     <Typography variant="caption" color="text.secondary">{avgCycle !== null ? `${avgCycle}d` : "—"}</Typography>
@@ -220,8 +216,7 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
                       <Tooltip title={forecastTooltip(forecast)} placement="left" arrow>
                         <Typography
                           variant="caption"
-                          fontWeight={600}
-                          sx={(theme) => ({ color: theme.palette.mode === "dark" ? palette.successDark : palette.success, cursor: "help" })}
+                          sx={(theme) => ({ fontWeight: 600, color: theme.palette.mode === "dark" ? palette.successDark : palette.success, cursor: "help" })}
                         >
                           ~{fmtDate(forecast.projectedDate.toISOString())}
                         </Typography>
@@ -233,8 +228,7 @@ const StatsBar: FunctionComponent<Props> = ({ items, milestones, view, colorblin
                   <TableCell align="right">
                     <Typography
                       variant="caption"
-                      fontWeight={stale > 0 ? 600 : 400}
-                      sx={(theme) => ({ color: stale > 0 ? (theme.palette.mode === "dark" ? palette.warningDark : palette.warning) : "text.secondary" })}
+                      sx={(theme) => ({ fontWeight: stale > 0 ? 600 : 400, color: stale > 0 ? (theme.palette.mode === "dark" ? palette.warningDark : palette.warning) : "text.secondary" })}
                     >
                       {stale > 0 ? stale : "—"}
                     </Typography>
