@@ -5,26 +5,19 @@ import { fileURLToPath } from "url";
 import { writeFileSync } from "fs";
 import { resolve } from "path";
 import packageJson from "./package.json";
+import { stripDevCsp } from "./src/utils/stripDevCsp";
 
 const isElectronBuild = !!process.env["ELECTRON"];
 
 // Strips dev-only CSP directives from the built HTML so the production bundle
 // ships without 'unsafe-eval' (needed only by Vite HMR) or the local WS
-// connect-src (needed only by Vite dev server).
+// connect-src (needed only by Vite dev server). Also adds data-cfasync="false"
+// to module scripts to prevent Cloudflare Rocket Loader from breaking the app.
 const stripDevCspPlugin: Plugin = {
   name: "strip-dev-csp",
   transformIndexHtml(html, ctx) {
     if (ctx.server) { return html; } // dev — leave untouched
-    return html
-      .replace(/'unsafe-eval'\s*/g, "")
-      // Remove 'unsafe-inline' from script-src only — style-src keeps it for Emotion
-      .replace(/(script-src\s[^;]*?)'unsafe-inline'\s*/g, "$1")
-      .replace(/\s*ws:\/\/localhost:[^;]*;?/g, ";")
-      // Prevent Cloudflare Rocket Loader from deferring the app's module script.
-      // Rocket Loader changes type="module" to a non-standard type and relies on
-      // an inline script (blocked by our script-src 'self') to re-execute it,
-      // which breaks the app. data-cfasync="false" tells Rocket Loader to skip it.
-      .replace(/(<script\s[^>]*type="module"[^>]*)>/g, '$1 data-cfasync="false">');
+    return stripDevCsp(html);
   },
 };
 
