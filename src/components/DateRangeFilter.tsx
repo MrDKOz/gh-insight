@@ -88,11 +88,11 @@ const DateRangeFilter: FunctionComponent<DateRangeFilterProps> = ({
   onEndChange,
   onEndClear,
 }) => (
-  <Stack direction="row" alignItems="center" gap={0.75}>
-    <Typography variant="caption" fontWeight={600} color="text.secondary">
+  <Stack direction="row" sx={{ alignItems: "center", gap: 0.75 }}>
+    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
       {label}
     </Typography>
-    <Stack direction="row" alignItems="center" gap={0.5}>
+    <Stack direction="row" sx={{ alignItems: "center", gap: 0.5 }}>
       <DateField
         value={startValue}
         max={endValue || undefined}

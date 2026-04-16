@@ -80,11 +80,9 @@ const TrustItem: FunctionComponent<TrustItemProps> = ({ icon, label, tooltip, hr
   <Tooltip title={tooltip} placement="top" arrow>
     <Stack
       direction="row"
-      alignItems="center"
-      gap={0.5}
       component={href ? Link : "span"}
       {...(href ? { href, target: "_blank", rel: "noreferrer", underline: "none" } : {})}
-      sx={{ color: "text.disabled", cursor: href ? "pointer" : "default", "&:hover": href ? { color: "text.secondary" } : {} }}
+      sx={{ alignItems: "center", gap: 0.5, color: "text.disabled", cursor: href ? "pointer" : "default", "&:hover": href ? { color: "text.secondary" } : {} }}
     >
       {icon}
       <Typography variant="caption" color="inherit" sx={{ lineHeight: 1 }}>{label}</Typography>
@@ -148,7 +146,7 @@ const SplashScreen: FunctionComponent<Props> = ({
         ? "radial-gradient(ellipse at 50% 0%, rgba(9,105,218,0.12) 0%, transparent 65%)"
         : "radial-gradient(ellipse at 50% 0%, rgba(9,105,218,0.07) 0%, transparent 65%)",
     }}>
-      <Stack direction="row" gap={0.25} sx={{ position: "fixed", top: 8, right: 12 }}>
+      <Stack direction="row" sx={{ gap: 0.25, position: "fixed", top: 8, right: 12 }}>
         <HelpPopover />
         <IconButton size="small" onClick={onSettingsClick} aria-label="Settings">
           <GearIcon />
@@ -157,7 +155,7 @@ const SplashScreen: FunctionComponent<Props> = ({
       <Box sx={{ width: "100%", maxWidth: 420 }}>
 
         {/* Brand */}
-        <Stack alignItems="center" sx={{ mb: 4 }}>
+        <Stack sx={{ alignItems: "center", mb: 4 }}>
           <Box sx={{
             color: "primary.main",
             mb: 2,
@@ -167,7 +165,7 @@ const SplashScreen: FunctionComponent<Props> = ({
           }}>
             <GanttIcon />
           </Box>
-          <Typography variant="h5" fontWeight={800} sx={{ letterSpacing: "-0.03em", mb: 0.5 }}>
+          <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: "-0.03em", mb: 0.5 }}>
             GH Insight
           </Typography>
           <Typography variant="body2" color="text.secondary">
@@ -202,7 +200,7 @@ const SplashScreen: FunctionComponent<Props> = ({
                 >
                   {ghCliLoading ? "Connecting…" : "Sign in with GitHub CLI"}
                 </Button>
-                <Stack direction="row" alignItems="center" justifyContent="center" gap={1} sx={{ mt: 1.25 }}>
+                <Stack direction="row" sx={{ alignItems: "center", justifyContent: "center", gap: 1, mt: 1.25 }}>
                   <Chip
                     label={`GitHub CLI ${GH_CLI_STATUS_LABEL[ghCliStatus]}`}
                     size="small"
@@ -220,7 +218,7 @@ const SplashScreen: FunctionComponent<Props> = ({
             )}
 
             {/* PAT sign-in */}
-            <Stack gap={1.5}>
+            <Stack sx={{ gap: 1.5 }}>
               <TextField
                 type="password"
                 label="Personal Access Token"
@@ -275,10 +273,7 @@ const SplashScreen: FunctionComponent<Props> = ({
 
         <Stack
           direction="row"
-          justifyContent="center"
-          alignItems="center"
-          gap={2}
-          sx={{ mt: 2, flexWrap: "wrap" }}
+          sx={{ justifyContent: "center", alignItems: "center", gap: 2, mt: 2, flexWrap: "wrap" }}
         >
           <TrustItem
             icon={<LockIcon />}

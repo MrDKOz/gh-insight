@@ -51,7 +51,7 @@ const FetchingOverlay: FunctionComponent<Props> = ({ items }) => {
         <CircularProgress size={64} thickness={2.5} />
 
         <Box>
-          <Typography variant="h6" fontWeight={600}>{heading}</Typography>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>{heading}</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
             Fetching issues and pull requests from GitHub
           </Typography>
@@ -85,7 +85,7 @@ const FetchingOverlay: FunctionComponent<Props> = ({ items }) => {
                     : <CircularProgress size={14} thickness={4} />
                   }
                 </Box>
-                <Typography variant="body2" fontWeight={item.done ? 400 : 500} sx={{ textAlign: "left" }}>
+                <Typography variant="body2" sx={{ fontWeight: item.done ? 400 : 500, textAlign: "left" }}>
                   {item.name}
                 </Typography>
               </Box>

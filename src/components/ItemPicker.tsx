@@ -86,7 +86,7 @@ const ItemPicker = <T extends BaseItem,>({
 
   return (
     <FooterContext.Provider value={footerDataRef.current}>
-      <Stack direction="row" flexWrap="wrap" alignItems="center" gap={0.75}>
+      <Stack direction="row" sx={{ flexWrap: "wrap", alignItems: "center", gap: 0.75 }}>
         {selected.map((item) => (
           <Chip
             key={item.number}

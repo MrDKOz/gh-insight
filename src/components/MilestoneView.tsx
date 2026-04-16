@@ -92,7 +92,7 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
   if (items.length === 0) {
     return (
       <Paper sx={{ p: 3 }}>
-        <Typography variant="h6" fontWeight={700}>
+        <Typography variant="h6" sx={{ fontWeight: 700 }}>
           {title}
         </Typography>
         <Typography color="text.secondary" sx={{ mt: 1 }}>
@@ -105,7 +105,7 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
   const noFilteredItems = filteredItems.length === 0;
 
   const toolbar = (
-    <Stack direction="row" gap={1} alignItems="center" data-export-exclude>
+    <Stack direction="row" sx={{ gap: 1, alignItems: "center" }} data-export-exclude>
       <ViewOptionsMenu
         view={view}
         includePRs={includePRs}

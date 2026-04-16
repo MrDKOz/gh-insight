@@ -49,17 +49,17 @@ const AppHeader: FunctionComponent<Props> = ({ userProfile, onSettingsClick, onS
       }}
     >
       {/* Brand */}
-      <Stack direction="row" alignItems="center" gap={1.25}>
+      <Stack direction="row" sx={{ alignItems: "center", gap: 1.25 }}>
         <Box sx={{ color: "primary.main", display: "flex", alignItems: "center" }}>
           <BrandIcon />
         </Box>
-        <Typography variant="subtitle1" fontWeight={700} sx={{ letterSpacing: "-0.02em" }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 700, letterSpacing: "-0.02em" }}>
           GH Insight
         </Typography>
       </Stack>
 
       {/* Actions */}
-      <Stack direction="row" alignItems="center" gap={0.25}>
+      <Stack direction="row" sx={{ alignItems: "center", gap: 0.25 }}>
         <HelpPopover />
         <IconButton
           size="small"
@@ -72,7 +72,7 @@ const AppHeader: FunctionComponent<Props> = ({ userProfile, onSettingsClick, onS
 
         <Divider orientation="vertical" flexItem sx={{ mx: 1, my: 0.75 }} />
 
-        <Stack direction="row" alignItems="center" gap={0.75}>
+        <Stack direction="row" sx={{ alignItems: "center", gap: 0.75 }}>
           <Box
             component="img"
             src={`${userProfile.avatarUrl}?size=48`}
@@ -83,8 +83,7 @@ const AppHeader: FunctionComponent<Props> = ({ userProfile, onSettingsClick, onS
           />
           <Typography
             variant="body2"
-            fontWeight={500}
-            sx={{ maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+            sx={{ fontWeight: 500, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
           >
             {userProfile.name ?? userProfile.login}
           </Typography>

@@ -89,7 +89,7 @@ const ContextBar: FunctionComponent<Props> = memo(({
         <Chip
           variant="outlined"
           label={
-            <Stack direction="row" alignItems="center" gap={0.5}>
+            <Stack direction="row" sx={{ alignItems: "center", gap: 0.5 }}>
               {activeRepo.private && <LockIcon />}
               <Box component="span">{activeRepo.fullName}</Box>
             </Stack>
@@ -126,7 +126,7 @@ const ContextBar: FunctionComponent<Props> = memo(({
             return (
             <Box key={key} component="li" {...rest} sx={{ ...(rest as HTMLAttributes<HTMLLIElement>).style, width: "100%" }}>
               <Box sx={{ display: "flex", flexDirection: "column", minWidth: 0, width: "100%" }}>
-                <Stack direction="row" alignItems="center" gap={0.75}>
+                <Stack direction="row" sx={{ alignItems: "center", gap: 0.75 }}>
                   {option.private && <LockIcon />}
                   <Typography variant="body2" noWrap>{option.fullName}</Typography>
                 </Stack>
@@ -157,7 +157,7 @@ const ContextBar: FunctionComponent<Props> = memo(({
 
       {/* Milestone area */}
       {loadingList && (
-        <Stack direction="row" alignItems="center" gap={1} sx={{ flexShrink: 0 }}>
+        <Stack direction="row" sx={{ alignItems: "center", gap: 1, flexShrink: 0 }}>
           <CircularProgress size={14} />
           <Typography variant="caption" color="text.secondary">Loading milestones…</Typography>
         </Stack>
@@ -178,7 +178,7 @@ const ContextBar: FunctionComponent<Props> = memo(({
 
       {/* Epic area */}
       {loadingEpicList && (
-        <Stack direction="row" alignItems="center" gap={1} sx={{ flexShrink: 0 }}>
+        <Stack direction="row" sx={{ alignItems: "center", gap: 1, flexShrink: 0 }}>
           <CircularProgress size={14} />
           <Typography variant="caption" color="text.secondary">Loading epics…</Typography>
         </Stack>
