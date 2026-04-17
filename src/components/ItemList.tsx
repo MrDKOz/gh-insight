@@ -87,65 +87,68 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
 
   const sorted = useMemo(() => {
     const now = Date.now();
-    return [...items].sort((a, b) => {
+    // Parse each item's timestamps once up-front; comparators then work on numbers only.
+    const enriched = items.map((item) => {
+      const end       = itemEndDate(item);
+      const status    = itemStatus(item);
+      const createdMs = new Date(item.createdAt).getTime();
+      const updatedMs = new Date(item.updatedAt).getTime();
+      const endMs     = end ? new Date(end).getTime() : null;
+      return { item, end, status, createdMs, updatedMs, endMs };
+    });
+    return enriched.sort((a, b) => {
       let cmp = 0;
       switch (sortCol) {
         case "type":
-          cmp = a.type.localeCompare(b.type);
+          cmp = a.item.type.localeCompare(b.item.type);
           break;
         case "number":
-          cmp = a.number - b.number;
+          cmp = a.item.number - b.item.number;
           break;
         case "title":
-          cmp = a.title.localeCompare(b.title);
+          cmp = a.item.title.localeCompare(b.item.title);
           break;
         case "author":
-          cmp = a.author.localeCompare(b.author);
+          cmp = a.item.author.localeCompare(b.item.author);
           break;
         case "status":
-          cmp = itemStatus(a).localeCompare(itemStatus(b));
+          cmp = a.status.localeCompare(b.status);
           break;
         case "milestone":
-          cmp = (milestoneMap.get(a.milestoneNumber)?.title ?? "").localeCompare(
-            milestoneMap.get(b.milestoneNumber)?.title ?? "",
+          cmp = (milestoneMap.get(a.item.milestoneNumber)?.title ?? "").localeCompare(
+            milestoneMap.get(b.item.milestoneNumber)?.title ?? "",
           );
           break;
         case "changes": {
-          const ca = a.type === "pr" ? a.additions + a.deletions : 0;
-          const cb = b.type === "pr" ? b.additions + b.deletions : 0;
+          const ca = a.item.type === "pr" ? a.item.additions + a.item.deletions : 0;
+          const cb = b.item.type === "pr" ? b.item.additions + b.item.deletions : 0;
           cmp = ca - cb;
           break;
         }
         case "created":
-          cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          cmp = a.createdMs - b.createdMs;
           break;
         case "closed": {
-          const ea = itemEndDate(a),
-            eb = itemEndDate(b);
-          if (!ea && !eb) {cmp = 0;}
-          else if (!ea) {cmp = 1;}
-          else if (!eb) {cmp = -1;}
-          else {cmp = new Date(ea).getTime() - new Date(eb).getTime();}
+          if (a.endMs === null && b.endMs === null) {cmp = 0;}
+          else if (a.endMs === null) {cmp = 1;}
+          else if (b.endMs === null) {cmp = -1;}
+          else {cmp = a.endMs - b.endMs;}
           break;
         }
         case "days": {
-          const ea = itemEndDate(a),
-            eb = itemEndDate(b);
-          const da = ea ? (new Date(ea).getTime() - new Date(a.createdAt).getTime()) / MS_PER_DAY : now - new Date(a.createdAt).getTime();
-          const db = eb ? (new Date(eb).getTime() - new Date(b.createdAt).getTime()) / MS_PER_DAY : now - new Date(b.createdAt).getTime();
+          const da = a.endMs !== null ? (a.endMs - a.createdMs) / MS_PER_DAY : now - a.createdMs;
+          const db = b.endMs !== null ? (b.endMs - b.createdMs) / MS_PER_DAY : now - b.createdMs;
           cmp = da - db;
           break;
         }
       }
       return sortDir === "asc" ? cmp : -cmp;
-    }).map((item) => {
-      const end        = itemEndDate(item);
-      const status     = itemStatus(item);
+    }).map(({ item, end, status, createdMs, updatedMs, endMs }) => {
       const isOpen     = status === "Open";
       const isClosedPR = item.type === "pr" && !item.mergedAt && !!item.closedAt;
-      const days       = end ? Math.round((new Date(end).getTime() - new Date(item.createdAt).getTime()) / MS_PER_DAY) : null;
-      const age        = Math.floor((now - new Date(item.createdAt).getTime()) / MS_PER_DAY);
-      const staleDays  = Math.floor((now - new Date(item.updatedAt).getTime()) / MS_PER_DAY);
+      const days       = endMs !== null ? Math.round((endMs - createdMs) / MS_PER_DAY) : null;
+      const age        = Math.floor((now - createdMs) / MS_PER_DAY);
+      const staleDays  = Math.floor((now - updatedMs) / MS_PER_DAY);
       return {
         item, end, status, isOpen, days, age, staleDays,
         badgeKey: item.type === "issue" ? "issue" : isClosedPR ? "pr-closed" : "pr",
