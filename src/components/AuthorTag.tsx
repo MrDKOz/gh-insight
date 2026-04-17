@@ -33,13 +33,14 @@ const AuthorTag: FunctionComponent<TagProps> = ({
       rel="noreferrer"
       underline="hover"
       color="inherit"
+      aria-label={showName ? undefined : `View ${login}'s GitHub profile`}
       style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
     >
       <Box
         component="img"
         src={`https://github.com/${login}.png?size=${size * 2}`}
-        alt={showName ? "" : login}
-        aria-hidden={showName ? true : undefined}
+        alt=""
+        aria-hidden="true"
         style={{
           width: size,
           height: size,
