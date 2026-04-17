@@ -61,14 +61,15 @@ const AppHeader: FunctionComponent<Props> = ({ userProfile, onSettingsClick, onS
       {/* Actions */}
       <Stack direction="row" sx={{ alignItems: "center", gap: 0.25 }}>
         <HelpPopover />
-        <IconButton
-          size="small"
-          onClick={onSettingsClick}
-          title="Settings"
-          aria-label="Settings"
-        >
-          <GearIcon />
-        </IconButton>
+        <Tooltip title="Settings">
+          <IconButton
+            size="small"
+            onClick={onSettingsClick}
+            aria-label="Settings"
+          >
+            <GearIcon />
+          </IconButton>
+        </Tooltip>
 
         <Divider orientation="vertical" flexItem sx={{ mx: 1, my: 0.75 }} />
 

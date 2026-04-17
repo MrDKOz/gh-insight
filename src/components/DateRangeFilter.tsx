@@ -3,6 +3,7 @@ import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { FS } from "../utils/displayUtils";
 
@@ -57,9 +58,11 @@ const DateField: FunctionComponent<DateFieldProps> = ({ value, min, max, onChang
       input: {
         endAdornment: value ? (
           <InputAdornment position="end">
-            <IconButton size="small" onClick={onClear} title="Clear date" aria-label="Clear date" sx={{ p: 0.25 }}>
-              <IconX />
-            </IconButton>
+            <Tooltip title="Clear date" disableInteractive>
+              <IconButton size="small" onClick={onClear} aria-label="Clear date" sx={{ p: 0.25 }}>
+                <IconX />
+              </IconButton>
+            </Tooltip>
           </InputAdornment>
         ) : null,
       },
