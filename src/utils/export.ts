@@ -51,6 +51,20 @@ type Row = {
   url: string;
 };
 
+// Shared row-field helpers. Both buildRows and buildReviewWaitRows need the
+// same formatting for milestone kind, joined lists, and PR size — keep the
+// column output in sync by routing both through these.
+const kindLabel = (msKind: Map<number, "milestone" | "epic">, milestoneNumber: number): string =>
+  msKind.get(milestoneNumber) === "epic" ? "Epic" : "Milestone";
+
+const joinOrDash = (xs: string[]): string => xs.join(", ") || "—";
+
+const labelsLabel = (labels: { name: string }[]): string => joinOrDash(labels.map((l) => l.name));
+
+const prSizeLabel = (pr: Extract<TimelineItem, { type: "pr" }>): string => `+${pr.additions} / -${pr.deletions}`;
+
+const draftLabel = (pr: Extract<TimelineItem, { type: "pr" }>): string => (pr.isDraft ? "Draft" : "");
+
 const buildRows = (items: TimelineItem[], milestones: MilestoneMeta[] = []): Row[] => {
   const msKind = new Map(milestones.map((m) => [m.number, m.kind]));
   return [...items]
@@ -68,7 +82,7 @@ const buildRows = (items: TimelineItem[], milestones: MilestoneMeta[] = []): Row
           : item.linkedPRs.length > 0
             ? item.linkedPRs.map((n) => `PR #${n}`).join(", ")
             : "—";
-      const draft = item.type === "pr" && item.isDraft ? "Draft" : "";
+      const draft = item.type === "pr" ? draftLabel(item) : "";
       const reopened = item.type === "issue" && item.reopenedCount > 0 ? String(item.reopenedCount) : "—";
       const reviewState =
         item.type === "pr"
@@ -77,17 +91,15 @@ const buildRows = (items: TimelineItem[], milestones: MilestoneMeta[] = []): Row
           : item.reviewDecision === "REVIEW_REQUIRED" ? "Review Required"
           : "—"
           : "—";
-      const size = item.type === "pr" ? `+${item.additions} / -${item.deletions}` : "—";
-      const rawKind = msKind.get(item.milestoneNumber);
-      const kind = rawKind === "epic" ? "Epic" : "Milestone";
+      const size = item.type === "pr" ? prSizeLabel(item) : "—";
       return {
-        kind,
+        kind: kindLabel(msKind, item.milestoneNumber),
         type: item.type === "issue" ? "Issue" : "PR",
         num: `#${item.number}`,
         title: item.title,
         author: item.author,
-        assignees: item.assignees.join(", ") || "—",
-        labels: item.labels.map((l) => l.name).join(", ") || "—",
+        assignees: joinOrDash(item.assignees),
+        labels: labelsLabel(item.labels),
         status,
         draft,
         reopened,
@@ -603,23 +615,21 @@ const buildReviewWaitRows = (items: TimelineItem[], milestones: MilestoneMeta[] 
       const waitDays = reviewMs !== null ? Math.max(0, Math.round((reviewMs - createdMs) / MS_PER_DAY)) : null;
       const totalDays = endMs !== null ? Math.max(0, Math.round((endMs - createdMs) / MS_PER_DAY)) : null;
       const status = itemStatus(pr);
-      const rawKind = msKind.get(pr.milestoneNumber);
-      const kind = rawKind === "epic" ? "Epic" : "Milestone";
       return {
-        kind,
+        kind: kindLabel(msKind, pr.milestoneNumber),
         num: `#${pr.number}`,
         milestone: msTitle.get(pr.milestoneNumber) ?? String(pr.milestoneNumber),
         title: pr.title,
         author: pr.author,
-        assignees: pr.assignees.join(", ") || "—",
-        labels: pr.labels.map((l) => l.name).join(", ") || "—",
+        assignees: joinOrDash(pr.assignees),
+        labels: labelsLabel(pr.labels),
         status,
-        draft: pr.isDraft ? "Draft" : "",
+        draft: draftLabel(pr),
         created: fmtDate(pr.createdAt, true),
         firstReview: pr.firstReviewAt ? fmtDate(pr.firstReviewAt, true) : "—",
         waitDays: waitDays !== null ? String(waitDays) : "—",
         totalDays: totalDays !== null ? String(totalDays) : "open",
-        size: `+${pr.additions} / -${pr.deletions}`,
+        size: prSizeLabel(pr),
         url: pr.url,
       };
     })
