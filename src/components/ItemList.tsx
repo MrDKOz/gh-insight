@@ -258,6 +258,14 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                     rel="noreferrer"
                     underline="hover"
                     color="text.primary"
+                    // Include stale/reopened state in the link's accessible name so
+                    // keyboard/screen-reader users get that context on focus — the
+                    // indicator Tooltips only fire on mouse hover.
+                    aria-label={[
+                      item.title,
+                      isStale ? `no activity for ${staleDays} days` : null,
+                      item.type === "issue" && item.reopenedCount > 0 ? `reopened ${pluralize(item.reopenedCount, "time")}` : null,
+                    ].filter(Boolean).join(" — ")}
                     sx={{
                       display: "flex",
                       alignItems: "center",
@@ -271,6 +279,7 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                       <Tooltip title={`No activity for ${staleDays} days`} disableInteractive>
                         <Box
                           component="span"
+                          aria-hidden="true"
                           sx={{
                             display: "inline-block",
                             flexShrink: 0,
@@ -285,7 +294,7 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                     )}
                     {item.type === "issue" && item.reopenedCount > 0 && (
                       <Tooltip title={`Reopened ${pluralize(item.reopenedCount, "time")}`} disableInteractive>
-                        <Box component="span" sx={{ color: palette.warning, mr: "4px", fontSize: FS.base, flexShrink: 0 }}>↺</Box>
+                        <Box component="span" aria-hidden="true" sx={{ color: palette.warning, mr: "4px", fontSize: FS.base, flexShrink: 0 }}>↺</Box>
                       </Tooltip>
                     )}
                     <Box component="span" sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
