@@ -136,8 +136,8 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
           break;
         }
         case "days": {
-          const da = a.endMs !== null ? (a.endMs - a.createdMs) / MS_PER_DAY : now - a.createdMs;
-          const db = b.endMs !== null ? (b.endMs - b.createdMs) / MS_PER_DAY : now - b.createdMs;
+          const da = a.endMs !== null ? (a.endMs - a.createdMs) / MS_PER_DAY : (now - a.createdMs) / MS_PER_DAY;
+          const db = b.endMs !== null ? (b.endMs - b.createdMs) / MS_PER_DAY : (now - b.createdMs) / MS_PER_DAY;
           cmp = da - db;
           break;
         }
