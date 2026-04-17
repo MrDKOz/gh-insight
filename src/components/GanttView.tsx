@@ -109,8 +109,9 @@ const GanttView = forwardRef<GanttHandle, Props>(({
       const badgeClass = item.type === "issue"
         ? "tl-badge tl-badge--issue"
         : isClosedPR ? "tl-badge tl-badge--pr-closed" : "tl-badge tl-badge--pr";
-      const isStale  = isOpen && (todayMs - new Date(item.updatedAt).getTime()) > STALE_MS;
-      const staleDays = isStale ? Math.floor((todayMs - new Date(item.updatedAt).getTime()) / MS_PER_DAY) : 0;
+      const msSinceUpdate = todayMs - new Date(item.updatedAt).getTime();
+      const isStale   = isOpen && msSinceUpdate > STALE_MS;
+      const staleDays = isStale ? Math.floor(msSinceUpdate / MS_PER_DAY) : 0;
       const isDraft  = item.type === "pr" && item.isDraft;
 
       const endDate  = isOpen ? null : itemEndDate(item);
