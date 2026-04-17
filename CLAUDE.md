@@ -191,7 +191,7 @@ Every colour must go through the palette system:
 - `body.colorblind` class (toggled in `App.tsx`) drives CSS overrides — add `body.colorblind .your-class` and `body.dark.colorblind .your-class` alongside every new colour in `index.css`
 - Never hardcode a colour without a colorblind-safe alternative in the same diff
 
-### SVG charts (Burndown, CycleTime, Velocity, CumulativeFlow, Contributors)
+### SVG charts (Burndown, CycleTime, Velocity, CumulativeFlow, Contributors, ChartLegend)
 
 - Use `COL.<token>` from `makeChartColors` as hardcoded presentation attributes — `html-to-image` can't resolve CSS custom properties in its cloned document
 - Add a CSS class alongside the `COL` attribute for dark-mode/colorblind runtime overrides
