@@ -93,5 +93,5 @@ src/
 ### Tech stack
 
 - React 19 + TypeScript + Vite
-- MUI v7 with a custom light/dark theme
+- MUI v9 with a custom light/dark theme
 - Vitest + Testing Library for unit tests

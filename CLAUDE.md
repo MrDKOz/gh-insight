@@ -4,7 +4,7 @@
 
 ## Project overview
 
-React 19 + TypeScript + Vite SPA. Fetches GitHub milestone data via the GraphQL API and renders it as a Gantt chart with supporting analytics views. Styled with MUI v7 using a custom light/dark theme.
+React 19 + TypeScript + Vite SPA. Fetches GitHub milestone data via the GraphQL API and renders it as a Gantt chart with supporting analytics views. Styled with MUI v9 using a custom light/dark theme.
 
 | Command | Purpose |
 |---|---|
@@ -88,7 +88,7 @@ Patch releases don't require a `SECURITY.md` update.
 ```
 src/
   api/          GitHub REST + GraphQL calls (no fetch in components)
-  charts/       SVG charts — Burndown, CycleTime, Velocity, CumulativeFlow
+  charts/       SVG charts — Burndown, CycleTime, Velocity, CumulativeFlow, Contributors, ChartLegend
   components/   UI components — GanttView, MilestoneView, FilterBar, AuthorTag, …
   data/         Demo data (relative dates via d(daysAgo, hour) helper)
   hooks/        Custom hooks — useGanttLayout, useSettings, …
@@ -191,7 +191,7 @@ Every colour must go through the palette system:
 - `body.colorblind` class (toggled in `App.tsx`) drives CSS overrides — add `body.colorblind .your-class` and `body.dark.colorblind .your-class` alongside every new colour in `index.css`
 - Never hardcode a colour without a colorblind-safe alternative in the same diff
 
-### SVG charts (Burndown, CycleTime, Velocity, CumulativeFlow)
+### SVG charts (Burndown, CycleTime, Velocity, CumulativeFlow, Contributors)
 
 - Use `COL.<token>` from `makeChartColors` as hardcoded presentation attributes — `html-to-image` can't resolve CSS custom properties in its cloned document
 - Add a CSS class alongside the `COL` attribute for dark-mode/colorblind runtime overrides
