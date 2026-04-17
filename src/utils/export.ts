@@ -1,5 +1,5 @@
 import type { MilestoneMeta, TimelineItem } from "../types/GitHubTypes";
-import { COLORS } from "./colorUtils";
+import { COLORS, COLORS_CB } from "./colorUtils";
 import { MS_PER_DAY, fmtDate } from "./dateUtils";
 import { itemEndDate, itemStatus } from "./displayUtils";
 
@@ -507,14 +507,15 @@ const exportPDF = async (items: TimelineItem[], title: string, milestones: Miles
   doc.save(`${safeFilename(title)}.pdf`);
 };
 
-const exportXLSX = async (items: TimelineItem[], title: string, milestones: MilestoneMeta[] = []): Promise<void> => {
+const exportXLSX = async (items: TimelineItem[], title: string, milestones: MilestoneMeta[] = [], colorblindMode = false): Promise<void> => {
   const { default: writeXlsxFile } = await import("write-excel-file/browser");
 
   const rows = buildRows(items, milestones);
 
+  const palette = colorblindMode ? COLORS_CB : COLORS;
   const HEADER = {
     fontWeight: "bold" as const,
-    backgroundColor: COLORS.issue.toUpperCase(),
+    backgroundColor: palette.issue.toUpperCase(),
     color: "#FFFFFF",
   };
 
@@ -656,10 +657,11 @@ const exportReviewWaitMarkdown = (items: TimelineItem[], title: string, mileston
   triggerBlobDownload(lines.join("\n"), `${safeFilename(title)}_review_wait.md`, "text/markdown;charset=utf-8;");
 };
 
-const exportReviewWaitXLSX = async (items: TimelineItem[], title: string, milestones: MilestoneMeta[] = []): Promise<void> => {
+const exportReviewWaitXLSX = async (items: TimelineItem[], title: string, milestones: MilestoneMeta[] = [], colorblindMode = false): Promise<void> => {
   const { default: writeXlsxFile } = await import("write-excel-file/browser");
   const rows = buildReviewWaitRows(items, milestones);
-  const HEADER = { fontWeight: "bold" as const, backgroundColor: "#0969DA", color: "#FFFFFF" };
+  const palette = colorblindMode ? COLORS_CB : COLORS;
+  const HEADER = { fontWeight: "bold" as const, backgroundColor: palette.issue.toUpperCase(), color: "#FFFFFF" };
   const headerRow = RW_COLS.map((value) => ({ value, ...HEADER }));
   const dataRows = rows.map((r) => [
     { value: r.kind },

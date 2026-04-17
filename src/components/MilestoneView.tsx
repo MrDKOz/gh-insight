@@ -120,6 +120,7 @@ const MilestoneView: FunctionComponent<Props> = ({ items, milestones, highlightW
         title={title}
         wrapperRef={wrapperRef}
         ganttRef={ganttRef}
+        colorblindMode={colorblindMode}
       />
     </Stack>
   );

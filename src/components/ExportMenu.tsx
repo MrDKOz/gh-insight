@@ -33,9 +33,10 @@ type Props = {
   title: string;
   wrapperRef: RefObject<HTMLDivElement | null>;
   ganttRef: RefObject<GanttHandle | null>;
+  colorblindMode: boolean;
 };
 
-const ExportMenu: FunctionComponent<Props> = ({ view, filteredItems, milestones, title, wrapperRef, ganttRef }) => {
+const ExportMenu: FunctionComponent<Props> = ({ view, filteredItems, milestones, title, wrapperRef, ganttRef, colorblindMode }) => {
   const [exportAnchor, setExportAnchor] = useState<HTMLElement | null>(null);
   const [exporting, setExporting] = useState<ExportFormat | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -56,13 +57,13 @@ const ExportMenu: FunctionComponent<Props> = ({ view, filteredItems, milestones,
         if (view === "Review Wait") {
           if      (fmt === "CSV")                { exportReviewWaitCSV(filteredItems, title, milestones); }
           else if (fmt === "Markdown")           { exportReviewWaitMarkdown(filteredItems, title, milestones); }
-          else if (fmt === "XLSX")               { await exportReviewWaitXLSX(filteredItems, title, milestones); }
+          else if (fmt === "XLSX")               { await exportReviewWaitXLSX(filteredItems, title, milestones, colorblindMode); }
           else if (fmt === "PDF")                { await exportReviewWaitPDF(filteredItems, title, milestones); }
           else if (fmt === "PNG — Current view") { await exportPNG(container, ganttRef.current?.trackColEl ?? null, title, "current"); }
         } else if (fmt === "SVG")                { exportSVG(container, title); }
         else if (fmt === "CSV")                  { exportCSV(filteredItems, title, milestones); }
         else if (fmt === "Markdown")             { exportMarkdown(filteredItems, title, milestones); }
-        else if (fmt === "XLSX")                 { await exportXLSX(filteredItems, title, milestones); }
+        else if (fmt === "XLSX")                 { await exportXLSX(filteredItems, title, milestones, colorblindMode); }
         else if (fmt === "PNG — Current view")   { await exportPNG(container, ganttRef.current?.trackColEl ?? null, title, "current"); }
         else if (fmt === "PNG — Full timeline")  { await exportPNG(container, ganttRef.current?.trackColEl ?? null, title, "full"); }
         else if (fmt === "PDF") {
@@ -77,7 +78,7 @@ const ExportMenu: FunctionComponent<Props> = ({ view, filteredItems, milestones,
         setExporting(null);
       }
     },
-    [filteredItems, milestones, title, view, wrapperRef, ganttRef],
+    [filteredItems, milestones, title, view, wrapperRef, ganttRef, colorblindMode],
   );
 
   return (

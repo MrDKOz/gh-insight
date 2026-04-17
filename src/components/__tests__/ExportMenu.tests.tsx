@@ -18,6 +18,7 @@ const defaultProps = {
   title: "Sprint 1",
   wrapperRef: createRef<HTMLDivElement>(),
   ganttRef: createRef<GanttHandle>(),
+  colorblindMode: false,
 } as const;
 
 describe("ExportMenu — format options per view", () => {
