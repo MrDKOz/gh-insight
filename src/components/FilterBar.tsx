@@ -9,6 +9,7 @@ import IconButton from "@mui/material/IconButton";
 import Popover from "@mui/material/Popover";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useCallback, useMemo, useState } from "react";
 import { DEFAULT_FILTERS } from "../types/FilterTypes";
@@ -127,13 +128,14 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
       }}
     >
       {/* ── Date range buttons ─────────────────────────────────────────── */}
-      <Button variant="outlined" size="small"
-        onClick={(e) => setCreatedAnchor(e.currentTarget)}
-        sx={FILTER_BTN_SX(hasCreated)}
-        title={hasCreated ? fmtDateRange(filters.createdStart, filters.createdEnd) : undefined}
-      >
-        {hasCreated ? `Created: ${fmtDateRange(filters.createdStart, filters.createdEnd)}` : "Created"} ▾
-      </Button>
+      <Tooltip title={hasCreated ? fmtDateRange(filters.createdStart, filters.createdEnd) : ""} disableInteractive>
+        <Button variant="outlined" size="small"
+          onClick={(e) => setCreatedAnchor(e.currentTarget)}
+          sx={FILTER_BTN_SX(hasCreated)}
+        >
+          {hasCreated ? `Created: ${fmtDateRange(filters.createdStart, filters.createdEnd)}` : "Created"} ▾
+        </Button>
+      </Tooltip>
       <Popover
         open={Boolean(createdAnchor)}
         anchorEl={createdAnchor}
@@ -158,13 +160,14 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
         )}
       </Popover>
 
-      <Button variant="outlined" size="small"
-        onClick={(e) => setClosedAnchor(e.currentTarget)}
-        sx={FILTER_BTN_SX(hasClosed)}
-        title={hasClosed ? fmtDateRange(filters.closedStart, filters.closedEnd) : undefined}
-      >
-        {hasClosed ? `Closed: ${fmtDateRange(filters.closedStart, filters.closedEnd)}` : "Closed"} ▾
-      </Button>
+      <Tooltip title={hasClosed ? fmtDateRange(filters.closedStart, filters.closedEnd) : ""} disableInteractive>
+        <Button variant="outlined" size="small"
+          onClick={(e) => setClosedAnchor(e.currentTarget)}
+          sx={FILTER_BTN_SX(hasClosed)}
+        >
+          {hasClosed ? `Closed: ${fmtDateRange(filters.closedStart, filters.closedEnd)}` : "Closed"} ▾
+        </Button>
+      </Tooltip>
       <Popover
         open={Boolean(closedAnchor)}
         anchorEl={closedAnchor}
@@ -194,30 +197,34 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
       {/* ── Type toggles ───────────────────────────────────────────────── */}
       <Stack direction="row" sx={{ alignItems: "center", gap: 0.75, flexWrap: "wrap" }}>
         {toggles.map(({ key, label, count, color }) => (
-          <Chip
+          <Tooltip
             key={key}
-            role="button"
-            aria-pressed={Boolean(filters[key])}
-            label={
-              <Stack component="span" direction="row" sx={{ alignItems: "center", gap: 0.5 }}>
-                {label}
-                <Box component="span" sx={{ fontSize: FS.xs, opacity: 0.7 }}>{count}</Box>
-              </Stack>
-            }
-            size="small"
-            onClick={() => patchFilters({ [key]: !filters[key] })}
             title={filters[key] ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
-            sx={{
-              cursor: "pointer",
-              color: filters[key] ? color : "text.secondary",
-              bgcolor: `${color}1a`,
-              border: "1px solid",
-              borderColor: `${color}55`,
-              opacity: filters[key] ? 1 : 0.35,
-              fontWeight: 500,
-              "&:hover": { bgcolor: `${color}2e`, opacity: 1 },
-            }}
-          />
+            disableInteractive
+          >
+            <Chip
+              role="button"
+              aria-pressed={Boolean(filters[key])}
+              label={
+                <Stack component="span" direction="row" sx={{ alignItems: "center", gap: 0.5 }}>
+                  {label}
+                  <Box component="span" sx={{ fontSize: FS.xs, opacity: 0.7 }}>{count}</Box>
+                </Stack>
+              }
+              size="small"
+              onClick={() => patchFilters({ [key]: !filters[key] })}
+              sx={{
+                cursor: "pointer",
+                color: filters[key] ? color : "text.secondary",
+                bgcolor: `${color}1a`,
+                border: "1px solid",
+                borderColor: `${color}55`,
+                opacity: filters[key] ? 1 : 0.35,
+                fontWeight: 500,
+                "&:hover": { bgcolor: `${color}2e`, opacity: 1 },
+              }}
+            />
+          </Tooltip>
         ))}
       </Stack>
 
@@ -397,9 +404,11 @@ const FilterBar: FunctionComponent<Props> = ({ items, filters, counts, onChange,
       ))}
 
       {isActive && (
-        <IconButton size="small" onClick={() => onChange(DEFAULT_FILTERS)} title="Reset all filters" aria-label="Reset all filters" sx={{ ml: "auto" }}>
-          <IconReset />
-        </IconButton>
+        <Tooltip title="Reset all filters" disableInteractive>
+          <IconButton size="small" onClick={() => onChange(DEFAULT_FILTERS)} aria-label="Reset all filters" sx={{ ml: "auto" }}>
+            <IconReset />
+          </IconButton>
+        </Tooltip>
       )}
     </Box>
   );

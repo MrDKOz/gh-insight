@@ -11,6 +11,7 @@ import Stack from "@mui/material/Stack";
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { memo } from "react";
 
@@ -199,17 +200,20 @@ const ContextBar: FunctionComponent<Props> = memo(({
 
       {/* Refresh */}
       {selected.length > 0 && !isDemo && (
-        <Button
-          variant="text"
-          size="small"
-          onClick={onRefresh}
-          disabled={loadingNums.length > 0}
-          title="Refetch data"
-          aria-label="Refresh data"
-          sx={{ flexShrink: 0, color: "text.secondary", minWidth: "auto", px: 0.75 }}
-        >
-          ↻ Refresh
-        </Button>
+        <Tooltip title="Refetch data" disableInteractive>
+          <span>
+            <Button
+              variant="text"
+              size="small"
+              onClick={onRefresh}
+              disabled={loadingNums.length > 0}
+              aria-label="Refresh data"
+              sx={{ flexShrink: 0, color: "text.secondary", minWidth: "auto", px: 0.75 }}
+            >
+              ↻ Refresh
+            </Button>
+          </span>
+        </Tooltip>
       )}
 
       {/* Share / Import — always visible once connected */}

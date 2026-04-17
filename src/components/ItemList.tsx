@@ -10,6 +10,7 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import TableSortLabel from "@mui/material/TableSortLabel";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { memo, useCallback, useMemo, useState } from "react";
 
@@ -264,22 +265,25 @@ const ItemListInner: FunctionComponent<Props> = ({ items, milestones, colorblind
                     }}
                   >
                     {isStale && (
-                      <Box
-                        component="span"
-                        title={`No activity for ${staleDays} days`}
-                        sx={{
-                          display: "inline-block",
-                          flexShrink: 0,
-                          width: 8,
-                          height: 8,
-                          borderRadius: "50%",
-                          bgcolor: palette.warning,
-                          mr: "5px",
-                        }}
-                      />
+                      <Tooltip title={`No activity for ${staleDays} days`} disableInteractive>
+                        <Box
+                          component="span"
+                          sx={{
+                            display: "inline-block",
+                            flexShrink: 0,
+                            width: 8,
+                            height: 8,
+                            borderRadius: "50%",
+                            bgcolor: palette.warning,
+                            mr: "5px",
+                          }}
+                        />
+                      </Tooltip>
                     )}
                     {item.type === "issue" && item.reopenedCount > 0 && (
-                      <Box component="span" title={`Reopened ${pluralize(item.reopenedCount, "time")}`} sx={{ color: palette.warning, mr: "4px", fontSize: FS.base, flexShrink: 0 }}>↺</Box>
+                      <Tooltip title={`Reopened ${pluralize(item.reopenedCount, "time")}`} disableInteractive>
+                        <Box component="span" sx={{ color: palette.warning, mr: "4px", fontSize: FS.base, flexShrink: 0 }}>↺</Box>
+                      </Tooltip>
                     )}
                     <Box component="span" sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {item.title}
