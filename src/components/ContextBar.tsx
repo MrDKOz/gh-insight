@@ -201,7 +201,7 @@ const ContextBar: FunctionComponent<Props> = memo(({
       {/* Refresh */}
       {selected.length > 0 && !isDemo && (
         <Tooltip title="Refetch data" disableInteractive>
-          <span>
+          <Box component="span">
             <Button
               variant="text"
               size="small"
@@ -212,7 +212,7 @@ const ContextBar: FunctionComponent<Props> = memo(({
             >
               ↻ Refresh
             </Button>
-          </span>
+          </Box>
         </Tooltip>
       )}
 
