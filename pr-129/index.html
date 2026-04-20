@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' https://github.com https://avatars.githubusercontent.com data:; connect-src 'self' https://api.github.com https://github.com https://avatars.githubusercontent.com; worker-src blob:; object-src 'none'; base-uri 'self';" />
+    <link rel="icon" type="image/svg+xml" href="/gh-insight/pr-129/favicon.svg" />
+    <link rel="manifest" href="/gh-insight/pr-129/site.webmanifest" />
+    <link rel="canonical" href="https://dkoz.me/gh-insight/" />
+
+    <meta name="description" content="Analyse GitHub milestone progress across seven interactive views — Gantt, Burndown, Cycle Time, Velocity, Cumulative Flow, Contributors, and List. Export to CSV, Excel, PDF, PNG, or Markdown." />
+    <meta name="keywords" content="GitHub, milestone, Gantt chart, burndown chart, cycle time, velocity, cumulative flow, sprint analytics, project management, issues, pull requests, export CSV, export Excel, export PDF, developer dashboard" />
+    <meta name="theme-color" content="#0969da" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://dkoz.me/gh-insight/" />
+    <meta property="og:title" content="GH Insight" />
+    <meta property="og:description" content="Analyse GitHub milestone progress across seven interactive views — Gantt, Burndown, Cycle Time, Velocity, Cumulative Flow, Contributors, and List. Export to CSV, Excel, PDF, PNG, or Markdown." />
+    <meta property="og:image" content="https://dkoz.me/gh-insight/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="GH Insight — milestone dashboard showing Gantt, Burndown, and analytics views" />
+    <meta property="og:site_name" content="GH Insight" />
+
+    <!-- Twitter / X Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://dkoz.me/gh-insight/" />
+    <meta name="twitter:title" content="GH Insight" />
+    <meta name="twitter:description" content="Analyse GitHub milestone progress across seven interactive views — Gantt, Burndown, Cycle Time, Velocity, Cumulative Flow, Contributors, and List. Export to CSV, Excel, PDF, PNG, or Markdown." />
+    <meta name="twitter:image" content="https://dkoz.me/gh-insight/og-image.png" />
+    <meta name="twitter:image:alt" content="GH Insight — milestone dashboard showing Gantt, Burndown, and analytics views" />
+
+    <title>GH Insight</title>
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "GH Insight",
+      "url": "https://dkoz.me/gh-insight/",
+      "description": "A browser-based dashboard for analysing GitHub milestone progress. Connect any public or private repository and explore issues and pull requests across seven interactive views, then export the data in the format you need.",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Any",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "author": {
+        "@type": "Person",
+        "name": "Dan Osborne",
+        "url": "https://github.com/MrDKOz"
+      },
+      "sameAs": "https://github.com/MrDKOz/GHInsight",
+      "featureList": [
+        "Gantt chart — interactive horizontal bar timeline for every issue and PR, with scroll-wheel zoom and resizable labels",
+        "Burndown chart — daily open issue count plotted over the milestone lifetime",
+        "Cycle Time scatter plot — days from creation to close per item, with median and mean reference lines",
+        "Velocity chart — weekly stacked bar chart of closed issues and merged or closed pull requests",
+        "Cumulative Flow diagram — running totals of created vs completed items over time",
+        "Contributors chart — per-author breakdown of issues and pull requests",
+        "List view — sortable table of all items with status, dates, labels, assignees, and duration",
+        "Export to CSV",
+        "Export to Excel (XLSX)",
+        "Export to PDF",
+        "Export to PNG — current view or full Gantt timeline",
+        "Export to Markdown",
+        "Multi-milestone support — load several milestones at once, colour-coded by milestone",
+        "Filters — by type, status, and date range",
+        "Shareable URLs — milestone selection, active view, and filters encoded in the URL",
+        "Colorblind-friendly palette",
+        "Demo mode — no token required",
+        "Desktop app for Windows, macOS, and Linux via Electron"
+      ]
+    }
+    </script>
+    <script type="module" crossorigin src="/gh-insight/pr-129/assets/index-Cpp0RM2r.js" data-cfasync="false"></script>
+    <link rel="modulepreload" crossorigin href="/gh-insight/pr-129/assets/chunk-B3K2TuZy.js">
+    <link rel="modulepreload" crossorigin href="/gh-insight/pr-129/assets/preload-helper-DK7K8tQs.js">
+    <link rel="stylesheet" crossorigin href="/gh-insight/pr-129/assets/index-BE2LSzph.css">
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      <h1>GH Insight</h1>
+      <p>A browser-based dashboard for analysing GitHub milestone progress. Connect any public or private repository and explore issues and pull requests across seven interactive views, then export the data in the format you need.</p>
+
+      <h2>What views are available?</h2>
+      <ul>
+        <li><strong>Gantt</strong> — interactive horizontal bar timeline for every issue and PR, with scroll-wheel zoom and resizable labels</li>
+        <li><strong>Burndown</strong> — daily open issue count plotted over the milestone lifetime</li>
+        <li><strong>Cycle Time</strong> — scatter plot of days from creation to close per item, with median and mean reference lines</li>
+        <li><strong>Velocity</strong> — weekly stacked bar chart of closed issues and merged or closed pull requests</li>
+        <li><strong>Cumulative Flow</strong> — running totals of created vs completed items over time</li>
+        <li><strong>Contributors</strong> — per-author breakdown of issues and pull requests</li>
+        <li><strong>List</strong> — sortable table of all items with status, dates, labels, assignees, and duration</li>
+      </ul>
+
+      <h2>How do I export GitHub milestone data?</h2>
+      <p>Every view supports export. Choose from CSV, Excel (XLSX), Markdown, or PDF for data exports. For visual exports, capture a PNG of the current view or a full-resolution PNG of the entire Gantt timeline.</p>
+
+      <h2>Does it work with private repositories?</h2>
+      <p>Yes. Connect with a fine-grained GitHub Personal Access Token with read-only access to Issues, Pull Requests, Contents, and Metadata. Your token is encrypted locally with AES-GCM (256-bit) using the Web Crypto API and never leaves your browser.</p>
+
+      <h2>Can I view multiple milestones at once?</h2>
+      <p>Yes. Load several milestones from the same repository simultaneously. Items are colour-coded by milestone across all views, making it easy to compare progress across sprints or releases.</p>
+
+      <h2>Is there a desktop app?</h2>
+      <p>Yes. Download the Electron desktop app for Windows, macOS, or Linux from the GitHub Releases page.</p>
+
+      <p><em>JavaScript is required to use this application.</em></p>
+    </noscript>
+  </body>
+</html>
