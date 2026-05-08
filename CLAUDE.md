@@ -280,4 +280,4 @@ Always import from `"write-excel-file/browser"` — v3 removed the root export. 
 
 | Package | Current | Blocker |
 |---|---|---|
-| ESLint | 9.x | `eslint-plugin-import` peer range stops at `^9` — no ESLint 10 support yet |
+| ESLint | 9.x | `eslint-plugin-jsx-a11y@6.10.2` and `eslint-plugin-react@7.37.5` peer ranges stop at `^9` — no ESLint 10 support yet, no usable pre-release. (`eslint-plugin-import` can be swapped for `eslint-plugin-import-x` which supports ESLint 10, but that alone is insufficient.) |
