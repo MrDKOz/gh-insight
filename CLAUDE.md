@@ -280,5 +280,4 @@ Always import from `"write-excel-file/browser"` — v3 removed the root export. 
 
 | Package | Current | Blocker |
 |---|---|---|
-| TypeScript | 5.9.x | TS 6 errors on `moduleResolution: node` in `tsconfig.electron.json` (`node` maps to `node10` internally) — needs migration to `bundler` or `node16` first |
 | ESLint | 9.x | `eslint-plugin-import` peer range stops at `^9` — no ESLint 10 support yet |
