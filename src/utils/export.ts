@@ -573,8 +573,7 @@ const exportXLSX = async (items: TimelineItem[], title: string, milestones: Mile
       { width: 20 },
       { width: 44 },
     ],
-    fileName: `${safeFilename(title)}.xlsx`,
-  });
+  }).toFile(`${safeFilename(title)}.xlsx`);
 };
 
 // ── Review Wait exports ────────────────────────────────────────────────────
@@ -692,8 +691,7 @@ const exportReviewWaitXLSX = async (items: TimelineItem[], title: string, milest
   ]);
   await writeXlsxFile([headerRow, ...dataRows], {
     columns: [{ width: 12 }, { width: 8 }, { width: 20 }, { width: 52 }, { width: 18 }, { width: 20 }, { width: 24 }, { width: 10 }, { width: 10 }, { width: 16 }, { width: 16 }, { width: 14 }, { width: 14 }, { width: 16 }, { width: 44 }],
-    fileName: `${safeFilename(title)}_review_wait.xlsx`,
-  });
+  }).toFile(`${safeFilename(title)}_review_wait.xlsx`);
 };
 
 const exportReviewWaitPDF = async (items: TimelineItem[], title: string, milestones: MilestoneMeta[] = []): Promise<void> => {
