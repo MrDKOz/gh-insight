@@ -6,7 +6,8 @@ Only the latest release is actively maintained. Please update to the current ver
 
 | Version | Supported |
 |---------|-----------|
-| 2.2.x (latest) | Yes |
+| 2.3.x (latest) | Yes |
+| 2.2.x | No |
 | < 2.2 | No |
 
 ## Reporting a vulnerability
