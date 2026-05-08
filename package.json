@@ -37,7 +37,10 @@
   "overrides": {
     "minimatch@3": {
       "brace-expansion": "1.1.13"
-    }
+    },
+    "postcss": "^8.5.10",
+    "ip-address": "^10.1.1",
+    "@xmldom/xmldom": "^0.8.13"
   },
   "build": {
     "appId": "com.redgate.ghinsight",
