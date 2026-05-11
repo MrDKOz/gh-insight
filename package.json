@@ -100,7 +100,7 @@
     "globals": "^17.5.0",
     "jsdom": "^29.0.2",
     "typescript": "^6.0.3",
-    "vite": "^8.0.8",
+    "vite": "^8.0.12",
     "vite-plugin-electron": "^0.29.1",
     "vitest": "^4.1.4"
   }
