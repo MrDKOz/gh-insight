@@ -23,15 +23,24 @@ type GanttLayout = {
   handleSnapModeChange: (mode: "day" | "hour") => void;
 };
 
-const useGanttLayout = (items: TimelineItem[], filteredItems: TimelineItem[]): GanttLayout => {
+const useGanttLayout = (filteredItems: TimelineItem[]): GanttLayout => {
   const [labelWidth, setLabelWidth] = useState(() => {
     const n = Number(localStorage.getItem("gantt_label_width"));
     return Number.isFinite(n) ? Math.max(200, Math.min(800, n)) : 400;
   });
-  const [pixelsPerDay, setPixelsPerDay] = useState(() => {
-    const n = Number(localStorage.getItem("gantt_zoom"));
+  const userZoomRef = useRef(localStorage.getItem("gantt_zoom") !== null);
+  const [pixelsPerDay, _setPixelsPerDay] = useState(() => {
+    const raw = localStorage.getItem("gantt_zoom");
+    if (raw === null) { return 30; }
+    const n = Number(raw);
     return Number.isFinite(n) ? Math.max(4, Math.min(200, n)) : 30;
   });
+  // Public setter — flags the change as user-initiated so it gets persisted and
+  // suppresses auto-fit on future renders. Auto-fit calls `_setPixelsPerDay` directly.
+  const setPixelsPerDay = useCallback((v: number) => {
+    userZoomRef.current = true;
+    _setPixelsPerDay(v);
+  }, []);
   const [axisHeight, setAxisHeight] = useState(36);
   const [snapMode, setSnapMode] = useState<"day" | "hour">(() =>
     new URLSearchParams(window.location.search).get("snap") === "hour" ? "hour" : "day",
@@ -47,13 +56,15 @@ const useGanttLayout = (items: TimelineItem[], filteredItems: TimelineItem[]): G
   useLayoutEffect(() => { labelWidthRef.current = labelWidth; }, [labelWidth]);
 
   useEffect(() => { localStorage.setItem("gantt_label_width", String(labelWidth)); }, [labelWidth]);
-  useEffect(() => { localStorage.setItem("gantt_zoom", String(pixelsPerDay)); }, [pixelsPerDay]);
+  useEffect(() => {
+    if (userZoomRef.current) { localStorage.setItem("gantt_zoom", String(pixelsPerDay)); }
+  }, [pixelsPerDay]);
 
   const handleFitToScreen = useCallback(() => {
     if (!trackColRef.current) { return; }
     const { totalDays } = stateRef.current;
     setPixelsPerDay(Math.max(4, Math.min(200, trackColRef.current.clientWidth / totalDays)));
-  }, []);
+  }, [setPixelsPerDay]);
 
   const handleSnapModeChange = useCallback((mode: "day" | "hour") => {
     setSnapMode(mode);
@@ -104,20 +115,20 @@ const useGanttLayout = (items: TimelineItem[], filteredItems: TimelineItem[]): G
   }, []);
 
   useEffect(() => {
-    // Skip auto-fit when the user has a saved zoom preference — respect their setting.
-    if (localStorage.getItem("gantt_zoom") !== null) { return; }
-    if (!trackColRef.current || items.length === 0) { setPixelsPerDay(30); return; }
-    const allTs = items.flatMap((item) => {
+    // Skip auto-fit once the user has explicitly chosen a zoom.
+    if (userZoomRef.current) { return; }
+    if (!trackColRef.current || filteredItems.length === 0) { return; }
+    const allTs = filteredItems.flatMap((item) => {
       const end = itemEndDate(item);
       return [new Date(item.createdAt).getTime(), ...(end ? [new Date(end).getTime()] : [])];
     });
     const rawMin = Math.min(...allTs);
     const min = new Date(new Date(rawMin).toISOString().slice(0, 10)).getTime();
-    const hasOpen = items.some((item) => !itemEndDate(item));
+    const hasOpen = filteredItems.some((item) => !itemEndDate(item));
     const max = hasOpen ? Math.max(...allTs, Date.now()) : Math.max(...allTs) + 3 * MS_PER_DAY;
     const days = Math.max(1, (max - min) / MS_PER_DAY);
-    setPixelsPerDay(Math.max(4, Math.min(200, trackColRef.current.clientWidth / days)));
-  }, [items]);
+    _setPixelsPerDay(Math.max(4, Math.min(200, trackColRef.current.clientWidth / days)));
+  }, [filteredItems]);
 
   useEffect(() => {
     const trackColElement = trackColRef.current;
@@ -136,7 +147,7 @@ const useGanttLayout = (items: TimelineItem[], filteredItems: TimelineItem[]): G
     };
     trackColElement.addEventListener("wheel", onWheel, { passive: false });
     return () => trackColElement.removeEventListener("wheel", onWheel);
-  }, []);
+  }, [setPixelsPerDay]);
 
   useEffect(() => {
     if (pendingScrollRef.current !== null && trackColRef.current) {

@@ -65,7 +65,7 @@ const GanttView = forwardRef<GanttHandle, Props>(({
     handleResizeStart: onResizeStart,
     handleResizeKeyDown: onResizeKeyDown,
     handleSnapModeChange: onSnapModeChange,
-  } = useGanttLayout(items, filteredItems);
+  } = useGanttLayout(filteredItems);
 
   const isMultiMilestone = milestones.length > 1;
   const milestoneColorMap = useMemo(() => new Map(milestones.map((m) => [m.number, m.color])), [milestones]);
