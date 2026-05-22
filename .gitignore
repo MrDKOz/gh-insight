@@ -6,7 +6,8 @@ coverage/
 .env
 .env.local
 *.local
-.claude/
+.claude/*
+!.claude/skills/
 .idea/
 inspection-out/
 *.sarif.json
