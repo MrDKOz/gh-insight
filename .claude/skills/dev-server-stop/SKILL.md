@@ -11,19 +11,35 @@ Stops the running Vite dev server.
 
 1. **If you started it this session** with a known background task ID, use `TaskStop` with that ID. This kills the `npm` wrapper but often leaves the underlying Vite/node process listening — always continue to step 2.
 
-2. **Find and kill the Vite listener.** Vite runs as a Node process listening on port 5173 (or the next free port). On Windows:
+2. **Find and kill the Vite listener.** Vite runs as a Node process listening on port 5173 (or the next free port). Use the command for the current platform — substitute the port if the user reported a different one.
+
+   **Windows (PowerShell):**
    ```powershell
    Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue |
      Select-Object -ExpandProperty OwningProcess -Unique |
      ForEach-Object { Stop-Process -Id $_ -Force }
    ```
-   Filter on `-State Listen` so transient client sockets (TimeWait, FinWait) don't get treated as the server. If the user reported a different port, substitute it.
+   `-State Listen` filters out transient client sockets (TimeWait, FinWait).
 
-3. **Verify** the port is free:
+   **macOS / Linux (Bash):**
+   ```bash
+   lsof -ti tcp:5173 -sTCP:LISTEN | xargs -r kill -9
+   ```
+   `-sTCP:LISTEN` ensures only the server socket is targeted, not transient client connections.
+
+3. **Verify** the port is free.
+
+   **Windows:**
    ```powershell
    Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue
    ```
-   No matches = stopped. Note: `Get-NetTCPConnection` exits with code 1 when nothing matches — that's success here, not failure. Check for empty output, not exit code.
+   Check for empty output, not exit code — `Get-NetTCPConnection` reports a non-zero exit when nothing matches.
+
+   **macOS / Linux:**
+   ```bash
+   lsof -ti tcp:5173 -sTCP:LISTEN
+   ```
+   No output = stopped.
 
 ## Notes
 

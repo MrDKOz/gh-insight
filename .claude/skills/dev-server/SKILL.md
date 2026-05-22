@@ -27,6 +27,6 @@ Starts the Vite dev server (`npm run dev`) and waits for it to report ready.
 
 ## Notes
 
-- The dev server runs Vite directly — no Electron mode. For Electron, use `npm run dev:electron` instead (different command, different entry point).
+- The dev server runs Vite directly — no Electron mode. For Electron, use `npm run electron:dev` instead (different command, different entry point).
 - If port 5173 is busy, Vite picks the next free port and prints it in the same `Local:` line — surface whatever URL Vite reports, don't hardcode.
 - Do not run `npm run build` or `npm test` as part of this skill — only `dev`.
